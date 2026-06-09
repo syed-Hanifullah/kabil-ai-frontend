@@ -40,6 +40,7 @@ import {
   bandColor,
   authenticityLabel,
   scoreBand,
+  toScore,
   timeAgo,
 } from "@/lib/kabil/constants";
 
@@ -457,7 +458,9 @@ const CandidateDialog = ({ appId, open, onClose }) => {
                     No scores computed yet.
                   </Typography>
                 )}
-                {asArray(app.scores).map((s, i) => (
+                {asArray(app.scores).map((s, i) => {
+                  const value = toScore(s.value);
+                  return (
                   <Box key={s.id || `${s.score_type}-${i}`}>
                     <Stack direction="row" justifyContent="space-between" alignItems="center">
                       <Typography variant="body2" fontWeight={600}>
@@ -465,14 +468,14 @@ const CandidateDialog = ({ appId, open, onClose }) => {
                       </Typography>
                       <Chip
                         size="small"
-                        label={`${Math.round(s.value)}`}
+                        label={value != null ? `${Math.round(value)}` : "—"}
                         color={scoreColor(s.value)}
                         sx={{ fontWeight: 700 }}
                       />
                     </Stack>
                     <LinearProgress
                       variant="determinate"
-                      value={Math.min(100, Math.max(0, s.value))}
+                      value={value != null ? Math.min(100, Math.max(0, value)) : 0}
                       color={scoreColor(s.value)}
                       sx={{ mt: 0.75, height: 6, borderRadius: 3 }}
                     />
@@ -506,7 +509,8 @@ const CandidateDialog = ({ appId, open, onClose }) => {
                       </Accordion>
                     )}
                   </Box>
-                ))}
+                  );
+                })}
               </Stack>
             </Section>
 

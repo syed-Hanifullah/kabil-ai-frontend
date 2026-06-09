@@ -8,7 +8,7 @@ import Chip from "@mui/material/Chip";
 import Avatar from "@mui/material/Avatar";
 import Typography from "@mui/material/Typography";
 import LinearProgress from "@mui/material/LinearProgress";
-import { humanize, statusColor, scoreBand, timeAgo } from "@/lib/kabil/constants";
+import { humanize, statusColor, scoreBand, toScore, timeAgo } from "@/lib/kabil/constants";
 
 const initials = (name) =>
   (name || "?")
@@ -19,8 +19,10 @@ const initials = (name) =>
     .join("");
 
 /** Best score available for the candidate at their current stage. */
-const bestScore = (app) =>
-  app.hard_filter_score != null ? app.hard_filter_score : app.similarity_score;
+const bestScore = (app) => {
+  const hard = toScore(app.hard_filter_score);
+  return hard != null ? hard : toScore(app.similarity_score);
+};
 
 /** Solid + soft tint per MUI palette tone, for inline chip/badge styling. */
 const TONE = {

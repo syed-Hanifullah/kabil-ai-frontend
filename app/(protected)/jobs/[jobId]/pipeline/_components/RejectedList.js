@@ -10,7 +10,7 @@ import Button from "@mui/material/Button";
 import Divider from "@mui/material/Divider";
 import Typography from "@mui/material/Typography";
 import ReplayIcon from "@mui/icons-material/Replay";
-import { humanize, scoreBand, timeAgo } from "@/lib/kabil/constants";
+import { humanize, scoreBand, toScore, timeAgo } from "@/lib/kabil/constants";
 
 const initials = (name) =>
   (name || "?")
@@ -20,8 +20,10 @@ const initials = (name) =>
     .map((p) => p[0]?.toUpperCase())
     .join("");
 
-const bestScore = (app) =>
-  app.hard_filter_score != null ? app.hard_filter_score : app.similarity_score;
+const bestScore = (app) => {
+  const hard = toScore(app.hard_filter_score);
+  return hard != null ? hard : toScore(app.similarity_score);
+};
 
 const RejectedCard = ({ app, jobTitle, onOpen, onReactivate, busy }) => {
   const score = bestScore(app);
