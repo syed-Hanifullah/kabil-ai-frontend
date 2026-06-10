@@ -295,8 +295,13 @@ const DialogSkeleton = () => (
   </Stack>
 );
 
-/** Modal with the full application + candidate record and pipeline actions. */
-const CandidateDialog = ({ appId, open, onClose }) => {
+/**
+ * Modal with the full application + candidate record and pipeline actions.
+ * Pass `readOnly` (e.g. when viewing a pooled candidate) to hide the pipeline
+ * controls — "Add to talent pool", WhatsApp chat, and the stage/reject section —
+ * leaving a clean profile view.
+ */
+const CandidateDialog = ({ appId, open, onClose, readOnly = false }) => {
   const [reason, setReason] = useState("");
   const [waOpen, setWaOpen] = useState(false);
   const { data: app, isLoading, isError, error } = useApplication(appId, { poll: true });
@@ -413,6 +418,7 @@ const CandidateDialog = ({ appId, open, onClose }) => {
                 Applied {timeAgo(app.created_at)} · stage updated {timeAgo(app.stage_updated_at)}
               </Typography>
 
+              {!readOnly && (
               <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", rowGap: 1, mt: 1.5 }}>
                 <Button
                   variant={pooled ? "contained" : "outlined"}
@@ -440,10 +446,12 @@ const CandidateDialog = ({ appId, open, onClose }) => {
                   </Button>
                 )}
               </Stack>
-              {addToPool.isError && <ErrorAlert error={addToPool.error} sx={{ mt: 1 }} />}
+              )}
+              {!readOnly && addToPool.isError && <ErrorAlert error={addToPool.error} sx={{ mt: 1 }} />}
             </Box>
 
             {/* Actions */}
+            {!readOnly && (
             <Section title="Move candidate">
               {app.rejection_reason && (
                 <Typography variant="body2" color="error.main" sx={{ mb: 1.5 }}>
@@ -502,6 +510,7 @@ const CandidateDialog = ({ appId, open, onClose }) => {
                 <ErrorAlert error={updateStage.error || updateStatus.error} sx={{ mt: 1.5 }} />
               )}
             </Section>
+            )}
 
             {/* Scores */}
             <Section title="Scores">

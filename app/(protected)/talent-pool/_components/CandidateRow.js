@@ -33,10 +33,10 @@ const Meta = ({ icon, children }) =>
 
 /**
  * One pooled candidate. `entry.candidate` is the snapshot; `entry.similarity_score`
- * (search hits only) drives the match chip. The pool stores no profile page, so the
- * primary action is sourcing them onto a job.
+ * (search hits only) drives the match chip. Clicking the row opens the candidate's
+ * full profile; the row also carries a direct "Source to job" action.
  */
-const CandidateRow = ({ entry, onSource }) => {
+const CandidateRow = ({ entry, onOpen, onSource }) => {
   const c = entry.candidate || {};
   const score = toScore(entry.similarity_score);
 
@@ -44,10 +44,27 @@ const CandidateRow = ({ entry, onSource }) => {
     <Stack
       direction={{ xs: "column", sm: "row" }}
       spacing={1.5}
+      role="button"
+      tabIndex={0}
+      onClick={() => onOpen(entry)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onOpen(entry);
+        }
+      }}
       sx={{
         alignItems: { xs: "flex-start", sm: "center" },
         px: { xs: 2, sm: 2.5 },
         py: 1.75,
+        cursor: "pointer",
+        transition: "background-color 120ms",
+        "&:hover": { bgcolor: "#f6faf7" },
+        "&:focus-visible": {
+          outline: "2px solid",
+          outlineColor: "primary.main",
+          outlineOffset: -2,
+        },
         "&:not(:last-of-type)": { borderBottom: "1px solid #eef1ef" },
       }}
     >
@@ -100,7 +117,10 @@ const CandidateRow = ({ entry, onSource }) => {
           variant="outlined"
           size="small"
           startIcon={<SendOutlinedIcon />}
-          onClick={() => onSource(entry)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onSource(entry);
+          }}
         >
           Source to job
         </Button>

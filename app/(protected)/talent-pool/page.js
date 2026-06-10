@@ -22,6 +22,7 @@ import SearchField from "@/components/SearchField";
 import CandidateRow from "./_components/CandidateRow";
 import SourceToJobDialog from "./_components/SourceToJobDialog";
 import UploadToPoolDialog from "./_components/UploadToPoolDialog";
+import ViewCandidateDialog from "./_components/ViewCandidateDialog";
 import { useTalentPool, useTalentPoolSearch } from "@/lib/kabil/queries";
 import {
   PAGE_SIZE,
@@ -62,6 +63,7 @@ const TalentPoolPage = () => {
   const [activeOnly, setActiveOnly] = useState(true);
   const [page, setPage] = useState(1);
   const [sourceTarget, setSourceTarget] = useState(null);
+  const [viewTarget, setViewTarget] = useState(null);
   const [uploadOpen, setUploadOpen] = useState(false);
 
   // Debounce the raw input into the value we actually query with.
@@ -205,6 +207,7 @@ const TalentPoolPage = () => {
               <CandidateRow
                 key={entry.entry_id || entry.id}
                 entry={entry}
+                onOpen={(e) => setViewTarget(e)}
                 onSource={(e) => setSourceTarget(e.candidate)}
               />
             ))}
@@ -223,6 +226,11 @@ const TalentPoolPage = () => {
         </Stack>
       )}
 
+      <ViewCandidateDialog
+        entry={viewTarget}
+        open={!!viewTarget}
+        onClose={() => setViewTarget(null)}
+      />
       <SourceToJobDialog
         candidate={sourceTarget}
         open={!!sourceTarget}
