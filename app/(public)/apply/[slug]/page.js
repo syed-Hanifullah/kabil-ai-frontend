@@ -96,7 +96,7 @@ const CvDropzone = ({ file, error, disabled, onPick, onClear }) => {
       >
         <DescriptionOutlinedIcon color="primary" />
         <Box sx={{ minWidth: 0, flexGrow: 1 }}>
-          <Typography variant="body2" fontWeight={600} noWrap title={file.name}>
+          <Typography variant="body2" noWrap title={file.name} sx={{ fontWeight: 600 }}>
             {file.name}
           </Typography>
           <Typography variant="caption" color="text.secondary">
@@ -140,7 +140,7 @@ const CvDropzone = ({ file, error, disabled, onPick, onClear }) => {
       }}
     >
       <CloudUploadOutlinedIcon sx={{ fontSize: 36, color: "primary.main", mb: 1 }} />
-      <Typography variant="body2" fontWeight={600}>
+      <Typography variant="body2" sx={{ fontWeight: 600 }}>
         Drag &amp; drop your CV here
       </Typography>
       <Typography variant="caption" color="text.secondary">
@@ -164,7 +164,7 @@ const CvDropzone = ({ file, error, disabled, onPick, onClear }) => {
 /* ── Job details panel ────────────────────────────────────────────────────── */
 
 const Detail = ({ icon, children }) => (
-  <Stack direction="row" spacing={0.75} alignItems="center" sx={{ color: "text.secondary" }}>
+  <Stack direction="row" spacing={0.75} sx={{ color: "text.secondary", alignItems: "center" }}>
     {icon}
     <Typography variant="body2">{children}</Typography>
   </Stack>
@@ -184,15 +184,15 @@ const JobSummary = ({ job }) => {
   return (
     <Stack spacing={2}>
       <Box>
-        <Typography variant="h5" fontWeight={700}>
+        <Typography variant="h5" sx={{ fontWeight: 700 }}>
           {job.title}
         </Typography>
-        <Typography color="text.secondary" mt={0.5}>
+        <Typography color="text.secondary" sx={{ mt: 0.5 }}>
           {job.hiring_company}
         </Typography>
       </Box>
 
-      <Stack direction="row" flexWrap="wrap" rowGap={1} columnGap={2.5}>
+      <Stack direction="row" sx={{ flexWrap: "wrap", rowGap: 1, columnGap: 2.5 }}>
         <Detail icon={<PlaceOutlinedIcon sx={{ fontSize: 18 }} />}>
           {[job.city, countryLabel(job.country)].filter(Boolean).join(", ")}
         </Detail>
@@ -362,7 +362,7 @@ const ApplyPage = ({ params }) => {
       <Shell>
         <Card sx={{ borderRadius: 3 }}>
           <CardContent sx={{ p: { xs: 3, md: 5 }, textAlign: "center" }}>
-            <Typography variant="h5" fontWeight={700} gutterBottom>
+            <Typography variant="h5" gutterBottom sx={{ fontWeight: 700 }}>
               {gone ? "Applications closed" : "Posting unavailable"}
             </Typography>
             <Typography color="text.secondary">
@@ -382,7 +382,7 @@ const ApplyPage = ({ params }) => {
         <Card sx={{ borderRadius: 3 }}>
           <CardContent sx={{ p: { xs: 3, md: 5 }, textAlign: "center" }}>
             <CheckCircleOutlineIcon sx={{ fontSize: 56, color: "success.main", mb: 1 }} />
-            <Typography variant="h5" fontWeight={700} gutterBottom>
+            <Typography variant="h5" gutterBottom sx={{ fontWeight: 700 }}>
               {reference ? "Application received" : "You've already applied"}
             </Typography>
             <Typography color="text.secondary">
@@ -402,10 +402,10 @@ const ApplyPage = ({ params }) => {
                   border: "1px solid #e0e6e2",
                 }}
               >
-                <Typography variant="caption" color="text.secondary" display="block">
+                <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
                   Reference number
                 </Typography>
-                <Typography variant="body2" fontWeight={700} sx={{ fontFamily: "var(--font-mono)" }}>
+                <Typography variant="body2" sx={{ fontFamily: "var(--font-mono)", fontWeight: 700 }}>
                   {reference}
                 </Typography>
               </Box>
@@ -428,7 +428,7 @@ const ApplyPage = ({ params }) => {
 
           <Divider sx={{ my: 3 }} />
 
-          <Typography variant="h6" fontWeight={700} gutterBottom>
+          <Typography variant="h6" gutterBottom sx={{ fontWeight: 700 }}>
             Apply for this role
           </Typography>
 

@@ -26,7 +26,6 @@ import ErrorAlert from "@/components/ErrorAlert";
 import { useJob, useUpdateJobStatus } from "@/lib/kabil/queries";
 import { humanize, jobStatusColor } from "@/lib/kabil/constants";
 import { countryLabel } from "@/lib/kabil/jobOptions";
-import { BASE_URL } from "@/lib/api/client";
 
 const formatDateTime = (iso) =>
   iso ? new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : "—";
@@ -41,7 +40,7 @@ const formatSalary = (min, max, currency) => {
 /** One label/value pair inside a detail card. */
 const DetailRow = ({ label, children }) => (
   <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "200px 1fr" }, gap: { xs: 0.25, sm: 2 }, py: 1 }}>
-    <Typography variant="body2" color="text.secondary" fontWeight={600}>
+    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
       {label}
     </Typography>
     <Box>{typeof children === "string" || typeof children === "number" ? (
@@ -55,8 +54,11 @@ const DetailRow = ({ label, children }) => (
 const Section = ({ title, children, action }) => (
   <Card sx={{ borderRadius: 2 }}>
     <CardContent sx={{ p: { xs: 2.5, sm: 3 } }}>
-      <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1.5}>
-        <Typography variant="h6" fontWeight={700}>
+      <Stack
+        direction="row"
+        sx={{ alignItems: "center", justifyContent: "space-between", mb: 1.5 }}
+      >
+        <Typography variant="h6" sx={{ fontWeight: 700 }}>
           {title}
         </Typography>
         {action}
@@ -69,7 +71,7 @@ const Section = ({ title, children, action }) => (
 
 const ChipList = ({ items, color = "default", empty = "None" }) =>
   items && items.length ? (
-    <Stack direction="row" flexWrap="wrap" gap={1}>
+    <Stack direction="row" sx={{ flexWrap: "wrap", gap: 1 }}>
       {items.map((it) => (
         <Chip
           key={it}
@@ -125,7 +127,10 @@ const ViewJobPage = ({ params }) => {
 
   const isOpen = job.status === "open";
   const toggleStatus = () => updateStatus.mutate(isOpen ? "closed" : "open");
-  const publicUrl = `${BASE_URL}/apply/${job.public_slug}`;
+  const publicUrl =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/apply/${job.public_slug}`
+      : `/apply/${job.public_slug}`;
 
   return (
     <Stack spacing={2.5}>
@@ -136,13 +141,19 @@ const ViewJobPage = ({ params }) => {
         <CardContent sx={{ p: { xs: 2.5, sm: 3 } }}>
           <Stack
             direction={{ xs: "column", md: "row" }}
-            justifyContent="space-between"
-            alignItems={{ xs: "flex-start", md: "center" }}
             spacing={2}
+            sx={{
+              justifyContent: "space-between",
+              alignItems: { xs: "flex-start", md: "center" },
+            }}
           >
             <Box>
-              <Stack direction="row" alignItems="center" spacing={1.5} flexWrap="wrap">
-                <Typography variant="h5" fontWeight={700}>
+              <Stack
+                direction="row"
+                spacing={1.5}
+                sx={{ alignItems: "center", flexWrap: "wrap" }}
+              >
+                <Typography variant="h5" sx={{ fontWeight: 700 }}>
                   {job.title}
                 </Typography>
                 <Chip
@@ -152,12 +163,12 @@ const ViewJobPage = ({ params }) => {
                   sx={{ fontWeight: 600 }}
                 />
               </Stack>
-              <Typography color="text.secondary" mt={0.5}>
+              <Typography color="text.secondary" sx={{ mt: 0.5 }}>
                 {job.hiring_company} · {job.city}, {countryLabel(job.country)}
               </Typography>
             </Box>
 
-            <Stack direction="row" spacing={1} flexShrink={0}>
+            <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
               <Button
                 component={Link}
                 href={`/jobs/${job.id}/pipeline`}
@@ -232,7 +243,7 @@ const ViewJobPage = ({ params }) => {
         }}
       >
         <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ px: { xs: 2.5, sm: 3 } }}>
-          <Typography variant="h6" fontWeight={700}>
+          <Typography variant="h6" sx={{ fontWeight: 700 }}>
             Job description
           </Typography>
         </AccordionSummary>
@@ -255,7 +266,7 @@ const ViewJobPage = ({ params }) => {
         </DetailRow>
         {Object.keys(job.pipeline_status || {}).length > 0 && (
           <DetailRow label="Pipeline steps">
-            <Stack direction="row" flexWrap="wrap" gap={1}>
+            <Stack direction="row" sx={{ flexWrap: "wrap", gap: 1 }}>
               {Object.entries(job.pipeline_status).map(([step, state]) => (
                 <Chip
                   key={step}
@@ -304,14 +315,18 @@ const ViewJobPage = ({ params }) => {
               .sort((a, b) => a.order - b.order)
               .map((q) => (
                 <Box key={q.id}>
-                  <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" mb={0.5}>
+                  <Stack
+                    direction="row"
+                    spacing={1}
+                    sx={{ alignItems: "center", flexWrap: "wrap", mb: 0.5 }}
+                  >
                     <Chip size="small" label={`#${q.order}`} />
                     <Chip size="small" variant="outlined" label={humanize(q.category)} />
                     {q.is_ai_generated && (
                       <Chip size="small" color="secondary" label="✨ AI" sx={{ fontWeight: 600 }} />
                     )}
                   </Stack>
-                  <Typography variant="body2" fontWeight={600}>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
                     {q.question_en}
                   </Typography>
                   {q.question_ar && (

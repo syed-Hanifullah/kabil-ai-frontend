@@ -60,9 +60,9 @@ const SummaryStrip = ({ counts, applied }) => (
     }}
   >
     {PIPELINE_COLUMNS.map((col, i) => (
-      <Stack key={col.stage} direction="row" spacing={0.5} alignItems="center">
+      <Stack key={col.stage} direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
         {i > 0 && (
-          <Stack direction="row" alignItems="center" sx={{ color: "text.disabled" }}>
+          <Stack direction="row" sx={{ alignItems: "center", color: "text.disabled" }}>
             <ArrowRightAltIcon sx={{ fontSize: 18 }} />
             <Typography variant="caption">{pctOf(counts[col.stage], applied)}%</Typography>
           </Stack>
@@ -231,7 +231,7 @@ const PipelinePage = ({ params }) => {
         >
           {job?.title ?? "Job"}
         </MuiLink>
-        <Typography variant="body2" color="text.primary" fontWeight={600}>
+        <Typography variant="body2" color="text.primary" sx={{ fontWeight: 600 }}>
           Pipeline
         </Typography>
       </Breadcrumbs>
@@ -246,17 +246,16 @@ const PipelinePage = ({ params }) => {
               {/* Title + actions pinned to the far right */}
               <Stack
                 direction="row"
-                justifyContent="space-between"
-                alignItems="flex-start"
                 spacing={2}
+                sx={{ justifyContent: "space-between", alignItems: "flex-start" }}
               >
                 <Box sx={{ minWidth: 0, flexGrow: 1 }}>
-                  <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap">
-                    <Typography variant="h5" fontWeight={700}>
+                  <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }}>
+                    <Typography variant="h5" sx={{ fontWeight: 700 }}>
                       {job?.title ?? "Pipeline"}
                     </Typography>
                     {job && (
-                      <Stack direction="row" alignItems="center" spacing={0.5}>
+                      <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
                         <CircleIcon
                           sx={{
                             fontSize: 10,
@@ -270,7 +269,7 @@ const PipelinePage = ({ params }) => {
                     )}
                   </Stack>
                   {job && (
-                    <Typography color="text.secondary" mt={0.5}>
+                    <Typography color="text.secondary" sx={{ mt: 0.5 }}>
                       {job.hiring_company} · {job.city}, {countryLabel(job.country)} · {total}{" "}
                       applicant{total === 1 ? "" : "s"}
                     </Typography>
@@ -295,7 +294,7 @@ const PipelinePage = ({ params }) => {
               <Stack
                 direction={{ xs: "column", md: "row" }}
                 spacing={1.5}
-                alignItems={{ xs: "stretch", md: "center" }}
+                sx={{ alignItems: { xs: "stretch", md: "center" } }}
               >
                 <TextField
                   size="small"
@@ -329,7 +328,7 @@ const PipelinePage = ({ params }) => {
             value="accepted"
             sx={{ textTransform: "none", minHeight: 44 }}
             label={
-              <Stack direction="row" spacing={1} alignItems="center">
+              <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
                 <span>Accepted</span>
                 <Chip size="small" label={acceptedItems.length} sx={{ height: 20, fontWeight: 700 }} />
               </Stack>
@@ -339,7 +338,7 @@ const PipelinePage = ({ params }) => {
             value="rejected"
             sx={{ textTransform: "none", minHeight: 44 }}
             label={
-              <Stack direction="row" spacing={1} alignItems="center">
+              <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
                 <span>Rejected</span>
                 <Chip
                   size="small"

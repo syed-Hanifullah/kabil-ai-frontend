@@ -61,7 +61,7 @@ const FlowBanner = () => (
       py: 1.5,
     }}
   >
-    <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" rowGap={1}>
+    <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap", rowGap: 1 }}>
       {CV_INBOX_STEPS.map((step, i) => (
         <Fragment key={step.n}>
           <StepChip step={step} />
@@ -78,7 +78,7 @@ const FlowBanner = () => (
 );
 
 const FieldLabel = ({ children, required }) => (
-  <Typography variant="body2" fontWeight={600} sx={{ mb: 0.75 }}>
+  <Typography variant="body2" sx={{ mb: 0.75, fontWeight: 600 }}>
     {children}
     {required && (
       <Box component="span" sx={{ color: "error.main" }}>
@@ -158,7 +158,7 @@ const ResultSummary = ({ result, jobId, onReset }) => {
         )}
         {rejected.length > 0 && (
           <Box>
-            <Typography variant="body2" fontWeight={600}>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>
               {rejected.length} file{rejected.length === 1 ? "" : "s"} skipped:
             </Typography>
             <Box component="ul" sx={{ m: 0, pl: 2.5 }}>
@@ -235,10 +235,10 @@ const CvInboxPage = () => {
   return (
     <Stack spacing={2.5} sx={{ maxWidth: 960, mx: "auto" }}>
       <Box>
-        <Typography variant="h5" fontWeight={700}>
+        <Typography variant="h5" sx={{ fontWeight: 700 }}>
           CV Inbox
         </Typography>
-        <Typography variant="body2" color="text.secondary" mt={0.5}>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
           Upload CVs from any source. AI parses each one and routes them to the
           matched job pipeline.
         </Typography>
@@ -253,7 +253,7 @@ const CvInboxPage = () => {
       ) : (
         <Card>
           <CardContent sx={{ p: { xs: 2.5, sm: 3 } }}>
-            <Typography variant="h6" fontWeight={700} mb={2}>
+            <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
               Upload CVs
             </Typography>
 
@@ -360,7 +360,7 @@ const CvInboxPage = () => {
                   }
                   label={
                     <Typography variant="body2">
-                      <Box component="span" fontWeight={700} color="primary.main">
+                      <Box component="span" sx={{ fontWeight: 700, color: "primary.main" }}>
                         {PDPL_CONSENT_LABEL}
                       </Box>{" "}
                       — {PDPL_CONSENT_TEXT}

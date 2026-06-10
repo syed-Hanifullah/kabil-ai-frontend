@@ -31,20 +31,20 @@ const RejectedCard = ({ app, jobTitle, onOpen, onReactivate, busy }) => {
   return (
     <Card variant="outlined" sx={{ borderRadius: 2, borderColor: "#ecdcdc", display: "flex", flexDirection: "column" }}>
       <CardActionArea onClick={() => onOpen(app.id)} sx={{ p: 1.75, flexGrow: 1, alignItems: "stretch" }}>
-        <Stack direction="row" spacing={1.25} alignItems="flex-start">
+        <Stack direction="row" spacing={1.25} sx={{ alignItems: "flex-start" }}>
           <Avatar sx={{ width: 38, height: 38, bgcolor: "#b9c2bd", fontSize: 13 }}>
             {initials(app.candidate_full_name)}
           </Avatar>
           <Box sx={{ minWidth: 0, flexGrow: 1 }}>
-            <Typography variant="body2" fontWeight={700} noWrap title={app.candidate_full_name}>
+            <Typography variant="body2" noWrap title={app.candidate_full_name} sx={{ fontWeight: 700 }}>
               {app.candidate_full_name}
             </Typography>
-            <Typography variant="caption" color="text.secondary" noWrap display="block">
+            <Typography variant="caption" color="text.secondary" noWrap sx={{ display: "block" }}>
               {app.candidate_email || jobTitle}
             </Typography>
           </Box>
           {score != null && (
-            <Typography variant="subtitle2" fontWeight={800} color="text.secondary">
+            <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 800 }}>
               {Math.round(score)}
             </Typography>
           )}
@@ -58,12 +58,12 @@ const RejectedCard = ({ app, jobTitle, onOpen, onReactivate, busy }) => {
         </Box>
 
         {app.rejection_reason && (
-          <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1.25, fontStyle: "italic" }}>
+          <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1.25, fontStyle: "italic" }}>
             “{app.rejection_reason}”
           </Typography>
         )}
 
-        <Typography variant="caption" color="text.disabled" display="block" mt={1.25}>
+        <Typography variant="caption" color="text.disabled" sx={{ display: "block", mt: 1.25 }}>
           Rejected {timeAgo(app.stage_updated_at || app.created_at)}
         </Typography>
       </CardActionArea>

@@ -57,8 +57,7 @@ const Sidebar = () => {
       <Stack
         direction="row"
         spacing={1.5}
-        alignItems="center"
-        sx={{ px: 2.5, py: 2.5 }}
+        sx={{ px: 2.5, py: 2.5, alignItems: "center" }}
       >
         <Box
           sx={{
@@ -76,7 +75,7 @@ const Sidebar = () => {
           K
         </Box>
         <Box>
-          <Typography variant="subtitle1" fontWeight={800} color="#fff" lineHeight={1.1}>
+          <Typography variant="subtitle1" color="#fff" sx={{ fontWeight: 800, lineHeight: 1.1 }}>
             Kabil.ai
           </Typography>
           <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.55)" }}>
@@ -116,7 +115,7 @@ const Sidebar = () => {
               </ListItemIcon>
               <ListItemText
                 primary={label}
-                primaryTypographyProps={{ fontSize: 14, fontWeight: active ? 700 : 500 }}
+                slotProps={{ primary: { sx: { fontSize: 14, fontWeight: active ? 700 : 500 } } }}
               />
             </ListItemButton>
           );
@@ -153,7 +152,7 @@ const Sidebar = () => {
             </ListItemIcon>
             <ListItemText
               primary={label}
-              primaryTypographyProps={{ fontSize: 14, color: "rgba(255,255,255,0.7)" }}
+              slotProps={{ primary: { sx: { fontSize: 14, color: "rgba(255,255,255,0.7)" } } }}
             />
             <LockOutlinedIcon sx={{ fontSize: 16, color: "rgba(255,255,255,0.5)" }} />
           </ListItemButton>
@@ -175,16 +174,16 @@ const Sidebar = () => {
           </ListItemIcon>
           <ListItemText
             primary="Settings"
-            primaryTypographyProps={{ fontSize: 14, color: "rgba(255,255,255,0.75)" }}
+            slotProps={{ primary: { sx: { fontSize: 14, color: "rgba(255,255,255,0.75)" } } }}
           />
         </ListItemButton>
 
-        <Stack direction="row" alignItems="center" spacing={1.5} sx={{ px: 1, py: 0.5 }}>
+        <Stack direction="row" spacing={1.5} sx={{ px: 1, py: 0.5, alignItems: "center" }}>
           <Avatar sx={{ width: 32, height: 32, bgcolor: COLORS.gold, color: COLORS.sidebarBg, fontSize: 13, fontWeight: 700 }}>
             {initials(user?.full_name) || "?"}
           </Avatar>
           <Box sx={{ minWidth: 0, flex: 1 }}>
-            <Typography variant="body2" color="#fff" noWrap fontWeight={600}>
+            <Typography variant="body2" color="#fff" noWrap sx={{ fontWeight: 600 }}>
               {user?.full_name || "—"}
             </Typography>
             <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.55)" }} noWrap>

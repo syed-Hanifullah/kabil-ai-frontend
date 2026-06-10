@@ -66,7 +66,26 @@ add it to the backend env before debugging CORS.
 - All ids are UUID strings. Timestamps are ISO-8601 UTC strings.
 - `null` = not set / unknown.
 
-### 3.3 Pagination
+### 3.3 Scores are percentage strings
+
+Application-level scores come back as **trimmed percentage strings**, not
+numbers: `"82%"`, `"67.5%"`, `"35%"` (or `null` before the score lands). This
+applies to:
+
+- `similarity_score`, `hard_filter_score` (application list + detail),
+- `candidate.authenticity_score`,
+- each `scores[].value`,
+- the `score` / `weight` numeric leaves **inside** a `scores[].breakdown`.
+
+The values are stored numerically (0–100) on the backend and only formatted on
+the way out, so they're directly displayable. When you need to sort or compare
+in the UI, `parseFloat("82%") === 82`. Other breakdown leaves (reasoning text,
+raw cosine `distance`, counts, skill lists) are unchanged.
+
+> **Exception:** the talent-pool **search** `similarity_score` is a plain
+> **number** (`0–100`), not a percentage string — see §7.3.
+
+### 3.4 Pagination
 
 List endpoints accept `page` (≥1, default `1`) and `page_size` (1..100,
 default `20`) and return:
@@ -75,25 +94,27 @@ default `20`) and return:
 { "items": [ ... ], "total": 137, "page": 1, "page_size": 20 }
 ```
 
-### 3.4 Correlation ID
+### 3.5 Correlation ID
 
 Every response carries an `X-Correlation-ID` header, and every **error** body
 repeats it as `correlation_id`. You may send your own `X-Correlation-ID` on a
 request to thread it through the logs. Surface it in error toasts so support can
 trace a report to a server log line.
 
-### 3.5 Status codes you'll see
+### 3.6 Status codes you'll see
 
 | Code | Meaning |
 |---|---|
 | `200` | OK (GET / PATCH success) |
-| `202` | Accepted — work enqueued asynchronously (job create, status→open, public apply, bulk upload, rescore) |
+| `201` | Created (talent-pool add / upload) |
+| `202` | Accepted — work enqueued asynchronously (job create, status→open, public apply, bulk upload, rescore, talent-pool source) |
 | `204` | No content (logout) |
 | `400` | Bad request (e.g. invalid email/phone on apply, file-count out of bounds) |
 | `401` | Missing/invalid/expired token |
-| `404` | Not found |
+| `404` | Not found (incl. `whatsapp_conversation_not_found`) |
 | `409` | Conflict (illegal job status transition) |
 | `410` | Gone (inactive/unknown public slug) |
+| `413` | Payload too large (CV over the 10 MB cap on talent-pool upload) |
 | `422` | Validation error (bad body, illegal stage/status transition) |
 
 ---
@@ -210,8 +231,22 @@ Auth. → `200` `AuditLogResponse` (newest-first audit entries).
 #### `PATCH /applications/{application_id}/stage`
 Auth. Body `{ "stage": ApplicationStage, "reason"?: string }`.
 Forward-only transitions (see [`WORKFLOWS.md`](./WORKFLOWS.md) state machine).
-Entering `hard_filter` enqueues **Claude Opus** hard-filter scoring (async).
+- Entering `hard_filter` enqueues **Claude Opus** hard-filter scoring (async).
+- Entering `whatsapp` enqueues the **WhatsApp screening invite** (async) — the
+  candidate gets the opening greeting + Yes/No interest buttons; the
+  conversation then becomes readable via `GET /applications/{id}/whatsapp`.
+
 Illegal edge → `422`. → `200` `ApplicationDetail`.
+
+#### `GET /applications/{application_id}/whatsapp`
+Auth. The HR-facing **WhatsApp screening transcript** for one application.
+→ `200` `WhatsAppConversationResponse` — the conversation `state`, the
+`current_question_index`, the structured `answers[]`, and the full ordered
+`messages[]` (oldest-first; both candidate and system messages, with
+`direction`, `body`, and button payloads).
+→ `404 whatsapp_conversation_not_found` until the application has entered the
+`whatsapp` stage **and** the invite has opened a conversation. Poll after
+moving to `whatsapp`, or after the candidate replies, to see new messages.
 
 #### `PATCH /applications/{application_id}/status`
 Auth. Body `{ "status": ApplicationStatus, "reason"?: string }`.
@@ -240,6 +275,18 @@ auth; `422` if the job is closed.
 
 ### Public apply (anonymous candidate)
 
+#### `GET /public/apply/{slug}`
+No auth. The **candidate-facing job view** for a public apply link — render
+this before the upload form so the candidate sees the role.
+→ `200` `PublicJobResponse` — a trimmed projection of the job (title,
+hiring_company, country, city, employment_type, work_mode, salary range,
+notice_period, min_experience_years, skills, visa/nationality/languages,
+job_description, `status`). **No** HR/internal fields (no `id`, `public_slug`,
+`pipeline_status`, `whatsapp_questions`, …).
+- `410` — inactive/unknown slug.
+- Keep rendering on `status: "closed"` so a stale link shows a "this role is
+  closed" state rather than a hard error.
+
 #### `POST /public/apply/{slug}/upload`
 No auth. `multipart/form-data` fields:
 
@@ -260,6 +307,68 @@ submissions and for honeypot hits — never branch UI on "already applied".
 - `400` — missing consent, invalid email, invalid phone
 
 The `slug` comes from a job's `public_slug` (on `JobDetail` / `JobListItem`).
+
+---
+
+### Talent Pool (HR)
+
+A holding area of good candidates that aren't tied to a live job. HR can drop
+candidates in, upload CVs straight into it, **semantically search** it, and
+**source** a pooled candidate onto a specific job (which creates a fresh,
+fully-scored application). All routes require HR auth.
+
+#### `POST /talent-pool/entries`
+Auth. Body `{ "candidate_id": "<uuid>", "source_job_id"?: "<uuid>" }`.
+Adds an **existing** candidate to the pool (idempotent on the candidate).
+→ `201` `TalentPoolEntry` (entry + nested candidate snapshot).
+
+#### `POST /talent-pool/upload`
+Auth. `multipart/form-data` with a single `file` (PDF, ≤10 MB).
+Uploads a CV **directly** into the pool — no job needed. Identity is parsed
+from the CV; the candidate is created or matched, then the parse → authenticity
+→ embed pipeline runs so they become searchable.
+→ `201` `TalentPoolUploadResponse`:
+`{ entry, candidate_created, cv_created, enqueued }`.
+`enqueued: true` means the embed pipeline was dispatched — the candidate
+isn't searchable until it finishes (poll `GET /talent-pool/search`).
+- `413` — CV exceeds the 10 MB cap.
+
+#### `GET /talent-pool/search`
+Auth. Query: `q` (1..1000 chars, **required**), `limit` (1..50, default 10),
+`active_only` (default `true`). Embeds `q` and ranks pooled candidates by
+cosine similarity of their current CV.
+→ `200` `TalentPoolSearchResponse`:
+`{ query, items: TalentPoolSearchResultItem[], total }`. Each item carries a
+`similarity_score` — here a plain **number** `0–100` (higher = closer), *not* a
+percentage string like the application scores (see §3.3). Candidates whose CV
+isn't embedded yet are excluded.
+
+#### `GET /talent-pool`
+Auth. Query: `active_only` (default `true`), `page`, `page_size` (1..100,
+default 20). → `200` `TalentPoolListResponse`: `{ items, total }` (newest-first).
+
+#### `POST /talent-pool/source`
+Auth. Body `{ "candidate_id": "<uuid>", "job_id": "<uuid>" }`.
+Sources a pooled candidate onto a job: creates a fresh application at
+`vector_screen` (unless one already exists for that candidate+job), flagged
+`sourced_from_talent_pool`, then dispatches the CV scoring pipeline.
+→ `202` `TalentPoolSourceResponse`:
+`{ application_id, candidate_id, job_id, sourced_from_talent_pool,
+already_existed, enqueued }`.
+- `already_existed: true` → no new application was created and nothing was
+  enqueued; the returned `application_id` is the existing one.
+- When the application later reaches the `whatsapp` stage, the candidate gets
+  a **talent-pool-specific greeting** ("we came across your profile…") instead
+  of the "thanks for applying" one.
+
+---
+
+### WhatsApp webhook (Meta → backend, **not** the frontend)
+
+`GET|POST /webhooks/whatsapp` are called by **Meta's Cloud API**, not the
+frontend — listed here only so you don't mistake them for a UI surface. The
+frontend never calls these. HR reads the resulting conversation through
+`GET /applications/{id}/whatsapp` (above).
 
 ---
 

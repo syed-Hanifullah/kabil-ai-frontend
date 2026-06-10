@@ -73,7 +73,7 @@ const UploadDropzone = ({ files, onAdd, onRemove, onClear, disabled }) => {
           }}
         />
         <CloudUploadOutlinedIcon sx={{ fontSize: 36, color: "text.secondary", mb: 1 }} />
-        <Typography variant="subtitle1" fontWeight={700}>
+        <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
           Drag and drop CVs here
         </Typography>
         <Typography variant="body2" color="text.secondary">
@@ -83,7 +83,7 @@ const UploadDropzone = ({ files, onAdd, onRemove, onClear, disabled }) => {
 
       {files.length > 0 && (
         <Stack spacing={1}>
-          <Stack direction="row" alignItems="center" justifyContent="space-between">
+          <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between" }}>
             <Typography variant="body2" color="text.secondary">
               {files.length} file{files.length === 1 ? "" : "s"} selected
             </Typography>
@@ -97,9 +97,9 @@ const UploadDropzone = ({ files, onAdd, onRemove, onClear, disabled }) => {
               <Stack
                 key={`${file.name}-${file.size}-${i}`}
                 direction="row"
-                alignItems="center"
                 spacing={1.5}
                 sx={{
+                  alignItems: "center",
                   border: "1px solid #e7eae8",
                   borderRadius: 1.5,
                   px: 1.5,
@@ -108,7 +108,7 @@ const UploadDropzone = ({ files, onAdd, onRemove, onClear, disabled }) => {
               >
                 <PictureAsPdfOutlinedIcon sx={{ color: "error.main", fontSize: 22 }} />
                 <Box sx={{ minWidth: 0, flexGrow: 1 }}>
-                  <Typography variant="body2" fontWeight={600} noWrap title={file.name}>
+                  <Typography variant="body2" noWrap title={file.name} sx={{ fontWeight: 600 }}>
                     {file.name}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">

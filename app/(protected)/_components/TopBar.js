@@ -48,7 +48,7 @@ const TopBar = () => {
       }}
     >
       <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Typography variant="h6" fontWeight={700} noWrap>
+        <Typography variant="h6" noWrap sx={{ fontWeight: 700 }}>
           {greeting()}, {firstName(user?.full_name) || "there"} 👋
         </Typography>
         <Typography variant="body2" color="text.secondary">
@@ -56,7 +56,7 @@ const TopBar = () => {
         </Typography>
       </Box>
 
-      <Stack direction="row" alignItems="center" spacing={2}>
+      <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
         <IconButton size="small">
           <Badge badgeContent={3} color="secondary">
             <NotificationsNoneOutlinedIcon />
@@ -65,9 +65,9 @@ const TopBar = () => {
 
         <Divider orientation="vertical" flexItem sx={{ my: 0.5 }} />
 
-        <Stack direction="row" alignItems="center" spacing={1.5}>
+        <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
           <Box sx={{ textAlign: "right", display: { xs: "none", sm: "block" } }}>
-            <Typography variant="body2" fontWeight={600} noWrap>
+            <Typography variant="body2" noWrap sx={{ fontWeight: 600 }}>
               {user?.full_name || "—"}
             </Typography>
             <Typography variant="caption" sx={{ color: COLORS.gold, fontWeight: 600 }}>

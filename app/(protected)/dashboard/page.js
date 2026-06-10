@@ -19,7 +19,7 @@ const STATS = [
 
 const DashboardPage = () => (
   <Stack spacing={3}>
-    <Typography variant="h5" fontWeight={700}>
+    <Typography variant="h5" sx={{ fontWeight: 700 }}>
       Overview
     </Typography>
 
@@ -33,9 +33,9 @@ const DashboardPage = () => (
       {STATS.map(({ label, value, icon: Icon }) => (
         <Card key={label} sx={{ borderRadius: 2 }}>
           <CardContent>
-            <Stack direction="row" alignItems="center" justifyContent="space-between">
+            <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between" }}>
               <Box>
-                <Typography variant="h4" fontWeight={700}>
+                <Typography variant="h4" sx={{ fontWeight: 700 }}>
                   {value}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
@@ -63,7 +63,7 @@ const DashboardPage = () => (
 
     <Card sx={{ borderRadius: 2 }}>
       <CardContent>
-        <Typography variant="h6" fontWeight={600} gutterBottom>
+        <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
           Recent activity
         </Typography>
         <Typography color="text.secondary">

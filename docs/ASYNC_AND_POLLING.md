@@ -25,6 +25,9 @@ the relevant GET endpoint and reading the `pipeline_status` map + score fields.
 | **Public apply** | `202` | **CV pipeline async** |
 | **Bulk upload** | `202` | rows created; **CV pipeline async per file** |
 | **Rescore** | `202` | **scoring async** |
+| Patch application **stage** → `whatsapp` | `200` | stage immediate; **WhatsApp invite async** (conversation appears later) |
+| **Talent-pool upload** | `201` | entry exists; **CV embed pipeline async** (`enqueued: true` → not searchable yet) |
+| **Talent-pool source** | `202` | application created; **CV scoring pipeline async** |
 
 ---
 
@@ -99,6 +102,9 @@ A `{key}_error` string companion appears next to any `failed` key.
 | Authenticity specifically | `GET /applications/{id}` | `pipeline_status.authenticity === "ok"`; `candidate.authenticity_score !== null` |
 | Enter `hard_filter` stage | `GET /applications/{id}` | `hard_filter_score !== null` (or `pipeline_status.hard_filter === "ok"`) |
 | Rescore | `GET /applications/{id}` | matching `scores[]` entry has a **newer `computed_at`**, or the score field becomes non-null again |
+| Enter `whatsapp` stage | `GET /applications/{id}/whatsapp` | stops returning `404` (invite opened the conversation); then poll for new `messages[]` while `state ∈ {awaiting_interest, asking_questions}` |
+| Talent-pool upload (`enqueued: true`) | `GET /talent-pool/search?q=…` | the candidate starts appearing in results (their CV finished embedding) |
+| Talent-pool source | `GET /applications/{application_id}` | same as public apply — `pipeline_status.similarity === "ok"` |
 
 > For lists, the denormalized `similarity_score` / `hard_filter_score` columns
 > on `ApplicationListItem` let you poll the **list** endpoint and refresh row

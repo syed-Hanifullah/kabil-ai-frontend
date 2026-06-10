@@ -78,7 +78,7 @@ The pipeline position. **Forward-only** (see state machine in
 |---|---|
 | `vector_screen` | Entry stage. Similarity scored; auto-reject runs here. |
 | `hard_filter` | Claude Opus CV scoring stage. |
-| `whatsapp` | WhatsApp screening (Phase 5). |
+| `whatsapp` | WhatsApp screening. Entering it sends the candidate an invite; transcript at `GET /applications/{id}/whatsapp`. |
 | `interview` | Interview scheduling (Phase 6). |
 | `done` | Terminal pipeline stage. |
 
@@ -117,6 +117,13 @@ Orthogonal to stage.
 Hard-filter signal weights: skills/experience/industry/regional/role-seniority
 = **35/35/10/10/10**.
 
+> **Wire format:** all application-level scores (`similarity_score`,
+> `hard_filter_score`, `authenticity_score`, each `scores[].value`, and the
+> `score`/`weight` leaves inside a breakdown) are returned as **percentage
+> strings** — `"82%"`, `"67.5%"` — or `null` before scoring. `parseFloat` to a
+> number for math. The talent-pool **search** `similarity_score` is the one
+> exception: a plain number `0–100`.
+
 ---
 
 ## Score model — `ScoreModel` (`model_used`)
@@ -132,7 +139,8 @@ Open-ended on the backend (varchar) — treat unknown values gracefully. For the
 
 ## Authenticity band — `AuthenticityBand`
 
-Derived from the 0–100 authenticity score.
+Derived from the 0–100 authenticity score (surfaced as a `"NN%"` string — see
+the wire-format note above).
 
 | Band | Range | Suggested UI |
 |---|---|---|
@@ -159,6 +167,45 @@ Derived from the 0–100 authenticity score.
 
 ---
 
+## WhatsApp screening — conversation enums
+
+Surfaced on `WhatsAppConversationResponse` (`GET /applications/{id}/whatsapp`).
+
+### `WhatsAppConversationState`
+The screening conversation's lifecycle. Walks
+`awaiting_interest` → (Yes) `asking_questions` → `completed`, or short-circuits
+to `declined` on a No. `completed` / `declined` are terminal.
+
+| Value | Meaning |
+|---|---|
+| `awaiting_interest` | Invite sent; waiting on the candidate's Yes/No tap. |
+| `asking_questions` | Interest confirmed; walking through screening questions. |
+| `completed` | All questions answered. Terminal. |
+| `declined` | Candidate tapped No. Terminal. |
+
+### `WhatsAppDirection`
+Per message — who sent it.
+
+| Value | Meaning |
+|---|---|
+| `outbound` | Sent by the system to the candidate. |
+| `inbound` | Received from the candidate. |
+
+### `WhatsAppMessageType`
+`message_type` on a transcript message.
+
+| Value | Meaning |
+|---|---|
+| `text` | Plain text body. |
+| `interactive_buttons` | Outbound message offering quick-reply buttons (e.g. the interest prompt). |
+| `button_reply` | The candidate tapped a button (see `button_id` / `button_title`). |
+
+### Interest button ids — `WhatsAppButtonId`
+`interest_yes` · `interest_no` (the values that appear in a `button_reply`
+message's `button_id`).
+
+---
+
 ## Limits & defaults (cheat sheet)
 
 | Thing | Value |
@@ -172,3 +219,6 @@ Derived from the 0–100 authenticity score.
 | Transition `reason` max length | 500 chars |
 | Job search query length | 1..120 chars |
 | Public reference number | 32 hex chars |
+| Talent-pool search query (`q`) | 1..1000 chars |
+| Talent-pool search `limit` | 1..50 (default 10) |
+| WhatsApp question / button title | ≤20 chars (Meta cap) |

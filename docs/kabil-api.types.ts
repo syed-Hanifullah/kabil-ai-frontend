@@ -25,6 +25,14 @@
 export type UUID = string;
 /** ISO-8601 datetime string in UTC. */
 export type ISODateTime = string;
+/**
+ * A 0–100 score rendered as a trimmed percentage string, e.g. "82%", "67.5%",
+ * "35%". Application-level scores (similarity / hard_filter / authenticity) and
+ * the `score` / `weight` leaves inside a breakdown use this shape — NOT the
+ * talent-pool search `similarity_score`, which is a plain number. Parse with
+ * `parseFloat(value)` when you need to compare or sort numerically.
+ */
+export type PercentString = string;
 
 /* ──────────────────────────────────────────────────────────────────────────
  * Enums / closed sets
@@ -94,6 +102,28 @@ export type WhatsAppQuestionCategory =
   | "skill_assessment"
   | "logistics"
   | "motivation";
+
+/** Lifecycle of one application's WhatsApp screening conversation.
+ *  awaiting_interest → (Yes) asking_questions → completed, or → declined on No.
+ *  completed / declined are terminal. */
+export type WhatsAppConversationState =
+  | "awaiting_interest"
+  | "asking_questions"
+  | "completed"
+  | "declined";
+
+/** Who sent a transcript message. */
+export type WhatsAppDirection = "outbound" | "inbound";
+
+/** What kind of payload a transcript message holds. Open-ended on the backend. */
+export type WhatsAppMessageType =
+  | "text"
+  | "interactive_buttons"
+  | "button_reply"
+  | (string & {});
+
+/** Stable ids of the interest quick-reply buttons (appear in `button_id`). */
+export type WhatsAppButtonId = "interest_yes" | "interest_no";
 
 /* ──────────────────────────────────────────────────────────────────────────
  * Error envelope (every non-2xx response)
@@ -282,8 +312,10 @@ export interface ApplicationScore {
   /** null for the synthesized `authenticity` entry (no backing row). */
   id: UUID | null;
   score_type: ScoreType;
-  value: number;
-  /** Per-signal detail; shape varies by score_type (see ASYNC_AND_POLLING.md). */
+  /** Percentage string, e.g. "82%" or "67.5%". Parse with parseFloat for math. */
+  value: PercentString;
+  /** Per-signal detail; shape varies by score_type (see ASYNC_AND_POLLING.md).
+   *  Numeric `score` / `weight` leaves are themselves percentage strings. */
   breakdown: Record<string, unknown>;
   prompt_version: string;
   model_used: ScoreModel;
@@ -292,10 +324,11 @@ export interface ApplicationScore {
 
 export interface CandidateNested {
   id: UUID;
-  email: string;
-  phone_e164: string;
+  email: string | null;
+  phone_e164: string | null;
   full_name: string;
-  authenticity_score: number | null;
+  /** Percentage string ("82%") or null until the authenticity step runs. */
+  authenticity_score: PercentString | null;
   authenticity_band: AuthenticityBand | null;
   authenticity_computed_at: ISODateTime | null;
   /** Structured CV (skills, work_history, education, languages,
@@ -315,12 +348,13 @@ export interface ApplicationListItem {
   id: UUID;
   candidate_id: UUID;
   candidate_full_name: string;
-  candidate_email: string;
+  candidate_email: string | null;
   job_id: UUID;
   stage: ApplicationStage;
   status: ApplicationStatus;
-  similarity_score: number | null;
-  hard_filter_score: number | null;
+  /** Percentage string ("82%") or null until scored. */
+  similarity_score: PercentString | null;
+  hard_filter_score: PercentString | null;
   stage_updated_at: ISODateTime;
   created_at: ISODateTime;
 }
@@ -334,8 +368,9 @@ export interface ApplicationDetail {
   cv_document: CvDocumentNested;
   stage: ApplicationStage;
   status: ApplicationStatus;
-  similarity_score: number | null;
-  hard_filter_score: number | null;
+  /** Percentage string ("82%") or null until scored. */
+  similarity_score: PercentString | null;
+  hard_filter_score: PercentString | null;
   /** Human-readable rejection summary; null unless rejected (and only for
    *  rows with a populated similarity breakdown). */
   rejection_reason: string | null;
@@ -436,6 +471,161 @@ export interface PublicApplyForm {
 export interface PublicApplyResponse {
   /** 32-char hex application id, shown to the candidate. */
   reference_number: string;
+}
+
+/** GET /public/apply/{slug} — candidate-facing job view. Trimmed projection of
+ *  the job; no HR/internal fields. Render before the upload form. */
+export interface PublicJobResponse {
+  title: string;
+  hiring_company: string;
+  country: string;
+  city: string;
+  employment_type: EmploymentType;
+  work_mode: WorkMode;
+  currency: string;
+  min_salary: number | null;
+  max_salary: number | null;
+  notice_period: NoticePeriod | null;
+  min_experience_years: number;
+  required_skills: string[];
+  preferred_skills: string[];
+  visa_requirement: VisaRequirement | null;
+  nationality_preference: string[];
+  languages_required: string[];
+  job_description: string;
+  /** Kept so a stale link can render a "this role is closed" state. */
+  status: JobStatus;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * Talent Pool (HR)
+ * ────────────────────────────────────────────────────────────────────────── */
+
+/** Minimal candidate snapshot shown in pool listings / search hits. */
+export interface TalentPoolCandidateNested {
+  id: UUID;
+  full_name: string;
+  email: string | null;
+  phone_e164: string | null;
+}
+
+export interface TalentPoolEntry {
+  id: UUID;
+  candidate_id: UUID;
+  source_job_id: UUID | null;
+  added_by: UUID | null;
+  added_at: ISODateTime;
+  expires_at: ISODateTime;
+  is_active: boolean;
+  candidate: TalentPoolCandidateNested;
+}
+
+/** POST /talent-pool/entries body. */
+export interface TalentPoolAddRequest {
+  candidate_id: UUID;
+  source_job_id?: UUID | null;
+}
+
+/** POST /talent-pool/upload (201) — multipart `file` (PDF, ≤10 MB). */
+export interface TalentPoolUploadResponse {
+  entry: TalentPoolEntry;
+  candidate_created: boolean;
+  cv_created: boolean;
+  /** True if the parse/authenticity/embed pipeline was dispatched (not yet
+   *  searchable until it finishes). */
+  enqueued: boolean;
+}
+
+/** GET /talent-pool (paginated, newest-first). */
+export interface TalentPoolListResponse {
+  items: TalentPoolEntry[];
+  total: number;
+}
+
+export interface TalentPoolSearchResultItem {
+  candidate_id: UUID;
+  entry_id: UUID;
+  cv_document_id: UUID;
+  /** Cosine similarity of the query vs. the candidate's CV, 0–100 (higher = closer). */
+  similarity_score: number;
+  added_at: ISODateTime;
+  expires_at: ISODateTime;
+  is_active: boolean;
+  candidate: TalentPoolCandidateNested;
+}
+
+/** GET /talent-pool/search?q=…&limit=…&active_only=… */
+export interface TalentPoolSearchResponse {
+  query: string;
+  items: TalentPoolSearchResultItem[];
+  total: number;
+}
+
+/** POST /talent-pool/source body. */
+export interface TalentPoolSourceRequest {
+  candidate_id: UUID;
+  job_id: UUID;
+}
+
+/** POST /talent-pool/source (202). */
+export interface TalentPoolSourceResponse {
+  application_id: UUID;
+  candidate_id: UUID;
+  job_id: UUID;
+  sourced_from_talent_pool: boolean;
+  /** True if an application for this candidate+job already existed (nothing
+   *  new was created or enqueued). */
+  already_existed: boolean;
+  enqueued: boolean;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * WhatsApp screening transcript (HR)
+ * GET /applications/{id}/whatsapp
+ * ────────────────────────────────────────────────────────────────────────── */
+
+/** One message in the transcript (oldest-first in the parent list). */
+export interface WhatsAppMessageResponse {
+  id: UUID;
+  direction: WhatsAppDirection;
+  message_type: WhatsAppMessageType;
+  body: string | null;
+  button_id: string | null;
+  button_title: string | null;
+  /** Which screening question this message relates to, if any. */
+  question_index: number | null;
+  wa_message_id: string | null;
+  /** Scoring of an inbound answer message (null on outbound / unscored). */
+  answer_relevance_score: number | null; // 0–10, higher = better addresses the question
+  answer_ai_score: number | null; // 0–10, higher = more likely AI-generated
+  answer_score_rationale: string | null;
+  created_at: ISODateTime;
+}
+
+/** One scored question/answer pair, aggregated on the conversation. */
+export interface WhatsAppAnswer {
+  question_id: string;
+  question: string;
+  answer: string;
+  rationale: string;
+  relevance_score: number; // 0–10
+  ai_likelihood_score: number; // 0–10
+}
+
+export interface WhatsAppConversationResponse {
+  id: UUID;
+  application_id: UUID;
+  candidate_id: UUID;
+  job_id: UUID;
+  state: WhatsAppConversationState;
+  current_question_index: number | null;
+  /** Structured, scored Q&A captured during screening. */
+  answers: WhatsAppAnswer[];
+  phone_e164: string;
+  created_at: ISODateTime;
+  updated_at: ISODateTime;
+  closed_at: ISODateTime | null;
+  messages: WhatsAppMessageResponse[];
 }
 
 /* ──────────────────────────────────────────────────────────────────────────

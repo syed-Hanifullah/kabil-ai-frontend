@@ -59,9 +59,11 @@ const JobsPageInner = () => {
       {/* Toolbar: search + primary action */}
       <Stack
         direction={{ xs: "column", sm: "row" }}
-        alignItems={{ xs: "stretch", sm: "center" }}
-        justifyContent="space-between"
         spacing={2}
+        sx={{
+          alignItems: { xs: "stretch", sm: "center" },
+          justifyContent: "space-between",
+        }}
       >
         <SearchField
           placeholder="Search jobs…"

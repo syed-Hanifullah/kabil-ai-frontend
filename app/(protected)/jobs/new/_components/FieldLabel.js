@@ -6,7 +6,7 @@ import { COLORS } from "@/lib/theme";
 
 /** A field header: label (+ required *, + optional HARD FILTER badge). */
 const FieldLabel = ({ label, required, hardFilter }) => (
-  <Typography variant="body2" fontWeight={600} sx={{ mb: 0.75, minHeight: 24 }}>
+  <Typography variant="body2" sx={{ mb: 0.75, minHeight: 24, fontWeight: 600 }}>
     {label}
     {required && " *"}
     {hardFilter && (

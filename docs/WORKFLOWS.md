@@ -18,7 +18,11 @@ PDFs). Each CV runs an async **CV pipeline** (extract → parse → authenticity
 embed → similarity → maybe auto-reject). HR then triages the **Applications**
 list, opens an application to see the explainable scores (similarity / CV fit /
 authenticity), and walks it through pipeline **stages**, rejecting/accepting
-along the way.
+along the way. Moving an application to the **`whatsapp`** stage triggers an
+automated WhatsApp screening conversation (interest check → questions) that HR
+reads as a transcript. Separately, HR keeps a **Talent Pool** of strong
+candidates — searchable by free text — and can **source** any of them onto a
+job, which spins up a fresh, fully-scored application.
 
 ---
 
@@ -168,9 +172,13 @@ sequenceDiagram
 **FE notes**
 - List rows carry `similarity_score` and `hard_filter_score` denormalized —
   sort/filter in the UI without opening each row. `hard_filter_score` is `null`
-  until the application has been through the `hard_filter` stage.
+  until the application has been through the `hard_filter` stage. Prefer the
+  server-side `order=` params for sorting; these fields are **percentage
+  strings** (`"82%"`), so a client-side numeric sort must `parseFloat` first.
 - Detail `scores[]` holds the explainability: one entry per score family with a
-  `breakdown`. The `authenticity` entry has `id: null` (it's synthesized).
+  `breakdown`. Each `value` is a percentage string (`"82%"`); inside a
+  `breakdown`, `score`/`weight` leaves are too. The `authenticity` entry has
+  `id: null` (it's synthesized).
 - `parsed_profile` is `{}` until the parse step runs — render a skeleton/"still
   processing" state, don't assume keys exist.
 - Use `rejection_reason` (detail) to explain auto-rejections.
@@ -203,6 +211,7 @@ sequenceDiagram
   `null` until it lands. Poll the detail endpoint.
 - Status is independent of stage: rejecting preserves the stage, and
   `rejected → active` brings the candidate back at the same stage.
+- Entering the `whatsapp` stage fires the screening invite — see section 8.
 - `reason` (≤500 chars) is optional but recommended — it lands in the audit log.
 
 ---
@@ -230,6 +239,92 @@ sequenceDiagram
   "in progress" until the new value lands.
 - Detect completion by a newer `computed_at` on the matching `scores[]` entry
   (or `hard_filter_score`/`similarity_score` becoming non-null again).
+
+---
+
+## 8. WhatsApp screening (auto, on the `whatsapp` stage)
+
+```mermaid
+sequenceDiagram
+    actor HR
+    participant FE
+    participant API
+    participant W as Workers
+    actor C as Candidate (WhatsApp)
+
+    HR->>FE: advance application to "whatsapp"
+    FE->>API: PATCH /applications/{id}/stage { "stage": "whatsapp" }
+    API-->>FE: 200 ApplicationDetail (stage=whatsapp)
+    API->>W: enqueue WhatsApp invite
+    W->>C: greeting + "Interested?" Yes/No buttons
+    Note over FE: poll GET /applications/{id}/whatsapp for the transcript
+    C->>W: taps Yes
+    W->>C: sends screening questions one by one
+    C->>W: answers each
+    W->>W: conversation state → completed
+    FE->>API: GET /applications/{id}/whatsapp
+    API-->>FE: 200 WhatsAppConversationResponse (state, answers[], messages[])
+```
+
+**FE notes**
+- The transcript endpoint returns `404 whatsapp_conversation_not_found` until
+  the invite has opened a conversation. After moving to `whatsapp`, poll until
+  it returns `200`, then poll for new `messages[]` while
+  `state ∈ {awaiting_interest, asking_questions}`.
+- Render `messages[]` as a chat thread keyed on `direction`
+  (`outbound` = us, `inbound` = candidate). `button_reply` messages are the
+  candidate tapping Yes/No (`button_id` = `interest_yes`/`interest_no`).
+- `state` drives the status chip: awaiting interest / answering questions /
+  **completed** / **declined** (terminal). `current_question_index` +
+  `answers[]` show progress.
+- A candidate who taps **No** → `declined`, and the application is rejected with
+  a WhatsApp decline reason (visible in the audit log).
+- HR can re-open a closed conversation by reactivating a `whatsapp`-stage
+  application (`PATCH …/status { "status": "active" }`) — that sends a
+  "welcome back" greeting on the same conversation.
+
+---
+
+## 9. Talent pool: add / search / source
+
+```mermaid
+sequenceDiagram
+    actor HR
+    participant FE
+    participant API
+    participant W as Workers
+
+    rect rgb(245,245,245)
+    note over HR,W: Build the pool
+    HR->>FE: upload a CV into the pool (no job)
+    FE->>API: POST /talent-pool/upload (multipart file)
+    API-->>FE: 201 { entry, enqueued }
+    API->>W: parse → authenticity → embed (makes it searchable)
+    end
+
+    HR->>FE: search "senior react, fintech, Dubai"
+    FE->>API: GET /talent-pool/search?q=...
+    API-->>FE: 200 { items: [{ candidate, similarity_score }] }
+    HR->>FE: source a candidate onto a job
+    FE->>API: POST /talent-pool/source { candidate_id, job_id }
+    API-->>FE: 202 { application_id, already_existed, enqueued }
+    API->>W: CV scoring pipeline for the new application
+    FE->>FE: navigate to /applications/{application_id}
+```
+
+**FE notes**
+- Two ways into the pool: `POST /talent-pool/entries` (an existing candidate) or
+  `POST /talent-pool/upload` (a fresh CV). After an upload, `enqueued: true`
+  means the candidate isn't searchable yet — the embed pipeline must finish, so
+  search results lag a freshly-uploaded CV by a few seconds.
+- Search `similarity_score` is **0–100** (higher = closer). Candidates without an
+  embedded CV are silently excluded from results.
+- **Source** creates a normal application at `vector_screen` and routes you to
+  its detail page; from there it's the same triage flow as section 5/6. If
+  `already_existed: true`, no new application was made — just open the returned
+  `application_id`.
+- Sourced candidates get a tailored WhatsApp greeting later ("we came across
+  your profile…") instead of the "thanks for applying" one.
 
 ---
 
@@ -276,9 +371,11 @@ stateDiagram-v2
 | `rejected` | `active` |
 | `accepted` | _(terminal)_ |
 
-> `whatsapp` and `interview` stages are wired in the matrix but their feature
-> surfaces (WhatsApp sessions, interview slots) land in Phase 5/6 — those keys
-> are intentionally absent from responses today, not empty arrays.
+> The `whatsapp` stage is now live: entering it opens an automated screening
+> conversation, readable via `GET /applications/{id}/whatsapp` (section 8). The
+> `interview` stage is wired in the matrix but its feature surface (interview
+> slots) lands in Phase 6 — those keys are intentionally absent from responses
+> today, not empty arrays.
 
 ---
 

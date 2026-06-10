@@ -81,23 +81,22 @@ const CandidateCard = ({ app, jobTitle, onOpen, draggable = false, onDragStart, 
       }}
     >
       <CardActionArea onClick={() => onOpen(app.id)} sx={{ p: 1.5 }}>
-        <Stack direction="row" spacing={1.25} alignItems="flex-start">
+        <Stack direction="row" spacing={1.25} sx={{ alignItems: "flex-start" }}>
           <Avatar sx={{ width: 36, height: 36, bgcolor: "primary.main", fontSize: 13 }}>
             {initials(app.candidate_full_name)}
           </Avatar>
           <Box sx={{ minWidth: 0, flexGrow: 1 }}>
-            <Typography variant="body2" fontWeight={700} noWrap title={app.candidate_full_name}>
+            <Typography variant="body2" noWrap title={app.candidate_full_name} sx={{ fontWeight: 700 }}>
               {app.candidate_full_name}
             </Typography>
-            <Typography variant="caption" color="text.secondary" noWrap display="block">
+            <Typography variant="caption" color="text.secondary" noWrap sx={{ display: "block" }}>
               {jobTitle}
             </Typography>
           </Box>
           {score != null && (
             <Typography
               variant="subtitle2"
-              fontWeight={800}
-              sx={{ color: accent.solid, lineHeight: 1.6 }}
+              sx={{ fontWeight: 800, color: accent.solid, lineHeight: 1.6 }}
             >
               {Math.round(score)}
             </Typography>
@@ -125,7 +124,7 @@ const CandidateCard = ({ app, jobTitle, onOpen, draggable = false, onDragStart, 
           )}
         </Box>
 
-        <Typography variant="caption" color="text.secondary" display="block" mt={1.25}>
+        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1.25 }}>
           {timeAgo(app.created_at)}
         </Typography>
       </CardActionArea>

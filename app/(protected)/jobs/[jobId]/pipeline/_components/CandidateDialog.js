@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
 import Box from "@mui/material/Box";
@@ -26,14 +26,20 @@ import BlockIcon from "@mui/icons-material/Block";
 import ReplayIcon from "@mui/icons-material/Replay";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
+import WhatsAppIcon from "@mui/icons-material/WhatsApp";
+import PersonAddAltOutlinedIcon from "@mui/icons-material/PersonAddAltOutlined";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
 import ErrorAlert from "@/components/ErrorAlert";
+import WhatsAppDialog from "./WhatsAppDialog";
 import {
   useApplication,
   useAuditLog,
   useUpdateStage,
   useUpdateStatus,
+  useAddToPool,
 } from "@/lib/kabil/queries";
 import {
+  APPLICATION_STAGES,
   NEXT_STAGE,
   humanize,
   statusColor,
@@ -59,7 +65,7 @@ const scoreColor = (v) => scoreBand(v).color;
 /** One labelled value row. */
 const Field = ({ label, children }) => (
   <Box>
-    <Typography variant="caption" color="text.secondary" fontWeight={600} display="block">
+    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: "block" }}>
       {label}
     </Typography>
     <Typography variant="body2" sx={{ wordBreak: "break-word" }}>
@@ -71,8 +77,8 @@ const Field = ({ label, children }) => (
 /** A titled block inside the dialog. */
 const Section = ({ title, action, children }) => (
   <Box>
-    <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1}>
-      <Typography variant="overline" color="text.secondary" fontWeight={700}>
+    <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between", mb: 1 }}>
+      <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 700 }}>
         {title}
       </Typography>
       {action}
@@ -145,7 +151,7 @@ const BreakdownNode = ({ label, value, depth }) => {
         }
       >
         {label && (
-          <Typography variant="caption" fontWeight={700} display="block" sx={{ mb: 0.5 }}>
+          <Typography variant="caption" sx={{ fontWeight: 700, display: "block", mb: 0.5 }}>
             {humanize(label)}
           </Typography>
         )}
@@ -173,7 +179,7 @@ const Breakdown = ({ data }) => {
   const entries = Object.entries(data || {});
   if (!entries.length) return null;
   return (
-    <Stack spacing={1} mt={1}>
+    <Stack spacing={1} sx={{ mt: 1 }}>
       {entries.map(([key, value]) => (
         <BreakdownNode key={key} label={key} value={value} depth={0} />
       ))}
@@ -204,7 +210,7 @@ const ParsedProfile = ({ profile }) => {
 
       {skills.length > 0 && (
         <Box>
-          <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" mb={0.75}>
+          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: "block", mb: 0.75 }}>
             Skills
           </Typography>
           <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75 }}>
@@ -229,22 +235,22 @@ const ParsedProfile = ({ profile }) => {
 
       {work.length > 0 && (
         <Box>
-          <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" mb={0.75}>
+          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: "block", mb: 0.75 }}>
             Work history
           </Typography>
           <Stack spacing={1}>
             {work.map((w, i) => (
               <Box key={i} sx={{ border: "1px solid #eef0ef", borderRadius: 1.5, p: 1.25 }}>
-                <Typography variant="body2" fontWeight={600}>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
                   {w.title || w.role || "Role"}
                 </Typography>
-                <Typography variant="caption" color="text.secondary" display="block">
+                <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
                   {[w.company, [w.start_date || w.start, w.end_date || w.end].filter(Boolean).join(" – ")]
                     .filter(Boolean)
                     .join(" · ")}
                 </Typography>
                 {w.summary && (
-                  <Typography variant="caption" color="text.secondary" display="block" mt={0.5}>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
                     {w.summary}
                   </Typography>
                 )}
@@ -256,7 +262,7 @@ const ParsedProfile = ({ profile }) => {
 
       {education.length > 0 && (
         <Box>
-          <Typography variant="caption" color="text.secondary" fontWeight={600} display="block" mb={0.75}>
+          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: "block", mb: 0.75 }}>
             Education
           </Typography>
           <Stack spacing={0.5}>
@@ -276,7 +282,7 @@ const ParsedProfile = ({ profile }) => {
 
 const DialogSkeleton = () => (
   <Stack spacing={2}>
-    <Stack direction="row" spacing={1.5} alignItems="center">
+    <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
       <Skeleton variant="circular" width={48} height={48} />
       <Box sx={{ flexGrow: 1 }}>
         <Skeleton variant="text" width="60%" height={26} />
@@ -292,14 +298,27 @@ const DialogSkeleton = () => (
 /** Modal with the full application + candidate record and pipeline actions. */
 const CandidateDialog = ({ appId, open, onClose }) => {
   const [reason, setReason] = useState("");
+  const [waOpen, setWaOpen] = useState(false);
   const { data: app, isLoading, isError, error } = useApplication(appId, { poll: true });
   const { data: audit } = useAuditLog(appId);
   const updateStage = useUpdateStage(appId);
   const updateStatus = useUpdateStatus(appId);
+  const addToPool = useAddToPool();
+  const resetAddToPool = addToPool.reset;
+
+  // Clear the "added to pool" state when the dialog switches candidates, since
+  // this component stays mounted across openings. `reset` is stable in RQ.
+  useEffect(() => {
+    resetAddToPool();
+  }, [appId, resetAddToPool]);
 
   const busy = updateStage.isPending || updateStatus.isPending;
   const nextStage = app ? NEXT_STAGE[app.stage] : null;
   const isActive = app?.status === "active";
+  // The WhatsApp screening transcript exists once a candidate reaches L2
+  // (the `whatsapp` stage) and stays relevant through later stages.
+  const reachedWhatsApp =
+    !!app && APPLICATION_STAGES.indexOf(app.stage) >= APPLICATION_STAGES.indexOf("whatsapp");
 
   const advance = () => {
     if (!nextStage) return;
@@ -312,6 +331,11 @@ const CandidateDialog = ({ appId, open, onClose }) => {
   };
 
   const candidate = app?.candidate;
+  const pooled = addToPool.isSuccess;
+  const addToPoolNow = () => {
+    if (!candidate?.id) return;
+    addToPool.mutate({ candidateId: candidate.id, sourceJobId: app?.job_id });
+  };
 
   return (
     <Dialog
@@ -339,12 +363,12 @@ const CandidateDialog = ({ appId, open, onClose }) => {
           <Stack spacing={2.5} divider={<Divider flexItem />}>
             {/* Header */}
             <Box sx={{ pr: 4 }}>
-              <Stack direction="row" alignItems="flex-start" spacing={1.5}>
+              <Stack direction="row" spacing={1.5} sx={{ alignItems: "flex-start" }}>
                 <Avatar sx={{ width: 48, height: 48, bgcolor: "primary.main" }}>
                   {initials(candidate?.full_name)}
                 </Avatar>
                 <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                  <Typography variant="h6" fontWeight={700}>
+                  <Typography variant="h6" sx={{ fontWeight: 700 }}>
                     {candidate?.full_name}
                   </Typography>
                   <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75, mt: 0.5 }}>
@@ -373,27 +397,56 @@ const CandidateDialog = ({ appId, open, onClose }) => {
                 }}
               >
                 {candidate?.email && (
-                  <Stack direction="row" spacing={1} alignItems="center">
+                  <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
                     <EmailOutlinedIcon sx={{ fontSize: 18 }} />
                     <Typography variant="body2">{candidate.email}</Typography>
                   </Stack>
                 )}
                 {candidate?.phone_e164 && (
-                  <Stack direction="row" spacing={1} alignItems="center">
+                  <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
                     <PhoneOutlinedIcon sx={{ fontSize: 18 }} />
                     <Typography variant="body2">{candidate.phone_e164}</Typography>
                   </Stack>
                 )}
               </Box>
-              <Typography variant="caption" color="text.secondary" display="block" mt={0.75}>
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.75 }}>
                 Applied {timeAgo(app.created_at)} · stage updated {timeAgo(app.stage_updated_at)}
               </Typography>
+
+              <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", rowGap: 1, mt: 1.5 }}>
+                <Button
+                  variant={pooled ? "contained" : "outlined"}
+                  size="small"
+                  color={pooled ? "success" : "secondary"}
+                  startIcon={pooled ? <CheckCircleOutlineIcon /> : <PersonAddAltOutlinedIcon />}
+                  onClick={addToPoolNow}
+                  disabled={addToPool.isPending || pooled || !candidate?.id}
+                >
+                  {pooled
+                    ? "In talent pool"
+                    : addToPool.isPending
+                      ? "Adding…"
+                      : "Add to talent pool"}
+                </Button>
+                {reachedWhatsApp && (
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    color="success"
+                    startIcon={<WhatsAppIcon />}
+                    onClick={() => setWaOpen(true)}
+                  >
+                    WhatsApp chat
+                  </Button>
+                )}
+              </Stack>
+              {addToPool.isError && <ErrorAlert error={addToPool.error} sx={{ mt: 1 }} />}
             </Box>
 
             {/* Actions */}
             <Section title="Move candidate">
               {app.rejection_reason && (
-                <Typography variant="body2" color="error.main" mb={1.5}>
+                <Typography variant="body2" color="error.main" sx={{ mb: 1.5 }}>
                   {app.rejection_reason}
                 </Typography>
               )}
@@ -462,8 +515,8 @@ const CandidateDialog = ({ appId, open, onClose }) => {
                   const value = toScore(s.value);
                   return (
                   <Box key={s.id || `${s.score_type}-${i}`}>
-                    <Stack direction="row" justifyContent="space-between" alignItems="center">
-                      <Typography variant="body2" fontWeight={600}>
+                    <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
                         {humanize(s.score_type)}
                       </Typography>
                       <Chip
@@ -499,7 +552,7 @@ const CandidateDialog = ({ appId, open, onClose }) => {
                             "& .MuiAccordionSummary-content": { my: 0.5 },
                           }}
                         >
-                          <Typography variant="caption" color="primary" fontWeight={600}>
+                          <Typography variant="caption" color="primary" sx={{ fontWeight: 600 }}>
                             Breakdown
                           </Typography>
                         </AccordionSummary>
@@ -533,7 +586,7 @@ const CandidateDialog = ({ appId, open, onClose }) => {
                 >
                   Open CV
                 </Button>
-                <Typography variant="caption" color="text.secondary" display="block" mt={0.75}>
+                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.75 }}>
                   Uploaded {timeAgo(app.cv_document.uploaded_at)}
                   {app.cv_document.language ? ` · ${app.cv_document.language.toUpperCase()}` : ""}
                 </Typography>
@@ -552,11 +605,11 @@ const CandidateDialog = ({ appId, open, onClose }) => {
                     <Stack key={entry.id} direction="row" spacing={1.25}>
                       <HistoryOutlinedIcon sx={{ fontSize: 18, color: "text.disabled", mt: 0.25 }} />
                       <Box sx={{ minWidth: 0 }}>
-                        <Typography variant="body2" fontWeight={600}>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
                           {humanize(entry.action)}
                         </Typography>
                         {entry.after_state?.reason && (
-                          <Typography variant="caption" color="text.secondary" display="block">
+                          <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
                             {String(entry.after_state.reason)}
                           </Typography>
                         )}
@@ -572,6 +625,13 @@ const CandidateDialog = ({ appId, open, onClose }) => {
           </Stack>
         )}
       </DialogContent>
+
+      <WhatsAppDialog
+        appId={appId}
+        candidate={candidate}
+        open={waOpen}
+        onClose={() => setWaOpen(false)}
+      />
     </Dialog>
   );
 };

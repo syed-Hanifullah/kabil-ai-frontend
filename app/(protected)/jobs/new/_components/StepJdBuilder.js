@@ -25,7 +25,7 @@ const StepJdBuilder = () => {
       </Alert>
 
       <div>
-        <Typography variant="body2" fontWeight={600} mb={0.75}>
+        <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.75 }}>
           Job Description *
         </Typography>
         <TextField

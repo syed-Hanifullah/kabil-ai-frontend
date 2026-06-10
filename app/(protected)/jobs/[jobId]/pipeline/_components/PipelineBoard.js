@@ -51,8 +51,8 @@ const StageColumn = ({ column, apps, jobTitle, onOpen, dragApp, onDragStart, onD
           mb: 1.5,
         }}
       >
-        <Stack direction="row" alignItems="center" justifyContent="space-between">
-          <Typography variant="subtitle2" fontWeight={700}>
+        <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between" }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
             {column.label}
           </Typography>
           <Chip size="small" label={apps.length} sx={{ fontWeight: 700, height: 22 }} />

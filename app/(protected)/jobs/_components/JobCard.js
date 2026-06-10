@@ -165,13 +165,11 @@ const JobCard = ({ job }) => {
         <CardContent sx={{ p: 2.5 }}>
           <Stack
             direction="row"
-            alignItems="flex-start"
-            justifyContent="space-between"
             spacing={1}
-            sx={{ pr: 3.5 }}
+            sx={{ pr: 3.5, alignItems: "flex-start", justifyContent: "space-between" }}
           >
             <Box sx={{ minWidth: 0 }}>
-              <Typography variant="subtitle1" fontWeight={700} noWrap title={job.title}>
+              <Typography variant="subtitle1" noWrap title={job.title} sx={{ fontWeight: 700 }}>
                 {job.title}
               </Typography>
               <Typography variant="body2" color="text.secondary" noWrap>
@@ -187,7 +185,7 @@ const JobCard = ({ job }) => {
             />
           </Stack>
 
-          <Stack spacing={1} mt={2}>
+          <Stack spacing={1} sx={{ mt: 2 }}>
             <Row icon={PlaceOutlinedIcon} text={`${job.city}, ${countryLabel(job.country)}`} />
             <Row icon={WorkOutlineOutlinedIcon} text={humanize(job.employment_type)} />
             <Row icon={HomeWorkOutlinedIcon} text={humanize(job.work_mode)} />
@@ -195,9 +193,7 @@ const JobCard = ({ job }) => {
 
           <Stack
             direction="row"
-            alignItems="center"
-            justifyContent="space-between"
-            sx={{ mt: 2, pt: 1.5, borderTop: "1px dashed", borderColor: "divider" }}
+            sx={{ mt: 2, pt: 1.5, borderTop: "1px dashed", borderColor: "divider", alignItems: "center", justifyContent: "space-between" }}
           >
             <Tooltip
               title={
@@ -206,7 +202,7 @@ const JobCard = ({ job }) => {
                   : "Setup pipeline is still running"
               }
             >
-              <Stack direction="row" alignItems="center" spacing={0.75}>
+              <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
                 <CircleIcon
                   sx={{ fontSize: 10, color: ready ? "success.main" : "warning.main" }}
                 />
@@ -246,7 +242,7 @@ const JobCard = ({ job }) => {
 };
 
 const Row = ({ icon: Icon, text }) => (
-  <Stack direction="row" alignItems="center" spacing={1} sx={{ color: "text.secondary" }}>
+  <Stack direction="row" spacing={1} sx={{ color: "text.secondary", alignItems: "center" }}>
     <Icon sx={{ fontSize: 18 }} />
     <Typography variant="body2" noWrap title={text}>
       {text}
@@ -258,7 +254,7 @@ const Row = ({ icon: Icon, text }) => (
 export const JobCardSkeleton = () => (
   <Card variant="outlined" sx={{ borderRadius: 2.5, height: "100%", borderColor: "#e7eae8" }}>
     <CardContent sx={{ p: 2.5 }}>
-      <Stack direction="row" justifyContent="space-between" spacing={1}>
+      <Stack direction="row" spacing={1} sx={{ justifyContent: "space-between" }}>
         <Box sx={{ flexGrow: 1, minWidth: 0 }}>
           <Skeleton variant="text" width="75%" height={26} />
           <Skeleton variant="text" width="50%" />
@@ -266,7 +262,7 @@ export const JobCardSkeleton = () => (
         <Skeleton variant="rounded" width={56} height={22} sx={{ borderRadius: 999 }} />
       </Stack>
 
-      <Stack spacing={1.25} mt={2}>
+      <Stack spacing={1.25} sx={{ mt: 2 }}>
         <Skeleton variant="text" width="65%" />
         <Skeleton variant="text" width="45%" />
         <Skeleton variant="text" width="50%" />
@@ -274,8 +270,7 @@ export const JobCardSkeleton = () => (
 
       <Stack
         direction="row"
-        justifyContent="space-between"
-        sx={{ mt: 2, pt: 1.5, borderTop: "1px dashed", borderColor: "divider" }}
+        sx={{ mt: 2, pt: 1.5, borderTop: "1px dashed", borderColor: "divider", justifyContent: "space-between" }}
       >
         <Skeleton variant="text" width={64} />
         <Skeleton variant="text" width={72} />
