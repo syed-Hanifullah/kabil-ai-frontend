@@ -28,7 +28,6 @@ import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import PersonAddAltOutlinedIcon from "@mui/icons-material/PersonAddAltOutlined";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
 import ErrorAlert from "@/components/ErrorAlert";
 import WhatsAppDialog from "./WhatsAppDialog";
 import {
@@ -36,7 +35,7 @@ import {
   useAuditLog,
   useUpdateStage,
   useUpdateStatus,
-  useAddToPool,
+  useMoveToPool,
 } from "@/lib/kabil/queries";
 import {
   APPLICATION_STAGES,
@@ -308,14 +307,14 @@ const CandidateDialog = ({ appId, open, onClose, readOnly = false }) => {
   const { data: audit } = useAuditLog(appId);
   const updateStage = useUpdateStage(appId);
   const updateStatus = useUpdateStatus(appId);
-  const addToPool = useAddToPool();
-  const resetAddToPool = addToPool.reset;
+  const moveToPool = useMoveToPool();
+  const resetMoveToPool = moveToPool.reset;
 
-  // Clear the "added to pool" state when the dialog switches candidates, since
-  // this component stays mounted across openings. `reset` is stable in RQ.
+  // Clear any prior move error when the dialog switches candidates, since this
+  // component stays mounted across openings. `reset` is stable in RQ.
   useEffect(() => {
-    resetAddToPool();
-  }, [appId, resetAddToPool]);
+    resetMoveToPool();
+  }, [appId, resetMoveToPool]);
 
   const busy = updateStage.isPending || updateStatus.isPending;
   const nextStage = app ? NEXT_STAGE[app.stage] : null;
@@ -336,10 +335,11 @@ const CandidateDialog = ({ appId, open, onClose, readOnly = false }) => {
   };
 
   const candidate = app?.candidate;
-  const pooled = addToPool.isSuccess;
-  const addToPoolNow = () => {
-    if (!candidate?.id) return;
-    addToPool.mutate({ candidateId: candidate.id, sourceJobId: app?.job_id });
+  // Moving to the pool hard-deletes this application, so once it succeeds the
+  // dialog has nothing left to show — close it and let the board refetch.
+  const moveToPoolNow = () => {
+    if (!appId) return;
+    moveToPool.mutate(appId, { onSuccess: onClose });
   };
 
   return (
@@ -421,18 +421,14 @@ const CandidateDialog = ({ appId, open, onClose, readOnly = false }) => {
               {!readOnly && (
               <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", rowGap: 1, mt: 1.5 }}>
                 <Button
-                  variant={pooled ? "contained" : "outlined"}
+                  variant="outlined"
                   size="small"
-                  color={pooled ? "success" : "secondary"}
-                  startIcon={pooled ? <CheckCircleOutlineIcon /> : <PersonAddAltOutlinedIcon />}
-                  onClick={addToPoolNow}
-                  disabled={addToPool.isPending || pooled || !candidate?.id}
+                  color="secondary"
+                  startIcon={<PersonAddAltOutlinedIcon />}
+                  onClick={moveToPoolNow}
+                  disabled={moveToPool.isPending || !appId}
                 >
-                  {pooled
-                    ? "In talent pool"
-                    : addToPool.isPending
-                      ? "Adding…"
-                      : "Add to talent pool"}
+                  {moveToPool.isPending ? "Moving…" : "Move to talent pool"}
                 </Button>
                 {reachedWhatsApp && (
                   <Button
@@ -447,7 +443,7 @@ const CandidateDialog = ({ appId, open, onClose, readOnly = false }) => {
                 )}
               </Stack>
               )}
-              {!readOnly && addToPool.isError && <ErrorAlert error={addToPool.error} sx={{ mt: 1 }} />}
+              {!readOnly && moveToPool.isError && <ErrorAlert error={moveToPool.error} sx={{ mt: 1 }} />}
             </Box>
 
             {/* Actions */}
