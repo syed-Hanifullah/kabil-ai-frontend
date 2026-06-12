@@ -1,37 +1,41 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import Badge from "@mui/material/Badge";
-import IconButton from "@mui/material/IconButton";
 import Avatar from "@mui/material/Avatar";
-import Divider from "@mui/material/Divider";
-import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
 import { COLORS } from "@/lib/theme";
 import { useAuth } from "@/lib/auth/AuthContext";
 
-const greeting = () => {
-  const h = new Date().getHours();
-  if (h < 12) return "Good morning";
-  if (h < 18) return "Good afternoon";
-  return "Good evening";
-};
-
-const today = () =>
-  new Date().toLocaleDateString(undefined, {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-
-const firstName = (name = "") => name.split(" ")[0];
 const initials = (name = "") =>
   name.split(" ").map((p) => p[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
 
+const humanize = (seg = "") =>
+  seg.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+
+/** Friendly labels for known route segments. */
+const SEGMENT_LABELS = {
+  dashboard: "Dashboard",
+  jobs: "Jobs",
+  new: "New Job",
+  pipeline: "Pipeline",
+  "cv-inbox": "CV Inbox",
+  "talent-pool": "Talent Pool",
+};
+
+/** Derive the page title from the last segment of the current route. */
+const pageTitle = (pathname) => {
+  const segments = pathname.split("/").filter(Boolean);
+  if (!segments.length) return "";
+  const last = segments[segments.length - 1];
+  return SEGMENT_LABELS[last] || (segments[segments.length - 2] === "jobs" ? "Job" : humanize(last));
+};
+
 const TopBar = () => {
   const { user } = useAuth();
+  const pathname = usePathname();
+  const title = pageTitle(pathname);
 
   return (
     <Box
@@ -49,28 +53,17 @@ const TopBar = () => {
     >
       <Box sx={{ flex: 1, minWidth: 0 }}>
         <Typography variant="h6" noWrap sx={{ fontWeight: 700 }}>
-          {greeting()}, {firstName(user?.full_name) || "there"} 👋
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          {today()}
+          {title}
         </Typography>
       </Box>
 
       <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
-        <IconButton size="small">
-          <Badge badgeContent={3} color="secondary">
-            <NotificationsNoneOutlinedIcon />
-          </Badge>
-        </IconButton>
-
-        <Divider orientation="vertical" flexItem sx={{ my: 0.5 }} />
-
         <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
           <Box sx={{ textAlign: "right", display: { xs: "none", sm: "block" } }}>
             <Typography variant="body2" noWrap sx={{ fontWeight: 600 }}>
               {user?.full_name || "—"}
             </Typography>
-            <Typography variant="caption" sx={{ color: COLORS.gold, fontWeight: 600 }}>
+            <Typography variant="caption" sx={{ color: COLORS.gold, fontWeight: 600, textTransform: "capitalize" }}>
               {user?.role || ""}
             </Typography>
           </Box>

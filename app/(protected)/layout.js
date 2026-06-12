@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
 import { useAuth } from "@/lib/auth/AuthContext";
+import { RealtimeProvider } from "@/lib/realtime/RealtimeContext";
 import Sidebar from "./_components/Sidebar";
 import TopBar from "./_components/TopBar";
 
@@ -39,16 +40,20 @@ const ProtectedLayout = ({ children }) => {
     );
   }
 
+  // Mounted only past the auth gate, so a Bearer token always exists when the
+  // realtime stream mints its first ticket. One stream serves the whole shell.
   return (
-    <Box sx={{ display: "flex", minHeight: "100dvh", bgcolor: "background.default" }}>
-      <Sidebar />
-      <Box sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
-        <TopBar />
-        <Box component="main" sx={{ flex: 1, p: 4 }}>
-          {children}
+    <RealtimeProvider>
+      <Box sx={{ display: "flex", minHeight: "100dvh", bgcolor: "background.default" }}>
+        <Sidebar />
+        <Box sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
+          <TopBar />
+          <Box component="main" sx={{ flex: 1, p: 4 }}>
+            {children}
+          </Box>
         </Box>
       </Box>
-    </Box>
+    </RealtimeProvider>
   );
 };
 

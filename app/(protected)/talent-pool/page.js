@@ -8,8 +8,6 @@ import Card from "@mui/material/Card";
 import Button from "@mui/material/Button";
 import Pagination from "@mui/material/Pagination";
 import Skeleton from "@mui/material/Skeleton";
-import FormControlLabel from "@mui/material/FormControlLabel";
-import Switch from "@mui/material/Switch";
 import InputAdornment from "@mui/material/InputAdornment";
 import IconButton from "@mui/material/IconButton";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -60,7 +58,6 @@ const ListSkeleton = () => (
 const TalentPoolPage = () => {
   const [rawQuery, setRawQuery] = useState("");
   const [query, setQuery] = useState("");
-  const [activeOnly, setActiveOnly] = useState(true);
   const [page, setPage] = useState(1);
   const [sourceTarget, setSourceTarget] = useState(null);
   const [viewTarget, setViewTarget] = useState(null);
@@ -75,14 +72,14 @@ const TalentPoolPage = () => {
   const searching = query.length >= TALENT_POOL_SEARCH_MIN_LENGTH;
 
   const browse = useTalentPool({
-    activeOnly,
+    activeOnly: false,
     page,
     pageSize: PAGE_SIZE,
     enabled: !searching,
   });
 
   const search = useTalentPoolSearch(query, {
-    activeOnly,
+    activeOnly: false,
     limit: TALENT_POOL_SEARCH_DEFAULT_LIMIT,
     enabled: searching,
   });
@@ -151,18 +148,6 @@ const TalentPoolPage = () => {
             },
           }}
         />
-        <FormControlLabel
-          control={
-            <Switch
-              checked={activeOnly}
-              onChange={(e) => {
-                setActiveOnly(e.target.checked);
-                setPage(1);
-              }}
-            />
-          }
-          label="Active only"
-        />
       </Stack>
 
       {active.isError ? (
@@ -176,7 +161,7 @@ const TalentPoolPage = () => {
             title={searching ? "No matches" : "The pool is empty"}
             description={
               searching
-                ? "No pooled candidate matches that search. Try different keywords, or turn off “Active only”."
+                ? "No pooled candidate matches that search. Try different keywords."
                 : "Upload CVs straight into the pool, or shortlist candidates from a job to collect them here."
             }
             action={

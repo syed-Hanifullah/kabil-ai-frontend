@@ -6,8 +6,16 @@ consistent*: the response confirms the work was **enqueued**, not **done**.
 This guide tells you what runs async, how to detect completion, and what the
 in-progress states look like.
 
-There are **no websockets/SSE today** — completion is observed by **polling**
-the relevant GET endpoint and reading the `pipeline_status` map + score fields.
+Completion is observed by **polling** the relevant GET endpoint and reading the
+`pipeline_status` map + score fields — the resilient baseline every integration
+should implement.
+
+> **Realtime shortcut:** the backend also pushes a **Server-Sent Events** nudge
+> the moment a score or WhatsApp reply lands, so the UI can refetch immediately
+> instead of waiting for the next poll. Polling stays as the fallback. See
+> **[REALTIME.md](./REALTIME.md)**. Note SSE covers score + WhatsApp events
+> only — the **job pipeline** and **talent-pool** readiness below are still
+> poll-only.
 
 ---
 
