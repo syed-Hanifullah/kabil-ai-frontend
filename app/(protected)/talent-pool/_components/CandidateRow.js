@@ -6,10 +6,12 @@ import Typography from "@mui/material/Typography";
 import Avatar from "@mui/material/Avatar";
 import Chip from "@mui/material/Chip";
 import Button from "@mui/material/Button";
+import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
 import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
 import PhoneOutlinedIcon from "@mui/icons-material/PhoneOutlined";
 import SendOutlinedIcon from "@mui/icons-material/SendOutlined";
+import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 import { timeAgo, toScore, poolMatchColor } from "@/lib/kabil/constants";
 
 /** Two-letter initials for the avatar; falls back to a person glyph. */
@@ -36,7 +38,7 @@ const Meta = ({ icon, children }) =>
  * (search hits only) drives the match chip. Clicking the row opens the candidate's
  * full profile; the row also carries a direct "Source to job" action.
  */
-const CandidateRow = ({ entry, onOpen, onSource }) => {
+const CandidateRow = ({ entry, onOpen, onSource, onHistory }) => {
   const c = entry.candidate || {};
   const score = toScore(entry.similarity_score);
 
@@ -111,6 +113,20 @@ const CandidateRow = ({ entry, onOpen, onSource }) => {
               label={`${Math.round(score)} match`}
               sx={{ fontWeight: 700 }}
             />
+          </Tooltip>
+        )}
+        {onHistory && (
+          <Tooltip title="View this candidate's full cross-job history">
+            <IconButton
+              size="small"
+              aria-label="View candidate history"
+              onClick={(e) => {
+                e.stopPropagation();
+                onHistory(entry);
+              }}
+            >
+              <HistoryOutlinedIcon fontSize="small" />
+            </IconButton>
           </Tooltip>
         )}
         <Button

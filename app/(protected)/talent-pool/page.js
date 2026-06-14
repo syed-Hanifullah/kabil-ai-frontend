@@ -18,6 +18,7 @@ import EmptyState from "@/components/EmptyState";
 import ErrorAlert from "@/components/ErrorAlert";
 import SearchField from "@/components/SearchField";
 import CandidateRow from "./_components/CandidateRow";
+import CandidateHistoryDialog from "./_components/CandidateHistoryDialog";
 import SourceToJobDialog from "./_components/SourceToJobDialog";
 import UploadToPoolDialog from "./_components/UploadToPoolDialog";
 import ViewCandidateDialog from "./_components/ViewCandidateDialog";
@@ -61,6 +62,7 @@ const TalentPoolPage = () => {
   const [page, setPage] = useState(1);
   const [sourceTarget, setSourceTarget] = useState(null);
   const [viewTarget, setViewTarget] = useState(null);
+  const [historyTarget, setHistoryTarget] = useState(null);
   const [uploadOpen, setUploadOpen] = useState(false);
 
   // Debounce the raw input into the value we actually query with.
@@ -194,6 +196,7 @@ const TalentPoolPage = () => {
                 entry={entry}
                 onOpen={(e) => setViewTarget(e)}
                 onSource={(e) => setSourceTarget(e.candidate)}
+                onHistory={(e) => setHistoryTarget(e.candidate)}
               />
             ))}
           </Card>
@@ -215,6 +218,11 @@ const TalentPoolPage = () => {
         entry={viewTarget}
         open={!!viewTarget}
         onClose={() => setViewTarget(null)}
+      />
+      <CandidateHistoryDialog
+        candidateId={historyTarget?.id}
+        open={!!historyTarget}
+        onClose={() => setHistoryTarget(null)}
       />
       <SourceToJobDialog
         candidate={sourceTarget}

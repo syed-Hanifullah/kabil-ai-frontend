@@ -335,8 +335,9 @@ const CandidateDialog = ({ appId, open, onClose, readOnly = false }) => {
   };
 
   const candidate = app?.candidate;
-  // Moving to the pool hard-deletes this application, so once it succeeds the
-  // dialog has nothing left to show — close it and let the board refetch.
+  // Moving to the pool soft-archives this application (it leaves the active
+  // board but survives as cross-job history), so once it succeeds there's
+  // nothing left to show here — close and let the board refetch it out of view.
   const moveToPoolNow = () => {
     if (!appId) return;
     moveToPool.mutate(appId, { onSuccess: onClose });
