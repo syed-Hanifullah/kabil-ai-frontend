@@ -629,6 +629,43 @@ export interface WhatsAppConversationResponse {
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
+ * Dashboard
+ * GET /dashboard — workspace-wide aggregate counts for the HR home screen.
+ * The `by_status` / `by_stage` maps always contain *every* enum value as a
+ * key (zero-filled), so you never have to guard a missing key.
+ * ────────────────────────────────────────────────────────────────────────── */
+
+export interface DashboardJobsSummary {
+  total: number;
+  /** Keyed by every JobStatus value; zero-filled. */
+  by_status: Record<JobStatus, number>;
+}
+
+export interface DashboardApplicationsSummary {
+  total: number;
+  /** Keyed by every ApplicationStage value; zero-filled. */
+  by_stage: Record<ApplicationStage, number>;
+  /** Keyed by every ApplicationStatus value; zero-filled. */
+  by_status: Record<ApplicationStatus, number>;
+}
+
+export interface DashboardCandidatesSummary {
+  total: number;
+}
+
+export interface DashboardTalentPoolSummary {
+  /** Active (non-deactivated) talent-pool entries. */
+  active: number;
+}
+
+export interface DashboardSummaryResponse {
+  jobs: DashboardJobsSummary;
+  applications: DashboardApplicationsSummary;
+  candidates: DashboardCandidatesSummary;
+  talent_pool: DashboardTalentPoolSummary;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
  * Health
  * ────────────────────────────────────────────────────────────────────────── */
 

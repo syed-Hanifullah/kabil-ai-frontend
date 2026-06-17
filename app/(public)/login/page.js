@@ -11,7 +11,6 @@ import Typography from "@mui/material/Typography";
 import InputAdornment from "@mui/material/InputAdornment";
 import IconButton from "@mui/material/IconButton";
 import CircularProgress from "@mui/material/CircularProgress";
-import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import BoltOutlinedIcon from "@mui/icons-material/BoltOutlined";
@@ -71,24 +70,22 @@ const BrandPanel = () => (
       }}
     />
 
-    <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
+    <Box
+      sx={{
+        alignSelf: "flex-start",
+        bgcolor: "#fff",
+        borderRadius: 2,
+        px: 2.5,
+        py: 1.5,
+      }}
+    >
       <Box
-        sx={{
-          width: 40,
-          height: 40,
-          borderRadius: 2,
-          display: "grid",
-          placeItems: "center",
-          bgcolor: COLORS.gold,
-          color: COLORS.sidebarBg,
-        }}
-      >
-        <LockOutlinedIcon fontSize="small" />
-      </Box>
-      <Typography variant="h6" sx={{ fontWeight: 700, letterSpacing: 0.2 }}>
-        Kabil.ai
-      </Typography>
-    </Stack>
+        component="img"
+        src="/Qabil_logo.svg"
+        alt="Qabil"
+        sx={{ height: 44, width: "auto", display: "block" }}
+      />
+    </Box>
 
     <Box sx={{ maxWidth: 420 }}>
       <Typography
@@ -131,7 +128,7 @@ const BrandPanel = () => (
     </Box>
 
     <Typography variant="caption" sx={{ color: "#7d9088" }}>
-      © {new Date().getFullYear()} Kabil.ai — All rights reserved.
+      © {new Date().getFullYear()} Qabil.ai — All rights reserved.
     </Typography>
   </Box>
 );
@@ -178,28 +175,14 @@ const LoginForm = () => {
     >
       <Box sx={{ width: "100%", maxWidth: 380 }}>
         {/* Compact brand mark — only visible when the side panel is hidden */}
-        <Stack
-          direction="row"
-          spacing={1.25}
-          sx={{ display: { md: "none" }, mb: 4, alignItems: "center" }}
-        >
+        <Box sx={{ display: { md: "none" }, mb: 4 }}>
           <Box
-            sx={{
-              width: 36,
-              height: 36,
-              borderRadius: 2,
-              display: "grid",
-              placeItems: "center",
-              bgcolor: "primary.main",
-              color: "primary.contrastText",
-            }}
-          >
-            <LockOutlinedIcon fontSize="small" />
-          </Box>
-          <Typography variant="h6" sx={{ fontWeight: 700 }}>
-            Kabil.ai
-          </Typography>
-        </Stack>
+            component="img"
+            src="/Qabil_logo.svg"
+            alt="Qabil"
+            sx={{ height: 40, width: "auto", display: "block" }}
+          />
+        </Box>
 
         <Typography variant="h5" sx={{ mb: 0.5, fontWeight: 700 }}>
           Welcome back

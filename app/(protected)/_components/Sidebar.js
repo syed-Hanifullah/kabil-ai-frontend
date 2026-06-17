@@ -10,9 +10,9 @@ import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import Avatar from "@mui/material/Avatar";
+import Chip from "@mui/material/Chip";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
-import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import { SIDEBAR_WIDTH, COLORS } from "@/lib/theme";
@@ -47,42 +47,22 @@ const Sidebar = () => {
         height: "100dvh",
         position: "sticky",
         top: 0,
-        bgcolor: COLORS.sidebarBg,
-        color: "rgba(255,255,255,0.85)",
+        bgcolor: COLORS.sidebarLight,
+        borderRight: `1px solid ${COLORS.sidebarBorder}`,
+        color: COLORS.sidebarText,
         display: "flex",
         flexDirection: "column",
       }}
     >
       {/* Brand */}
-      <Stack
-        direction="row"
-        spacing={1.5}
-        sx={{ px: 2.5, py: 2.5, alignItems: "center" }}
-      >
+      <Box sx={{ px: 2.5, py: 2.5 }}>
         <Box
-          sx={{
-            width: 38,
-            height: 38,
-            borderRadius: 2,
-            bgcolor: COLORS.gold,
-            color: COLORS.sidebarBg,
-            display: "grid",
-            placeItems: "center",
-            fontWeight: 800,
-            fontSize: 15,
-          }}
-        >
-          K
-        </Box>
-        <Box>
-          <Typography variant="subtitle1" color="#fff" sx={{ fontWeight: 800, lineHeight: 1.1 }}>
-            Kabil.ai
-          </Typography>
-          <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.55)" }}>
-            HR Console
-          </Typography>
-        </Box>
-      </Stack>
+          component="img"
+          src="/Qabil_logo.svg"
+          alt="Qabil"
+          sx={{ height: 40, width: "auto", display: "block" }}
+        />
+      </Box>
 
       {/* Primary nav */}
       <List sx={{ px: 1.5, py: 1, flex: 1, overflowY: "auto" }}>
@@ -97,17 +77,17 @@ const Sidebar = () => {
               sx={{
                 borderRadius: 2,
                 mb: 0.5,
-                color: active ? COLORS.sidebarBg : "rgba(255,255,255,0.82)",
+                color: COLORS.sidebarText,
                 "& .MuiListItemIcon-root": {
-                  color: active ? COLORS.sidebarBg : "rgba(255,255,255,0.7)",
+                  color: COLORS.sidebarIcon,
                   minWidth: 38,
                 },
                 "&.Mui-selected, &.Mui-selected:hover": {
-                  bgcolor: COLORS.gold,
-                  color: COLORS.sidebarBg,
-                  "& .MuiListItemIcon-root": { color: COLORS.sidebarBg },
+                  bgcolor: COLORS.sidebarActive,
+                  color: "#fff",
+                  "& .MuiListItemIcon-root": { color: "#fff" },
                 },
-                "&:hover": { bgcolor: COLORS.sidebarBgHover },
+                "&:hover": { bgcolor: "rgba(47,125,91,0.08)" },
               }}
             >
               <ListItemIcon>
@@ -120,53 +100,66 @@ const Sidebar = () => {
             </ListItemButton>
           );
         })}
+      </List>
 
+      {/* Coming soon */}
+      <Box
+        sx={{
+          mx: 1.5,
+          mb: 1.5,
+          px: 1.75,
+          py: 1.5,
+          borderRadius: 2,
+          border: `1px dashed ${COLORS.sidebarBorder}`,
+          bgcolor: "rgba(0,0,0,0.015)",
+        }}
+      >
         <Typography
           variant="caption"
           sx={{
             display: "block",
-            px: 1.5,
-            mt: 2,
-            mb: 0.5,
+            mb: 0.75,
             letterSpacing: 1,
-            color: "rgba(255,255,255,0.4)",
+            color: COLORS.sidebarMuted,
             fontWeight: 700,
           }}
         >
           COMING SOON
         </Typography>
-        {COMING_SOON_ITEMS.map(({ label, icon: Icon }) => (
-          <ListItemButton
+        {COMING_SOON_ITEMS.map(({ label }) => (
+          <Stack
             key={label}
-            disabled
-            sx={{
-              borderRadius: 2,
-              mb: 0.5,
-              opacity: 0.45,
-              "& .MuiListItemIcon-root": { color: "rgba(255,255,255,0.6)", minWidth: 38 },
-              "&.Mui-disabled": { opacity: 0.45 },
-            }}
+            direction="row"
+            sx={{ alignItems: "center", justifyContent: "space-between", py: 0.6 }}
           >
-            <ListItemIcon>
-              <Icon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText
-              primary={label}
-              slotProps={{ primary: { sx: { fontSize: 14, color: "rgba(255,255,255,0.7)" } } }}
+            <Typography sx={{ fontSize: 14, color: COLORS.sidebarText }}>
+              {label}
+            </Typography>
+            <Chip
+              label="SOON"
+              size="small"
+              sx={{
+                height: 20,
+                fontSize: 10,
+                fontWeight: 700,
+                letterSpacing: 0.5,
+                color: COLORS.gold,
+                bgcolor: "rgba(201,162,63,0.12)",
+                "& .MuiChip-label": { px: 0.75 },
+              }}
             />
-            <LockOutlinedIcon sx={{ fontSize: 16, color: "rgba(255,255,255,0.5)" }} />
-          </ListItemButton>
+          </Stack>
         ))}
-      </List>
+      </Box>
 
       {/* Footer: settings + user */}
-      <Box sx={{ borderTop: "1px solid rgba(255,255,255,0.1)", px: 1.5, py: 1.5 }}>
+      <Box sx={{ borderTop: `1px solid ${COLORS.sidebarBorder}`, px: 1.5, py: 1.5 }}>
         <ListItemButton
           disabled
           sx={{
             borderRadius: 2,
             mb: 0.5,
-            "& .MuiListItemIcon-root": { color: "rgba(255,255,255,0.7)", minWidth: 38 },
+            "& .MuiListItemIcon-root": { color: COLORS.sidebarMuted, minWidth: 38 },
           }}
         >
           <ListItemIcon>
@@ -174,24 +167,24 @@ const Sidebar = () => {
           </ListItemIcon>
           <ListItemText
             primary="Settings"
-            slotProps={{ primary: { sx: { fontSize: 14, color: "rgba(255,255,255,0.75)" } } }}
+            slotProps={{ primary: { sx: { fontSize: 14, color: COLORS.sidebarText } } }}
           />
         </ListItemButton>
 
         <Stack direction="row" spacing={1.5} sx={{ px: 1, py: 0.5, alignItems: "center" }}>
-          <Avatar sx={{ width: 32, height: 32, bgcolor: COLORS.gold, color: COLORS.sidebarBg, fontSize: 13, fontWeight: 700 }}>
+          <Avatar sx={{ width: 32, height: 32, bgcolor: COLORS.sidebarActive, color: "#fff", fontSize: 13, fontWeight: 700 }}>
             {initials(user?.full_name) || "?"}
           </Avatar>
           <Box sx={{ minWidth: 0, flex: 1 }}>
-            <Typography variant="body2" color="#fff" noWrap sx={{ fontWeight: 600 }}>
+            <Typography variant="body2" noWrap sx={{ fontWeight: 600, color: COLORS.sidebarText }}>
               {user?.full_name || "—"}
             </Typography>
-            <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.55)" }} noWrap>
+            <Typography variant="caption" sx={{ color: COLORS.sidebarMuted }} noWrap>
               {user?.role || ""}
             </Typography>
           </Box>
           <Tooltip title="Log out">
-            <IconButton size="small" onClick={onLogout} sx={{ color: "rgba(255,255,255,0.7)" }}>
+            <IconButton size="small" onClick={onLogout} sx={{ color: COLORS.sidebarMuted }}>
               <LogoutOutlinedIcon fontSize="small" />
             </IconButton>
           </Tooltip>

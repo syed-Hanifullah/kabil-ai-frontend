@@ -174,6 +174,42 @@ Auth required. Revokes the session. → `204` (no body).
 
 ---
 
+### Dashboard
+
+#### `GET /dashboard`
+Auth. Workspace-wide aggregate counts for the HR home screen. No query params —
+the system is a single shared workspace, so there's nothing to scope by.
+Read-only and cheap; safe to poll/refetch on focus.
+
+→ `200` `DashboardSummaryResponse`:
+```json
+{
+  "jobs": {
+    "total": 12,
+    "by_status": { "draft": 2, "open": 7, "closed": 3 }
+  },
+  "applications": {
+    "total": 184,
+    "by_stage": {
+      "vector_screen": 90, "hard_filter": 40,
+      "whatsapp": 30, "interview": 20, "done": 4
+    },
+    "by_status": { "active": 150, "rejected": 30, "accepted": 4 }
+  },
+  "candidates": { "total": 161 },
+  "talent_pool": { "active": 22 }
+}
+```
+- `by_status` / `by_stage` always carry **every** enum value as a key,
+  zero-filled — render them directly, no missing-key guards.
+- `jobs.total` / `applications.total` equal the sum of their breakdown.
+- `candidates.total` counts unique people (one row per email+phone, shared
+  across their applications); `talent_pool.active` excludes deactivated entries.
+
+Use the `useDashboard()` hook in `lib/kabil/queries.js`.
+
+---
+
 ### Jobs
 
 #### `POST /jobs`

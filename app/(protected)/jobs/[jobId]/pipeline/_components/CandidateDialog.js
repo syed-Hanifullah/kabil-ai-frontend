@@ -28,7 +28,9 @@ import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import PersonAddAltOutlinedIcon from "@mui/icons-material/PersonAddAltOutlined";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
+import VideocamOutlinedIcon from "@mui/icons-material/VideocamOutlined";
+import PlaceOutlinedIcon from "@mui/icons-material/PlaceOutlined";
+import EventAvailableOutlinedIcon from "@mui/icons-material/EventAvailableOutlined";
 import ErrorAlert from "@/components/ErrorAlert";
 import WhatsAppDialog from "./WhatsAppDialog";
 import {
@@ -36,7 +38,7 @@ import {
   useAuditLog,
   useUpdateStage,
   useUpdateStatus,
-  useAddToPool,
+  useMoveToPool,
 } from "@/lib/kabil/queries";
 import {
   APPLICATION_STAGES,
@@ -115,6 +117,27 @@ const LeafValue = ({ value }) => {
         </Typography>
       );
     }
+    const asText = (v) => (typeof v === "object" ? JSON.stringify(v) : String(v));
+    // Long, sentence-like items (e.g. "reasons") clip badly inside fixed-height
+    // chips — render those as wrapping bullet lines instead. Short tokens
+    // (skills, tags) stay as chips.
+    const hasLongText = value.some((v) => asText(v).length > 40);
+    if (hasLongText) {
+      return (
+        <Stack component="ul" spacing={0.5} sx={{ m: 0, pl: 2 }}>
+          {value.map((v, i) => (
+            <Typography
+              key={i}
+              component="li"
+              variant="caption"
+              sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}
+            >
+              {asText(v)}
+            </Typography>
+          ))}
+        </Stack>
+      );
+    }
     return (
       <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
         {value.map((v, i) => (
@@ -122,8 +145,8 @@ const LeafValue = ({ value }) => {
             key={i}
             size="small"
             variant="outlined"
-            label={typeof v === "object" ? JSON.stringify(v) : String(v)}
-            sx={{ height: 20, maxWidth: "100%" }}
+            label={asText(v)}
+            sx={{ height: "auto", maxWidth: "100%", "& .MuiChip-label": { whiteSpace: "normal", py: 0.25 } }}
           />
         ))}
       </Box>
@@ -280,6 +303,189 @@ const ParsedProfile = ({ profile }) => {
   );
 };
 
+/** Absolute date + time, optionally rendered in the invitee's IANA timezone. */
+const formatDateTime = (iso, tz) => {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  try {
+    return new Intl.DateTimeFormat(undefined, {
+      dateStyle: "medium",
+      timeStyle: "short",
+      ...(tz ? { timeZone: tz } : {}),
+    }).format(d);
+  } catch {
+    return d.toLocaleString();
+  }
+};
+
+/** Time-only, for the trailing end of a slot range. */
+const formatTime = (iso, tz) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  try {
+    return new Intl.DateTimeFormat(undefined, {
+      timeStyle: "short",
+      ...(tz ? { timeZone: tz } : {}),
+    }).format(d);
+  } catch {
+    return "";
+  }
+};
+
+const INTERVIEW_STATE_META = {
+  invited: { label: "Invite sent", color: "info" },
+  booked: { label: "Booked", color: "success" },
+  canceled: { label: "Canceled", color: "error" },
+};
+const interviewStateMeta = (state) =>
+  INTERVIEW_STATE_META[state] || { label: humanize(state), color: "default" };
+
+/** Calendly location discriminator → recruiter-facing label. */
+const LOCATION_LABELS = {
+  zoom: "Zoom",
+  google_conference: "Google Meet",
+  microsoft_teams_conference: "Microsoft Teams",
+  gotomeeting: "GoTo Meeting",
+  webex_conference: "Webex",
+  physical: "In person",
+  outbound_call: "Phone — we call the candidate",
+  inbound_call: "Phone — candidate calls in",
+  custom: "Custom",
+  ask_invitee: "Candidate's choice",
+};
+const locationLabel = (type) => (type ? LOCATION_LABELS[type] || humanize(type) : "—");
+
+/**
+ * The interview booking lifecycle (Calendly), surfaced from `app.interview`.
+ * Renders the booked slot + meeting details once a candidate picks a time,
+ * reschedule history, and the cancellation reason — falling back to an
+ * "awaiting booking" note while the invite is still outstanding.
+ */
+const InterviewSection = ({ interview }) => {
+  const meta = interviewStateMeta(interview.state);
+  const booked = interview.state === "booked";
+  const canceled = interview.state === "canceled";
+  const rescheduled = (interview.reschedule_count || 0) > 0;
+  const tz = interview.invitee_timezone || undefined;
+
+  return (
+    <Section
+      title="Interview"
+      action={
+        <Chip
+          size="small"
+          label={meta.label}
+          color={meta.color}
+          variant={booked ? "filled" : "outlined"}
+        />
+      }
+    >
+      <Stack spacing={2}>
+        {booked && (
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+              gap: 2,
+            }}
+          >
+            <Field label="Scheduled slot">
+              {formatDateTime(interview.scheduled_start_at, tz)}
+              {interview.scheduled_end_at ? ` – ${formatTime(interview.scheduled_end_at, tz)}` : ""}
+            </Field>
+            <Field label="Meeting type">{locationLabel(interview.location_type)}</Field>
+            <Field label="Booked by">{interview.invitee_email}</Field>
+            <Field label="Candidate timezone">{tz || "—"}</Field>
+          </Box>
+        )}
+
+        {booked && interview.join_url && (
+          <Box>
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<VideocamOutlinedIcon />}
+              component="a"
+              href={interview.join_url}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Join meeting
+            </Button>
+          </Box>
+        )}
+        {booked && !interview.join_url && interview.location_text && (
+          <Field label="Location">
+            <Stack direction="row" spacing={0.75} sx={{ alignItems: "flex-start" }}>
+              <PlaceOutlinedIcon sx={{ fontSize: 18, color: "text.secondary", mt: 0.25 }} />
+              <span>{interview.location_text}</span>
+            </Stack>
+          </Field>
+        )}
+
+        {rescheduled && (
+          <Box sx={{ bgcolor: "#fff8e8", border: "1px solid #f0e2bd", borderRadius: 1.5, p: 1.25 }}>
+            <Typography variant="caption" sx={{ fontWeight: 700, display: "block" }}>
+              Rescheduled {interview.reschedule_count}×
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {interview.previous_start_at
+                ? `Previously ${formatDateTime(interview.previous_start_at, tz)}`
+                : ""}
+              {interview.rescheduled_at ? ` · changed ${timeAgo(interview.rescheduled_at)}` : ""}
+            </Typography>
+          </Box>
+        )}
+
+        {canceled && (
+          <Box sx={{ bgcolor: "#fdecec", border: "1px solid #f4c7c7", borderRadius: 1.5, p: 1.25 }}>
+            <Typography variant="caption" sx={{ fontWeight: 700, display: "block" }}>
+              Canceled{interview.canceled_by ? ` by ${humanize(interview.canceled_by)}` : ""}
+              {interview.canceled_at ? ` · ${timeAgo(interview.canceled_at)}` : ""}
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: "pre-wrap" }}>
+              {interview.cancel_reason || "No reason provided."}
+            </Typography>
+          </Box>
+        )}
+
+        {!booked && !canceled && (
+          <Typography variant="body2" color="text.secondary">
+            Invite sent {timeAgo(interview.created_at)}. Awaiting the candidate to pick a slot.
+            {interview.reminder_sent_at
+              ? ` Reminder sent ${timeAgo(interview.reminder_sent_at)}.`
+              : ""}
+          </Typography>
+        )}
+
+        {interview.scheduling_url && (
+          <Box>
+            <Button
+              variant="text"
+              size="small"
+              startIcon={<EventAvailableOutlinedIcon />}
+              component="a"
+              href={interview.scheduling_url}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {booked ? "View booking page" : "Open booking link"}
+            </Button>
+          </Box>
+        )}
+
+        {interview.last_error && (
+          <Typography variant="caption" color="error.main">
+            Last issue: {humanize(interview.last_error)}
+          </Typography>
+        )}
+      </Stack>
+    </Section>
+  );
+};
+
 const DialogSkeleton = () => (
   <Stack spacing={2}>
     <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
@@ -308,14 +514,14 @@ const CandidateDialog = ({ appId, open, onClose, readOnly = false }) => {
   const { data: audit } = useAuditLog(appId);
   const updateStage = useUpdateStage(appId);
   const updateStatus = useUpdateStatus(appId);
-  const addToPool = useAddToPool();
-  const resetAddToPool = addToPool.reset;
+  const moveToPool = useMoveToPool();
+  const resetMoveToPool = moveToPool.reset;
 
-  // Clear the "added to pool" state when the dialog switches candidates, since
-  // this component stays mounted across openings. `reset` is stable in RQ.
+  // Clear any prior move error when the dialog switches candidates, since this
+  // component stays mounted across openings. `reset` is stable in RQ.
   useEffect(() => {
-    resetAddToPool();
-  }, [appId, resetAddToPool]);
+    resetMoveToPool();
+  }, [appId, resetMoveToPool]);
 
   const busy = updateStage.isPending || updateStatus.isPending;
   const nextStage = app ? NEXT_STAGE[app.stage] : null;
@@ -336,10 +542,12 @@ const CandidateDialog = ({ appId, open, onClose, readOnly = false }) => {
   };
 
   const candidate = app?.candidate;
-  const pooled = addToPool.isSuccess;
-  const addToPoolNow = () => {
-    if (!candidate?.id) return;
-    addToPool.mutate({ candidateId: candidate.id, sourceJobId: app?.job_id });
+  // Moving to the pool soft-archives this application (it leaves the active
+  // board but survives as cross-job history), so once it succeeds there's
+  // nothing left to show here — close and let the board refetch it out of view.
+  const moveToPoolNow = () => {
+    if (!appId) return;
+    moveToPool.mutate(appId, { onSuccess: onClose });
   };
 
   return (
@@ -421,18 +629,14 @@ const CandidateDialog = ({ appId, open, onClose, readOnly = false }) => {
               {!readOnly && (
               <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", rowGap: 1, mt: 1.5 }}>
                 <Button
-                  variant={pooled ? "contained" : "outlined"}
+                  variant="outlined"
                   size="small"
-                  color={pooled ? "success" : "secondary"}
-                  startIcon={pooled ? <CheckCircleOutlineIcon /> : <PersonAddAltOutlinedIcon />}
-                  onClick={addToPoolNow}
-                  disabled={addToPool.isPending || pooled || !candidate?.id}
+                  color="secondary"
+                  startIcon={<PersonAddAltOutlinedIcon />}
+                  onClick={moveToPoolNow}
+                  disabled={moveToPool.isPending || !appId}
                 >
-                  {pooled
-                    ? "In talent pool"
-                    : addToPool.isPending
-                      ? "Adding…"
-                      : "Add to talent pool"}
+                  {moveToPool.isPending ? "Moving…" : "Move to talent pool"}
                 </Button>
                 {reachedWhatsApp && (
                   <Button
@@ -447,7 +651,7 @@ const CandidateDialog = ({ appId, open, onClose, readOnly = false }) => {
                 )}
               </Stack>
               )}
-              {!readOnly && addToPool.isError && <ErrorAlert error={addToPool.error} sx={{ mt: 1 }} />}
+              {!readOnly && moveToPool.isError && <ErrorAlert error={moveToPool.error} sx={{ mt: 1 }} />}
             </Box>
 
             {/* Actions */}
@@ -511,6 +715,9 @@ const CandidateDialog = ({ appId, open, onClose, readOnly = false }) => {
               )}
             </Section>
             )}
+
+            {/* Interview booking (Calendly) — present once HR moves to L3 */}
+            {app.interview && <InterviewSection interview={app.interview} />}
 
             {/* Scores */}
             <Section title="Scores">

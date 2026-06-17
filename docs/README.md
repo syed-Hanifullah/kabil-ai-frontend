@@ -19,6 +19,7 @@ authenticity) so HR can triage. See the
 | **[ENUMS.md](./ENUMS.md)** | Every closed set (stages, statuses, job descriptors, bands, WhatsApp states) + limits cheat sheet. |
 | **[WORKFLOWS.md](./WORKFLOWS.md)** | End-to-end journeys with sequence diagrams (incl. WhatsApp screening + talent-pool sourcing) + the application state machine. |
 | **[ASYNC_AND_POLLING.md](./ASYNC_AND_POLLING.md)** | What runs async, the pipelines, and how to poll for completion. |
+| **[REALTIME.md](./REALTIME.md)** | The Server-Sent Events stream: ticket auth, the pointer envelopes, and how the FE turns events into refetches (with polling as fallback). |
 | **[kabil-api.types.ts](./kabil-api.types.ts)** | Drop-in TypeScript types for every request/response shape. |
 
 ## Recently added (what's new for FE)
@@ -30,6 +31,9 @@ authenticity) so HR can triage. See the
   `GET /applications/{id}/whatsapp`. See WORKFLOWS §8.
 - **Talent Pool** — `/talent-pool/*`: add/upload candidates, semantic search,
   and **source** a pooled candidate onto a job. See WORKFLOWS §9.
+- **Realtime (SSE)** — `/events/ticket` + `/events/stream` push a nudge when a
+  score or WhatsApp reply lands, so the UI refetches instantly instead of
+  polling. See REALTIME.md.
 
 ## Also available (not in this folder)
 
@@ -55,7 +59,8 @@ authenticity) so HR can triage. See the
 6. **Talent pool** — keep & semantically search strong candidates, then source
    one onto a job to create a fresh, fully-scored application.
 7. **Async everywhere** — `202`/`201` can mean *enqueued*; poll the GET endpoint
-   and read `pipeline_status` + score fields. See ASYNC_AND_POLLING.md.
+   and read `pipeline_status` + score fields (ASYNC_AND_POLLING.md), or subscribe
+   to the SSE stream for an instant nudge when results land (REALTIME.md).
 
 ## Conventions in one glance
 
