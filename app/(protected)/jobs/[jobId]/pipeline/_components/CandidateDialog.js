@@ -117,6 +117,27 @@ const LeafValue = ({ value }) => {
         </Typography>
       );
     }
+    const asText = (v) => (typeof v === "object" ? JSON.stringify(v) : String(v));
+    // Long, sentence-like items (e.g. "reasons") clip badly inside fixed-height
+    // chips — render those as wrapping bullet lines instead. Short tokens
+    // (skills, tags) stay as chips.
+    const hasLongText = value.some((v) => asText(v).length > 40);
+    if (hasLongText) {
+      return (
+        <Stack component="ul" spacing={0.5} sx={{ m: 0, pl: 2 }}>
+          {value.map((v, i) => (
+            <Typography
+              key={i}
+              component="li"
+              variant="caption"
+              sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}
+            >
+              {asText(v)}
+            </Typography>
+          ))}
+        </Stack>
+      );
+    }
     return (
       <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
         {value.map((v, i) => (
@@ -124,8 +145,8 @@ const LeafValue = ({ value }) => {
             key={i}
             size="small"
             variant="outlined"
-            label={typeof v === "object" ? JSON.stringify(v) : String(v)}
-            sx={{ height: 20, maxWidth: "100%" }}
+            label={asText(v)}
+            sx={{ height: "auto", maxWidth: "100%", "& .MuiChip-label": { whiteSpace: "normal", py: 0.25 } }}
           />
         ))}
       </Box>
