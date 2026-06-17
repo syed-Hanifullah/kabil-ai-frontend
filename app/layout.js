@@ -10,7 +10,7 @@ const inter = Inter({
 const geistMono = Geist_Mono({ variable: "--font-mono", subsets: ["latin"] });
 
 export const metadata = {
-  title: "Kabil.ai — HR",
+  title: "Qabil.ai — HR",
   description: "AI-driven hiring automation",
 };
 

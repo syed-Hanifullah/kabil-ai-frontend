@@ -18,10 +18,15 @@ import SearchField from "@/components/SearchField";
 import { useJobs } from "@/lib/kabil/queries";
 import JobCard, { JobCardSkeleton } from "./_components/JobCard";
 
+// Tabs as drawn in the design. `status: null` → no status filter; the
+// `placeholder` flag marks tabs with no backend status yet (e.g. Inactive),
+// which render a "coming soon" state instead of querying the API.
 const TABS = [
-  { label: "Active", status: "open" },
+  { label: "All", status: null },
   { label: "Drafts", status: "draft" },
   { label: "Archived", status: "closed" },
+  { label: "Active", status: "open" },
+  { label: "Inactive", status: null, placeholder: true },
 ];
 
 /** 3-up responsive grid (1 / 2 / 3 columns). */
@@ -45,9 +50,9 @@ const JobsPageInner = () => {
   const [search, setSearch] = useState("");
   const [createdToast, setCreatedToast] = useState(!!searchParams.get("created"));
 
-  const status = TABS[tab].status;
+  const activeTab = TABS[tab];
   const { data, isLoading, isError, error, refetch } = useJobs({
-    status,
+    status: activeTab.status || undefined,
     search: search.trim() || undefined,
     pageSize: 50,
   });
@@ -67,11 +72,17 @@ const JobsPageInner = () => {
       >
         <SearchField
           placeholder="Search jobs…"
-          width={320}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
+          sx={{ flex: 1, width: { xs: "100%", sm: "auto" } }}
         />
-        <Button component={Link} href="/jobs/new" variant="contained" startIcon={<AddIcon />}>
+        <Button
+          component={Link}
+          href="/jobs/new"
+          variant="contained"
+          startIcon={<AddIcon />}
+          sx={{ flexShrink: 0, borderRadius: 2, px: 2.5 }}
+        >
           Post New Job
         </Button>
       </Stack>
@@ -84,7 +95,15 @@ const JobsPageInner = () => {
         </Tabs>
       </Box>
 
-      {isLoading ? (
+      {activeTab.placeholder ? (
+        <Card sx={{ borderRadius: 2 }}>
+          <EmptyState
+            emoji="🚧"
+            title="Inactive jobs are coming soon"
+            description="This view isn't available yet. Active, draft, and archived jobs are in the other tabs."
+          />
+        </Card>
+      ) : isLoading ? (
         <JobsGridSkeleton />
       ) : isError ? (
         <ErrorAlert error={error} />
@@ -96,7 +115,9 @@ const JobsPageInner = () => {
             description={
               search
                 ? "Try a different search term."
-                : `No ${TABS[tab].label.toLowerCase()} jobs. Post your first job to get started.`
+                : activeTab.status
+                  ? `No ${activeTab.label.toLowerCase()} jobs. Post your first job to get started.`
+                  : "No jobs yet. Post your first job to get started."
             }
             action={
               !search && (

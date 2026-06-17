@@ -14,6 +14,8 @@ import StepLabel from "@mui/material/StepLabel";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
+import ArrowBackIcon from "@mui/icons-material/ArrowBackOutlined";
+import ArrowForwardIcon from "@mui/icons-material/ArrowForwardOutlined";
 import {
   useCreateJob,
   useOpenJob,
@@ -24,11 +26,16 @@ import { visaApiValue, nationalityApiList } from "@/lib/kabil/jobOptions";
 import ErrorAlert from "@/components/ErrorAlert";
 import StepRoleBasics from "./_components/StepRoleBasics";
 import StepJdBuilder from "./_components/StepJdBuilder";
+import StepScreeningCriteria from "./_components/StepScreeningCriteria";
 import StepWhatsAppQuestions from "./_components/StepWhatsAppQuestions";
+import StepReview from "./_components/StepReview";
 
+// `next` drives the contextual "Next: …" button label; `fields` is the
+// react-hook-form group validated before advancing.
 const STEPS = [
   {
     label: "Role Basics",
+    next: "JD Builder",
     fields: [
       "title",
       "hiring_company",
@@ -38,14 +45,16 @@ const STEPS = [
       "work_mode",
       "min_experience_years",
       "currency",
-      "min_salary",
-      "max_salary",
       "required_skills",
     ],
   },
-  { label: "JD Builder", fields: ["job_description"] },
-  { label: "WhatsApp Questions", fields: [] },
+  { label: "JD Builder", next: "AI Screening Criteria", fields: ["job_description"] },
+  { label: "AI Screening Criteria", next: "Baseline Questions", fields: [] },
+  { label: "Baseline Questions", next: "Review", fields: [] },
+  { label: "Review", next: null, fields: [] },
 ];
+
+const SCREENING_STEP = 2; // boundary where the job is created + opened
 
 const DEFAULT_VALUES = {
   title: "",
@@ -56,6 +65,7 @@ const DEFAULT_VALUES = {
   work_mode: "onsite",
   min_experience_years: 0,
   currency: "AED",
+  // Collected with backend defaults — not surfaced in this trimmed wizard.
   min_salary: "",
   max_salary: "",
   notice_period: "any",
@@ -111,14 +121,15 @@ const NewJobPage = () => {
 
   const isLast = active === STEPS.length - 1;
 
-  // Generation finished: capture the AI questions and advance to the review step.
-  // Reacting to async poll data arriving is a legitimate external-system sync.
+  // Generation finished: capture the AI questions and advance to the baseline
+  // questions step. Reacting to async poll data arriving is a legitimate
+  // external-system sync.
   useEffect(() => {
     if (!generating || !job?.ready_for_applications) return;
     /* eslint-disable react-hooks/set-state-in-effect */
     setQuestions(job.whatsapp_questions ?? []);
     setGenerating(false);
-    setActive(2);
+    setActive(SCREENING_STEP + 1);
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [generating, job]);
 
@@ -127,15 +138,13 @@ const NewJobPage = () => {
     if (ok) setActive((s) => s + 1);
   };
 
-  // Next on the JD step: create the job, open it (which kicks off the async
-  // embed-JD + generate-questions pipeline), then stay put while it runs. The
-  // poll above advances to step 3 once the questions land.
+  // Next on the screening step: create the job, open it (which kicks off the
+  // async embed-JD + generate-questions pipeline), then stay put while it runs.
+  // The poll above advances to the baseline-questions step once they land.
   const generateQuestions = async () => {
-    const ok = await methods.trigger(STEPS[1].fields);
-    if (!ok) return;
     // Came back to this step after already creating the job — just move forward.
     if (jobId) {
-      setActive(2);
+      setActive(SCREENING_STEP + 1);
       return;
     }
     setGenerating(true);
@@ -150,7 +159,7 @@ const NewJobPage = () => {
   };
 
   const handleNext = () =>
-    active === 1 ? generateQuestions() : advanceWithValidation();
+    active === SCREENING_STEP ? generateQuestions() : advanceWithValidation();
 
   const finish = async () => {
     try {
@@ -173,13 +182,20 @@ const NewJobPage = () => {
   const renderStep = () => {
     if (active === 0) return <StepRoleBasics />;
     if (active === 1) return <StepJdBuilder />;
-    return <StepWhatsAppQuestions questions={questions} onChange={setQuestions} />;
+    if (active === 2) return <StepScreeningCriteria />;
+    if (active === 3)
+      return <StepWhatsAppQuestions questions={questions} onChange={setQuestions} />;
+    return <StepReview questions={questions} />;
   };
 
   return (
-    <Stack spacing={3} sx={{ maxWidth: 920, mx: "auto", pt: { xs: 1, md: 3 } }}>
+    <Stack spacing={3} sx={{ maxWidth: 960, mx: "auto", pt: { xs: 1, md: 2 } }}>
       <Box>
-        <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
+        <Stack
+          direction="row"
+          spacing={1.5}
+          sx={{ alignItems: "center", justifyContent: "space-between" }}
+        >
           <Typography variant="h5" sx={{ fontWeight: 700 }}>
             Post New Job
           </Typography>
@@ -190,9 +206,10 @@ const NewJobPage = () => {
             sx={{ fontWeight: 600 }}
           />
         </Stack>
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-          Fill in the details. Min Experience and Required Skills are always enforced as
-          hard filters.
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, maxWidth: 720 }}>
+          The AI will probe any field you want it to ask the candidate about during
+          WhatsApp screening. Min Experience and Required Skills are always enforced as
+          hard filters — no toggle needed.
         </Typography>
       </Box>
 
@@ -206,35 +223,28 @@ const NewJobPage = () => {
 
       <FormProvider {...methods}>
         <Box component="form" onSubmit={onSubmit} noValidate>
-          <Card>
-            <CardContent sx={{ p: { xs: 2.5, sm: 4 } }}>
-              <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>
-                {STEPS[active].label}
-              </Typography>
-              {generating ? (
+          {generating ? (
+            <Card>
+              <CardContent sx={{ p: { xs: 2.5, sm: 4 } }}>
                 <Stack
                   spacing={2}
                   sx={{ py: 6, textAlign: "center", alignItems: "center" }}
                 >
                   <CircularProgress />
                   <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                    Generating WhatsApp screening questions…
+                    Generating baseline screening questions…
                   </Typography>
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{ maxWidth: 420 }}
-                  >
+                  <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 420 }}>
                     We&apos;re embedding the job description and drafting tailored
                     questions. This usually takes a few seconds — you&apos;ll move to the
-                    review step automatically.
+                    next step automatically.
                   </Typography>
                 </Stack>
-              ) : (
-                renderStep()
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          ) : (
+            renderStep()
+          )}
 
           {createJob.isError && <ErrorAlert error={createJob.error} sx={{ mt: 2 }} />}
           {openJob.isError && <ErrorAlert error={openJob.error} sx={{ mt: 2 }} />}
@@ -246,15 +256,18 @@ const NewJobPage = () => {
           <Stack
             direction="row"
             spacing={1.5}
-            sx={{ justifyContent: "flex-end", mt: 3 }}
+            sx={{ justifyContent: "space-between", mt: 3 }}
           >
             <Button
               type="button"
+              variant="outlined"
               color="inherit"
+              startIcon={active > 0 ? <ArrowBackIcon /> : undefined}
               disabled={generating || saveQuestions.isPending}
               onClick={() =>
                 active === 0 ? router.push("/jobs") : setActive((s) => s - 1)
               }
+              sx={{ borderRadius: 2, px: 2.5 }}
             >
               {active === 0 ? "Cancel" : "Back"}
             </Button>
@@ -264,16 +277,19 @@ const NewJobPage = () => {
                 type="submit"
                 variant="contained"
                 disabled={saveQuestions.isPending}
+                sx={{ borderRadius: 2, px: 3 }}
               >
-                {saveQuestions.isPending ? "Saving…" : "Finish"}
+                {saveQuestions.isPending ? "Publishing…" : "Publish Job"}
               </Button>
             ) : (
               <Button
                 type="submit"
                 variant="contained"
+                endIcon={<ArrowForwardIcon />}
                 disabled={generating || createJob.isPending}
+                sx={{ borderRadius: 2, px: 3 }}
               >
-                {generating ? "Generating…" : "Next"}
+                {generating ? "Generating…" : `Next: ${STEPS[active].next}`}
               </Button>
             )}
           </Stack>

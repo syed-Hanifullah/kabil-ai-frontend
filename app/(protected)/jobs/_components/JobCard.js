@@ -42,6 +42,8 @@ const STATUS_PILL = {
   open: { label: "Active", dot: "#1f9d57", text: "#13402d", bg: "#e7f1ea" },
   draft: { label: "Draft", dot: "#c9a23f", text: "#7a611a", bg: "#faf3e0" },
   closed: { label: "Closed", dot: "#9aa39e", text: "#5d635f", bg: "#eef0ef" },
+  // Reserved for the design's red "Inactive" state (no backend status yet).
+  inactive: { label: "Inactive", dot: "#e0524f", text: "#a3322f", bg: "#fdeceb" },
 };
 
 /** Salary range, e.g. "AED 2,500–5,000". Returns null when no figures exist. */
