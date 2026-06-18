@@ -290,6 +290,22 @@ Auth. Body `{ "status": ApplicationStatus, "reason"?: string }`.
 preserved). `accepted` is terminal. Illegal edge → `422`.
 → `200` `ApplicationDetail`.
 
+#### `PATCH /applications/{application_id}/candidate`
+Auth. Edit the candidate's contact details.
+Body `{ "full_name": string, "email"?: string|null, "phone"?: string|null }`.
+`full_name` required; at least one of `email`/`phone` must remain. `phone` is
+normalised to E.164 server-side; `email` is lower-cased. The candidate row is
+**shared**, so the edit propagates to every application that person holds.
+Allowed only while the application is in the `vector_screen` / `hard_filter`
+stage — from `whatsapp` on it's locked (the screening/interview flow owns the
+contact channel).
+→ `200` `ApplicationDetail` (refreshed).
+- `400` `invalid_email` / `invalid_phone` / `contact_required`
+- `409` `candidate_identity_conflict` — the new email/phone already belongs to
+  another candidate.
+- `422` `candidate_contact_locked` — past the editable window
+  (`details.stage` carries the current stage).
+
 #### `POST /applications/{application_id}/rescore?type=similarity|hard_filter`
 Auth. Query `type` required. Enqueues a forced rescore (bypasses idempotency;
 hard_filter also bypasses the Claude cache). → `202`

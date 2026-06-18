@@ -395,6 +395,19 @@ export interface ApplicationStatusUpdateRequest {
   reason?: string | null;
 }
 
+/**
+ * PATCH /applications/{id}/candidate — edit the candidate's contact details.
+ * Accepted only while the application is in `vector_screen` / `hard_filter`
+ * (locked from `whatsapp` on). `full_name` required; at least one of
+ * `email`/`phone` must remain. `phone` is normalised to E.164 server-side.
+ * The candidate row is shared, so the edit affects all their applications.
+ */
+export interface CandidateContactUpdateRequest {
+  full_name: string;
+  email?: string | null;
+  phone?: string | null;
+}
+
 export interface RescoreResponse {
   application_id: UUID;
   type: RescoreType;

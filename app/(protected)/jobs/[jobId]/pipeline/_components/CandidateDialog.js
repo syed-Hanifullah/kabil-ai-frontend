@@ -12,6 +12,9 @@ import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
 import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
+import Tabs from "@mui/material/Tabs";
+import Tab from "@mui/material/Tab";
+import Alert from "@mui/material/Alert";
 import Skeleton from "@mui/material/Skeleton";
 import LinearProgress from "@mui/material/LinearProgress";
 import Accordion from "@mui/material/Accordion";
@@ -31,6 +34,8 @@ import PersonAddAltOutlinedIcon from "@mui/icons-material/PersonAddAltOutlined";
 import VideocamOutlinedIcon from "@mui/icons-material/VideocamOutlined";
 import PlaceOutlinedIcon from "@mui/icons-material/PlaceOutlined";
 import EventAvailableOutlinedIcon from "@mui/icons-material/EventAvailableOutlined";
+import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
+import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import ErrorAlert from "@/components/ErrorAlert";
 import WhatsAppDialog from "./WhatsAppDialog";
 import {
@@ -39,6 +44,7 @@ import {
   useUpdateStage,
   useUpdateStatus,
   useMoveToPool,
+  useUpdateCandidateContact,
 } from "@/lib/kabil/queries";
 import {
   APPLICATION_STAGES,
@@ -486,6 +492,132 @@ const InterviewSection = ({ interview }) => {
   );
 };
 
+/**
+ * Editable contact details (name / email / phone).
+ *
+ * The backend only accepts edits while the application is in the
+ * `vector_screen` / `hard_filter` stage; from `whatsapp` onward the automated
+ * screening (and the interview invite) reach the candidate on these details,
+ * so the form locks and explains why. The candidate row is shared across all
+ * of that person's applications, so a save propagates everywhere.
+ */
+const DetailsTab = ({ appId, candidate, editable }) => {
+  const update = useUpdateCandidateContact(appId);
+  // Seed lazily from the candidate. The parent mounts this with `key={appId}`,
+  // so switching candidates remounts the form fresh — no effect needed, and a
+  // background refetch (the detail query polls while a score is pending) can't
+  // clobber an in-progress edit.
+  const [form, setForm] = useState(() => ({
+    full_name: candidate?.full_name || "",
+    email: candidate?.email || "",
+    phone: candidate?.phone_e164 || "",
+  }));
+  const [saved, setSaved] = useState(false);
+
+  const set = (key) => (e) => {
+    setForm((f) => ({ ...f, [key]: e.target.value }));
+    setSaved(false);
+  };
+
+  const name = form.full_name.trim();
+  const email = form.email.trim();
+  const phone = form.phone.trim();
+  const hasContact = !!email || !!phone;
+  const changed =
+    name !== (candidate?.full_name || "") ||
+    email !== (candidate?.email || "") ||
+    phone !== (candidate?.phone_e164 || "");
+  const canSave = editable && !!name && hasContact && changed && !update.isPending;
+
+  const submit = (e) => {
+    e.preventDefault();
+    if (!canSave) return;
+    update.mutate(
+      { full_name: name, email: email || null, phone: phone || null },
+      {
+        onSuccess: (data) => {
+          setSaved(true);
+          // Reflect server normalisation (email lower-cased, phone → E.164).
+          if (data?.candidate) {
+            setForm({
+              full_name: data.candidate.full_name || "",
+              email: data.candidate.email || "",
+              phone: data.candidate.phone_e164 || "",
+            });
+          }
+        },
+      },
+    );
+  };
+
+  return (
+    <Section title="Contact details">
+      {!editable && (
+        <Alert severity="info" icon={<LockOutlinedIcon fontSize="inherit" />} sx={{ mb: 2 }}>
+          Contact details are locked once WhatsApp screening begins. They can only
+          be edited while the candidate is in the Applied or L1 (CV screened) stage.
+        </Alert>
+      )}
+      <Box component="form" onSubmit={submit}>
+        <Stack spacing={2}>
+          <TextField
+            label="Full name"
+            size="small"
+            fullWidth
+            required
+            value={form.full_name}
+            onChange={set("full_name")}
+            disabled={!editable || update.isPending}
+            inputProps={{ maxLength: 255 }}
+          />
+          <TextField
+            label="Email"
+            type="email"
+            size="small"
+            fullWidth
+            value={form.email}
+            onChange={set("email")}
+            disabled={!editable || update.isPending}
+            inputProps={{ maxLength: 254 }}
+            error={!hasContact}
+            helperText={!hasContact ? "Provide at least an email or a phone number." : " "}
+          />
+          <TextField
+            label="Phone"
+            size="small"
+            fullWidth
+            value={form.phone}
+            onChange={set("phone")}
+            disabled={!editable || update.isPending}
+            inputProps={{ maxLength: 40 }}
+            placeholder="+971501234567"
+            helperText="Include the country code, e.g. +971501234567."
+          />
+
+          {update.isError && <ErrorAlert error={update.error} />}
+          {saved && !update.isError && (
+            <Alert severity="success">Contact details updated.</Alert>
+          )}
+
+          {editable && (
+            <Box>
+              <Button
+                type="submit"
+                variant="contained"
+                size="small"
+                startIcon={<SaveOutlinedIcon />}
+                disabled={!canSave}
+              >
+                {update.isPending ? "Saving…" : "Save changes"}
+              </Button>
+            </Box>
+          )}
+        </Stack>
+      </Box>
+    </Section>
+  );
+};
+
 const DialogSkeleton = () => (
   <Stack spacing={2}>
     <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
@@ -510,6 +642,16 @@ const DialogSkeleton = () => (
 const CandidateDialog = ({ appId, open, onClose, readOnly = false }) => {
   const [reason, setReason] = useState("");
   const [waOpen, setWaOpen] = useState(false);
+  const [tab, setTab] = useState(0); // 0 = Overview, 1 = Details
+
+  // Reset to the Overview tab whenever the dialog switches candidates. This is
+  // the "adjust state during render" pattern (no effect) — React applies the
+  // setState before painting, and it avoids a setState-in-effect.
+  const [prevAppId, setPrevAppId] = useState(appId);
+  if (appId !== prevAppId) {
+    setPrevAppId(appId);
+    setTab(0);
+  }
   const { data: app, isLoading, isError, error } = useApplication(appId, { poll: true });
   const { data: audit } = useAuditLog(appId);
   const updateStage = useUpdateStage(appId);
@@ -530,6 +672,13 @@ const CandidateDialog = ({ appId, open, onClose, readOnly = false }) => {
   // (the `whatsapp` stage) and stays relevant through later stages.
   const reachedWhatsApp =
     !!app && APPLICATION_STAGES.indexOf(app.stage) >= APPLICATION_STAGES.indexOf("whatsapp");
+  // Contact details are editable only through the hard_filter stage; from
+  // whatsapp onward the screening flow owns the contact channel (mirrors the
+  // backend's CONTACT_EDITABLE_STAGES gate).
+  const contactEditable =
+    !!app && APPLICATION_STAGES.indexOf(app.stage) <= APPLICATION_STAGES.indexOf("hard_filter");
+  const showTabs = !readOnly;
+  const detailsActive = showTabs && tab === 1;
 
   const advance = () => {
     if (!nextStage) return;
@@ -573,7 +722,7 @@ const CandidateDialog = ({ appId, open, onClose, readOnly = false }) => {
         ) : isLoading || !app ? (
           <DialogSkeleton />
         ) : (
-          <Stack spacing={2.5} divider={<Divider flexItem />}>
+          <Box>
             {/* Header */}
             <Box sx={{ pr: 4 }}>
               <Stack direction="row" spacing={1.5} sx={{ alignItems: "flex-start" }}>
@@ -654,6 +803,23 @@ const CandidateDialog = ({ appId, open, onClose, readOnly = false }) => {
               {!readOnly && moveToPool.isError && <ErrorAlert error={moveToPool.error} sx={{ mt: 1 }} />}
             </Box>
 
+            {showTabs && (
+              <Tabs
+                value={tab}
+                onChange={(_e, v) => setTab(v)}
+                sx={{ mt: 1.5, borderBottom: 1, borderColor: "divider" }}
+              >
+                <Tab label="Overview" />
+                <Tab label="Details" />
+              </Tabs>
+            )}
+
+            {detailsActive ? (
+              <Box sx={{ mt: 2.5 }}>
+                <DetailsTab key={appId} appId={appId} candidate={candidate} editable={contactEditable} />
+              </Box>
+            ) : (
+              <Stack spacing={2.5} divider={<Divider flexItem />} sx={{ mt: showTabs ? 2.5 : 0 }}>
             {/* Actions */}
             {!readOnly && (
             <Section title="Move candidate">
@@ -838,7 +1004,9 @@ const CandidateDialog = ({ appId, open, onClose, readOnly = false }) => {
                 </Stack>
               )}
             </Section>
-          </Stack>
+              </Stack>
+            )}
+          </Box>
         )}
       </DialogContent>
 
