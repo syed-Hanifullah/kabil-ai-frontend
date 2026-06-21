@@ -73,15 +73,17 @@ const TalentPoolPage = () => {
 
   const searching = query.length >= TALENT_POOL_SEARCH_MIN_LENGTH;
 
+  // Only active entries are sourceable, so the pool view requests active_only=true
+  // (the default). A candidate sourced onto a job is deactivated and must drop out
+  // of this list — showing inactive rows here would make sourced-out people look
+  // available again.
   const browse = useTalentPool({
-    activeOnly: false,
     page,
     pageSize: PAGE_SIZE,
     enabled: !searching,
   });
 
   const search = useTalentPoolSearch(query, {
-    activeOnly: false,
     limit: TALENT_POOL_SEARCH_DEFAULT_LIMIT,
     enabled: searching,
   });

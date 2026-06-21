@@ -94,7 +94,7 @@ const SourceToJobDialog = ({ candidate, open, onClose }) => {
         ) : isError ? (
           <ErrorAlert error={error} />
         ) : (
-          <Stack spacing={2}>
+          <Stack spacing={2} sx={{ mt: 2 }}>
             <TextField
               select
               fullWidth
@@ -109,7 +109,7 @@ const SourceToJobDialog = ({ candidate, open, onClose }) => {
                     ? "No open or draft jobs to source onto."
                     : "Open and draft jobs are valid targets."
               }
-              slotProps={{ select: { displayEmpty: true } }}
+              slotProps={{ select: { displayEmpty: true }, inputLabel: { shrink: true } }}
             >
               <MenuItem value="" disabled>
                 Select a job…
