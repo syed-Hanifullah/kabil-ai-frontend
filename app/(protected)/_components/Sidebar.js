@@ -179,7 +179,7 @@ const Sidebar = () => {
             <Typography variant="body2" noWrap sx={{ fontWeight: 600, color: COLORS.sidebarText }}>
               {user?.full_name || "—"}
             </Typography>
-            <Typography variant="caption" sx={{ color: COLORS.sidebarMuted }} noWrap>
+            <Typography variant="caption" sx={{ color: COLORS.sidebarMuted, textTransform: "capitalize" }} noWrap>
               {user?.role || ""}
             </Typography>
           </Box>
