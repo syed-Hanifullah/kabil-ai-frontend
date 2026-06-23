@@ -96,6 +96,35 @@ Orthogonal to stage.
 
 ---
 
+## Dashboard — job health — `JobHealth`
+
+Computed per job for the Performance table (never persisted). Precedence is
+first-match: shortlisted → at-risk → healthy. Helper: `jobHealthChip()` in
+`lib/kabil/constants.js`.
+
+| Value | When | Chip |
+|---|---|---|
+| `shortlisted` | Job has ≥1 candidate at the `done` stage. | success |
+| `at_risk` | Job is `open`, open **> 20 days**, and **no** shortlisted candidate. | error |
+| `healthy` | Everything else (young open jobs, closed jobs with no shortlist). | info |
+
+---
+
+## Dashboard — pipeline bucket — `PipelineBucket`
+
+The four Candidate Pipeline funnel columns. The five `ApplicationStage` values
+collapse into these (`hard_filter` folds into `sourcing`). `by_bucket` is always
+zero-filled and counts **active** applications. See `PIPELINE_BUCKETS`.
+
+| Bucket | Stages it counts |
+|---|---|
+| `sourcing` | `vector_screen` + `hard_filter` |
+| `screening` | `whatsapp` |
+| `interview` | `interview` |
+| `final_shortlist` | `done` |
+
+---
+
 ## Application list ordering — `ApplicationListOrder`
 
 `order=` query value. `-` prefix = descending.
@@ -222,3 +251,6 @@ message's `button_id`).
 | Talent-pool search query (`q`) | 1..1000 chars |
 | Talent-pool search `limit` | 1..50 (default 10) |
 | WhatsApp question / button title | ≤20 chars (Meta cap) |
+| Job at-risk threshold | 20 days |
+| Pending-feedback SLA | 3 days |
+| Upcoming-interviews `limit` | 1..200 (default 3) |

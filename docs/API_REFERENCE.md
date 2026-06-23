@@ -208,6 +208,90 @@ Read-only and cheap; safe to poll/refetch on focus.
 
 Use the `useDashboard()` hook in `lib/kabil/queries.js`.
 
+The `GET /dashboard` summary feeds the **Overview** cards. The four endpoints
+below feed the rest of the home screen (Performance, Candidate Pipeline,
+Upcoming Interviews, Pending Feedback). All HR-authed, read-only, safe to poll.
+
+#### `GET /dashboard/performance`
+Auth. One row per **non-draft** job (open + closed) for the Performance table,
+sorted **at-risk first, then `days_open` descending**.
+
+→ `200` `JobPerformanceResponse`:
+```json
+{
+  "rows": [
+    {
+      "job_id": "<uuid>", "title": "Product Designer", "status": "open",
+      "candidates": 18, "shortlisted": 0, "days_open": 21, "health": "at_risk"
+    }
+  ]
+}
+```
+- `candidates` / `shortlisted` **exclude archived** stints; `shortlisted` counts
+  apps that reached the `done` stage. `days_open` = `(closed_at or now) −
+  created_at` in whole days. `health` is `JobHealth` (precedence: shortlisted →
+  at-risk → healthy; at-risk = open > 20 days with nobody shortlisted).
+- Hook: `usePerformance()`.
+
+#### `GET /dashboard/pipeline`
+Auth. Query: `job_id` (uuid, optional — omit for the **All Jobs** view). The
+Candidate Pipeline funnel.
+
+→ `200` `CandidatePipelineResponse`:
+```json
+{
+  "job_id": "<uuid|null>",
+  "by_bucket": { "sourcing": 3, "screening": 2, "interview": 0, "final_shortlist": 0 },
+  "applied": 12, "offers": 0, "conversion_rate": 0.0
+}
+```
+- `by_bucket` counts **active** apps collapsed into the four `PipelineBucket`
+  columns, zero-filled (sourcing = vector_screen+hard_filter, screening =
+  whatsapp, interview, final_shortlist = done). Conversion: `applied` =
+  non-archived apps, `offers` = `accepted`, `conversion_rate` = a 0–100 percent.
+- Hook: `useCandidatePipeline(jobId)`.
+
+#### `GET /dashboard/upcoming-interviews`
+Auth. Query: `limit` (1..200, default **3**). Nearest booked, future interviews
+(soonest first). `total` is the full count of future booked interviews so the
+"View all" view knows whether more exist than shown.
+
+→ `200` `UpcomingInterviewsResponse`:
+```json
+{
+  "interviews": [
+    {
+      "application_id": "<uuid>", "job_id": "<uuid>",
+      "candidate_name": "Sara Al-Mansouri", "job_title": "Senior Product Designer",
+      "scheduled_start_at": "2026-06-19T10:00:00Z", "scheduled_end_at": "2026-06-19T10:45:00Z",
+      "location_type": "zoom", "join_url": "https://zoom.us/j/...",
+      "location_text": null, "invitee_timezone": "Asia/Dubai"
+    }
+  ],
+  "total": 7
+}
+```
+- Show `join_url` for virtual meetings, else `location_text`. `invitee_timezone`
+  localizes the slot. Hook: `useUpcomingInterviews({ limit })`.
+
+#### `GET /dashboard/pending-feedback`
+Auth. Applications stalled at the `interview` stage awaiting a decision — active,
+`stage == interview`, last moved **> 3 days ago**. Oldest first.
+
+→ `200` `PendingFeedbackResponse`:
+```json
+{
+  "items": [
+    {
+      "application_id": "<uuid>", "job_id": "<uuid>",
+      "candidate_name": "Rania Khalil", "job_title": "Backend Engineer",
+      "stage": "interview", "stage_updated_at": "2026-06-13T09:00:00Z", "days_waiting": 10
+    }
+  ]
+}
+```
+- `days_waiting` is whole days since `stage_updated_at`. Hook: `usePendingFeedback()`.
+
 ---
 
 ### Jobs

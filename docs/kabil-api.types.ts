@@ -77,6 +77,19 @@ export type ScoreModel =
 /** Authenticity band derived from the score. authentic ≥75 / review ≥50 / fabricated <50. */
 export type AuthenticityBand = "authentic" | "review" | "fabricated";
 
+/** Dashboard Performance-table health verdict (computed, never persisted).
+ *  Precedence: shortlisted → at_risk → healthy. */
+export type JobHealth = "healthy" | "at_risk" | "shortlisted";
+
+/** The four Candidate Pipeline funnel columns. sourcing = vector_screen +
+ *  hard_filter, screening = whatsapp, interview = interview, final_shortlist =
+ *  done. */
+export type PipelineBucket =
+  | "sourcing"
+  | "screening"
+  | "interview"
+  | "final_shortlist";
+
 /** order= query value for the applications list. `-` prefix = descending. */
 export type ApplicationListOrder =
   | "-created_at"
@@ -676,6 +689,82 @@ export interface DashboardSummaryResponse {
   applications: DashboardApplicationsSummary;
   candidates: DashboardCandidatesSummary;
   talent_pool: DashboardTalentPoolSummary;
+}
+
+/* Dashboard — Performance / Pipeline / Interviews / Pending feedback.
+ *   GET /dashboard/performance        → JobPerformanceResponse
+ *   GET /dashboard/pipeline?job_id=…  → CandidatePipelineResponse
+ *   GET /dashboard/upcoming-interviews?limit=… → UpcomingInterviewsResponse
+ *   GET /dashboard/pending-feedback   → PendingFeedbackResponse */
+
+/** One row of the Performance table. `candidates`/`shortlisted` exclude archived
+ *  stints; `shortlisted` = apps at the `done` stage. `days_open` =
+ *  `(closed_at ?? now) − created_at` in whole days. */
+export interface JobPerformanceRow {
+  job_id: string;
+  title: string;
+  status: JobStatus;
+  candidates: number;
+  shortlisted: number;
+  days_open: number;
+  health: JobHealth;
+}
+
+/** GET /dashboard/performance — rows sorted at-risk first, then days_open desc. */
+export interface JobPerformanceResponse {
+  rows: JobPerformanceRow[];
+}
+
+/** GET /dashboard/pipeline — `job_id` null for the All-Jobs view. `by_bucket`
+ *  counts *active* applications (every PipelineBucket key present, zero-filled).
+ *  Conversion: `applied` = non-archived apps, `offers` = accepted,
+ *  `conversion_rate` = offers/applied as a 0–100 percentage. */
+export interface CandidatePipelineResponse {
+  job_id: string | null;
+  by_bucket: Record<PipelineBucket, number>;
+  applied: number;
+  offers: number;
+  conversion_rate: number;
+}
+
+/** One booked, future interview slot. Show `join_url` for virtual meetings,
+ *  else `location_text` (physical / phone). */
+export interface UpcomingInterview {
+  application_id: string;
+  job_id: string;
+  candidate_name: string;
+  job_title: string;
+  scheduled_start_at: string; // ISO-8601
+  scheduled_end_at: string | null;
+  location_type: string | null;
+  join_url: string | null;
+  location_text: string | null;
+  invitee_timezone: string | null;
+}
+
+/** GET /dashboard/upcoming-interviews — soonest first. `total` is the full count
+ *  of future booked interviews. `limit` defaults to 3, max 200. */
+export interface UpcomingInterviewsResponse {
+  interviews: UpcomingInterview[];
+  total: number;
+}
+
+/** An application stalled at the `interview` stage past the feedback SLA
+ *  (active, stage==interview, last moved > 3 days ago). `days_waiting` is whole
+ *  days since `stage_updated_at`. */
+export interface PendingFeedbackItem {
+  application_id: string;
+  job_id: string;
+  candidate_name: string;
+  job_title: string;
+  stage: ApplicationStage;
+  stage_updated_at: string; // ISO-8601
+  days_waiting: number;
+}
+
+/** GET /dashboard/pending-feedback — oldest first. */
+export interface PendingFeedbackResponse {
+  items: PendingFeedbackItem[];
 }
 
 /* ──────────────────────────────────────────────────────────────────────────

@@ -6,17 +6,19 @@ import CardContent from "@mui/material/CardContent";
 import Typography from "@mui/material/Typography";
 import Stack from "@mui/material/Stack";
 import Skeleton from "@mui/material/Skeleton";
-import LinearProgress from "@mui/material/LinearProgress";
 import BusinessCenterOutlinedIcon from "@mui/icons-material/BusinessCenterOutlined";
 import InboxOutlinedIcon from "@mui/icons-material/InboxOutlined";
 import HourglassEmptyOutlinedIcon from "@mui/icons-material/HourglassEmptyOutlined";
 import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
 import ErrorAlert from "@/components/ErrorAlert";
-import { PIPELINE_COLUMNS } from "@/lib/kabil/constants";
-import { useDashboard } from "@/lib/kabil/queries";
+import { useDashboard, usePerformance } from "@/lib/kabil/queries";
+import PerformanceTable from "./_components/PerformanceTable";
+import CandidatePipelinePanel from "./_components/CandidatePipelinePanel";
+import UpcomingInterviewsCard from "./_components/UpcomingInterviewsCard";
+import PendingFeedbackCard from "./_components/PendingFeedbackCard";
 
 /**
- * Maps the DashboardSummaryResponse onto the four headline cards. The breakdown
+ * Maps the DashboardSummaryResponse onto the four Overview cards. The breakdown
  * maps are zero-filled across every enum value by the backend, so we read keys
  * directly — no missing-key guards. "New Applications" is the Applied column
  * (`vector_screen`); "In Review" is every still-active candidate. Each card
@@ -125,151 +127,9 @@ const StatCard = ({ label, icon: Icon, accent, value, sub, loading }) => (
   </Card>
 );
 
-/** One horizontal funnel row: stage label, count, and a proportional bar
- *  scaled against the busiest stage so the widest bar fills the track. */
-const FunnelRow = ({ label, accent, count, max }) => (
-  <Box>
-    <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "baseline", mb: 0.5 }}>
-      <Typography variant="body2" sx={{ fontWeight: 600 }}>
-        {label}
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
-        {count}
-      </Typography>
-    </Stack>
-    <LinearProgress
-      variant="determinate"
-      value={max > 0 ? (count / max) * 100 : 0}
-      sx={{
-        height: 8,
-        borderRadius: 999,
-        bgcolor: "rgba(19,64,45,0.06)",
-        "& .MuiLinearProgress-bar": { borderRadius: 999, backgroundColor: accent },
-      }}
-    />
-  </Box>
-);
-
-const PipelineCard = ({ data, loading }) => {
-  const stages = PIPELINE_COLUMNS.map((col) => ({
-    ...col,
-    count: data ? data.applications.by_stage[col.stage] : 0,
-  }));
-  const max = Math.max(1, ...stages.map((s) => s.count));
-
-  return (
-    <Card sx={{ borderRadius: 2.5, height: "100%" }}>
-      <CardContent sx={{ p: 2.5 }}>
-        <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.25 }}>
-          Hiring pipeline
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
-          Active candidates across each stage.
-        </Typography>
-
-        {loading ? (
-          <Stack spacing={2.25}>
-            {PIPELINE_COLUMNS.map((_, i) => (
-              <Box key={i}>
-                <Skeleton variant="text" width="40%" />
-                <Skeleton variant="rounded" height={8} sx={{ borderRadius: 999 }} />
-              </Box>
-            ))}
-          </Stack>
-        ) : (
-          <Stack spacing={2.25}>
-            {stages.map((s) => (
-              <FunnelRow
-                key={s.stage}
-                label={s.label}
-                accent={s.accent}
-                count={s.count}
-                max={max}
-              />
-            ))}
-          </Stack>
-        )}
-      </CardContent>
-    </Card>
-  );
-};
-
-/** Application outcomes as a single stacked bar + legend. */
-const OUTCOMES = [
-  { key: "active", label: "In review", color: "#2f7fd1" },
-  { key: "accepted", label: "Accepted", color: "#1f9d57" },
-  { key: "rejected", label: "Rejected", color: "#c44545" },
-];
-
-const OutcomesCard = ({ data, loading }) => {
-  const by = data?.applications.by_status;
-  const total = by ? OUTCOMES.reduce((sum, o) => sum + by[o.key], 0) : 0;
-
-  return (
-    <Card sx={{ borderRadius: 2.5, height: "100%" }}>
-      <CardContent sx={{ p: 2.5 }}>
-        <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.25 }}>
-          Application outcomes
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
-          {loading ? "—" : `${data.applications.total} applications, all-time.`}
-        </Typography>
-
-        {loading ? (
-          <Stack spacing={2}>
-            <Skeleton variant="rounded" height={12} sx={{ borderRadius: 999 }} />
-            <Skeleton variant="text" width="60%" />
-            <Skeleton variant="text" width="50%" />
-          </Stack>
-        ) : (
-          <>
-            <Box
-              sx={{
-                display: "flex",
-                height: 12,
-                borderRadius: 999,
-                overflow: "hidden",
-                bgcolor: "rgba(19,64,45,0.06)",
-              }}
-            >
-              {total > 0 &&
-                OUTCOMES.map((o) => (
-                  <Box
-                    key={o.key}
-                    sx={{ width: `${(by[o.key] / total) * 100}%`, bgcolor: o.color }}
-                  />
-                ))}
-            </Box>
-
-            <Stack spacing={1.25} sx={{ mt: 2.5 }}>
-              {OUTCOMES.map((o) => (
-                <Stack
-                  key={o.key}
-                  direction="row"
-                  sx={{ alignItems: "center", justifyContent: "space-between" }}
-                >
-                  <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-                    <Box sx={{ width: 10, height: 10, borderRadius: "50%", bgcolor: o.color }} />
-                    <Typography variant="body2">{o.label}</Typography>
-                  </Stack>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    {by[o.key]}
-                    <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 0.75 }}>
-                      {total > 0 ? `${Math.round((by[o.key] / total) * 100)}%` : "0%"}
-                    </Typography>
-                  </Typography>
-                </Stack>
-              ))}
-            </Stack>
-          </>
-        )}
-      </CardContent>
-    </Card>
-  );
-};
-
 const DashboardPage = () => {
   const { data, isLoading, isError, error } = useDashboard();
+  const performance = usePerformance();
 
   return (
     <Stack spacing={3}>
@@ -283,6 +143,7 @@ const DashboardPage = () => {
       </Box>
 
       {isError && <ErrorAlert error={error} />}
+      {performance.isError && <ErrorAlert error={performance.error} />}
 
       <Box sx={grid}>
         {STAT_CARDS.map(({ label, icon, accent, value, sub }) => (
@@ -298,6 +159,7 @@ const DashboardPage = () => {
         ))}
       </Box>
 
+      {/* Performance + Candidate Pipeline */}
       <Box
         sx={{
           display: "grid",
@@ -306,8 +168,21 @@ const DashboardPage = () => {
           alignItems: "stretch",
         }}
       >
-        <PipelineCard data={data} loading={isLoading} />
-        <OutcomesCard data={data} loading={isLoading} />
+        <PerformanceTable data={performance.data} loading={performance.isLoading} />
+        <CandidatePipelinePanel />
+      </Box>
+
+      {/* Upcoming interviews + Pending feedback */}
+      <Box
+        sx={{
+          display: "grid",
+          gap: 2.5,
+          gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
+          alignItems: "stretch",
+        }}
+      >
+        <UpcomingInterviewsCard />
+        <PendingFeedbackCard />
       </Box>
     </Stack>
   );
