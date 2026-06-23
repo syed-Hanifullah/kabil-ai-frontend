@@ -38,6 +38,7 @@ import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import ErrorAlert from "@/components/ErrorAlert";
 import WhatsAppDialog from "./WhatsAppDialog";
+import CvScoreCard from "./CvScoreCard";
 import {
   useApplication,
   useAuditLog,
@@ -885,15 +886,22 @@ const CandidateDialog = ({ appId, open, onClose, readOnly = false }) => {
             {/* Interview booking (Calendly) — present once HR moves to L3 */}
             {app.interview && <InterviewSection interview={app.interview} />}
 
-            {/* Scores */}
+            {/* Scores — JD Match (similarity) + CV Trust (authenticity) as a
+                rich score card, with any other score families below. */}
             <Section title="Scores">
+              <CvScoreCard scores={app.scores} />
+            </Section>
+
+            {/* Other score families (e.g. the hard-filter recruiter rubric) keep
+                their generic, explainable rendering so nothing is lost. */}
+            {asArray(app.scores).some(
+              (s) => s.score_type !== "similarity" && s.score_type !== "authenticity",
+            ) && (
+            <Section title="Recruiter rubric">
               <Stack spacing={2}>
-                {asArray(app.scores).length === 0 && (
-                  <Typography variant="body2" color="text.secondary">
-                    No scores computed yet.
-                  </Typography>
-                )}
-                {asArray(app.scores).map((s, i) => {
+                {asArray(app.scores)
+                  .filter((s) => s.score_type !== "similarity" && s.score_type !== "authenticity")
+                  .map((s, i) => {
                   const value = toScore(s.value);
                   return (
                   <Box key={s.id || `${s.score_type}-${i}`}>
@@ -948,6 +956,7 @@ const CandidateDialog = ({ appId, open, onClose, readOnly = false }) => {
                 })}
               </Stack>
             </Section>
+            )}
 
             {/* Profile */}
             <Section title="Candidate profile">
