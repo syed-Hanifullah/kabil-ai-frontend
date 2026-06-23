@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useTheme } from "@mui/material/styles";
+import { useTheme, alpha } from "@mui/material/styles";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
@@ -10,9 +10,6 @@ import Tooltip from "@mui/material/Tooltip";
 import Divider from "@mui/material/Divider";
 import Collapse from "@mui/material/Collapse";
 import Button from "@mui/material/Button";
-import LinearProgress from "@mui/material/LinearProgress";
-import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
-import ToggleButton from "@mui/material/ToggleButton";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import CheckIcon from "@mui/icons-material/Check";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
@@ -111,41 +108,33 @@ const ScoreRing = ({ value, size = 72, stroke = 6 }) => {
   );
 };
 
-/** One labelled progress bar inside a detailed breakdown. */
-const SignalBar = ({ label, tip, value, children }) => {
-  const theme = useTheme();
-  const band = scoreBand(value).color;
-  return (
-    <Box>
-      <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 0.5 }}>
-        {tip ? (
-          <Tooltip title={tip} arrow placement="top">
-            <Typography
-              variant="caption"
-              sx={{ fontWeight: 700, borderBottom: "1px dotted", borderColor: "text.disabled", cursor: "help" }}
-            >
-              {label}
-            </Typography>
-          </Tooltip>
-        ) : (
-          <Typography variant="caption" sx={{ fontWeight: 700 }}>
-            {label}
-          </Typography>
-        )}
-        <Typography variant="caption" sx={{ fontWeight: 700, color: bandHex(theme, band) }}>
-          {value == null ? "—" : `${fmtPct(value)}%`}
+/** One labelled signal inside a detailed breakdown (label + reasons, no score). */
+const SignalBar = ({ label, tip, children }) => (
+  <Box>
+    {tip ? (
+      <Tooltip title={tip} arrow placement="top">
+        <Typography
+          variant="caption"
+          sx={{
+            fontWeight: 700,
+            borderBottom: "1px dotted",
+            borderColor: "text.disabled",
+            cursor: "help",
+            display: "inline-block",
+            mb: 0.5,
+          }}
+        >
+          {label}
         </Typography>
-      </Stack>
-      <LinearProgress
-        variant="determinate"
-        value={value != null ? Math.min(100, Math.max(0, value)) : 0}
-        color={band === "default" ? "inherit" : band}
-        sx={{ height: 6, borderRadius: 3, mb: 0.75 }}
-      />
-      {children}
-    </Box>
-  );
-};
+      </Tooltip>
+    ) : (
+      <Typography variant="caption" sx={{ fontWeight: 700, display: "block", mb: 0.5 }}>
+        {label}
+      </Typography>
+    )}
+    {children}
+  </Box>
+);
 
 /** Small wrapping row of coloured skill chips with an optional lead label. */
 const ChipRow = ({ lead, items, color, leadingIcon, max }) => {
@@ -259,6 +248,84 @@ const PendingCard = ({ label }) => (
     </Box>
   </Box>
 );
+
+/** CV Trust verdict bands — score → recruiter-facing badge. */
+const TRUST_BADGES = [
+  { min: 75, emoji: "🟢", label: "Authentic", color: "success" },
+  { min: 50, emoji: "🟡", label: "Review", color: "warning" },
+  { min: 0, emoji: "🔴", label: "Likely Fabricated", color: "error" },
+];
+
+const trustBadge = (value) => TRUST_BADGES.find((b) => value >= b.min) || TRUST_BADGES[2];
+
+/** CV Trust is shown as a verdict banner (no numeric score) with an expandable
+ *  signal breakdown. */
+const TrustBanner = ({ value, summary, breakdown }) => {
+  const theme = useTheme();
+  const [open, setOpen] = useState(false);
+  const badge = trustBadge(value);
+  const { color } = badge;
+  return (
+    <Box
+      sx={{
+        borderRadius: 2,
+        border: "1px solid",
+        borderColor: `${color}.main`,
+        bgcolor: alpha(theme.palette[color].main, 0.08),
+        overflow: "hidden",
+      }}
+    >
+      <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", p: 2 }}>
+        <Box sx={{ fontSize: 22, lineHeight: 1, flexShrink: 0 }}>{badge.emoji}</Box>
+        <Box sx={{ minWidth: 0, flex: 1 }}>
+          <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+              CV Trust Score
+            </Typography>
+            <Chip
+              size="small"
+              color={color}
+              label={badge.label}
+              sx={{ height: 20, "& .MuiChip-label": { px: 0.75, fontSize: 11, fontWeight: 700 } }}
+            />
+          </Stack>
+          {summary && (
+            <Typography variant="caption" color="text.secondary" sx={{ display: "block", lineHeight: 1.5 }}>
+              {summary}
+            </Typography>
+          )}
+        </Box>
+      </Stack>
+      {breakdown && (
+        <>
+          <Collapse in={open} timeout="auto" unmountOnExit>
+            <Divider sx={{ borderColor: alpha(theme.palette[color].main, 0.25) }} />
+            <Box sx={{ p: 2.5 }}>
+              <Stack spacing={2}>
+                <TrustBreakdown breakdown={breakdown} />
+              </Stack>
+            </Box>
+          </Collapse>
+          <Button
+            fullWidth
+            onClick={() => setOpen((o) => !o)}
+            endIcon={<ExpandMoreIcon sx={{ transform: open ? "rotate(180deg)" : "none", transition: "transform .2s" }} />}
+            sx={{
+              borderTop: "1px solid",
+              borderColor: alpha(theme.palette[color].main, 0.25),
+              borderRadius: 0,
+              py: 1,
+              color: "text.secondary",
+              fontWeight: 500,
+            }}
+          >
+            {open ? "Hide breakdown" : "View breakdown"}
+          </Button>
+        </>
+      )}
+    </Box>
+  );
+};
 
 /* ── Data → view-model helpers ─────────────────────────────────────────────── */
 
@@ -466,11 +533,10 @@ const TrustBreakdown = ({ breakdown }) =>
   TRUST_SIGNALS.map(({ key, label, tip }) => {
     const sig = breakdown?.[key];
     if (!sig) return null;
-    const score = toScore(sig.score);
     const desc = asArray(sig.reasons).join(" ");
     const details = sig.details || {};
     return (
-      <SignalBar key={key} label={label} tip={tip} value={score}>
+      <SignalBar key={key} label={label} tip={tip}>
         {desc && (
           <Typography variant="caption" color="text.secondary" sx={{ display: "block", lineHeight: 1.5 }}>
             {desc}
@@ -569,13 +635,11 @@ const ScreeningSummary = ({ jd, trust }) => {
 /**
  * The CV Score Card — a recruiter-facing read of an application's two headline
  * scores: JD Match (the `similarity` score's skill breakdown) and CV Trust (the
- * `authenticity` score's five sub-signals). A local Summary/Detailed toggle
- * mirrors the design: Summary is the at-a-glance read, Detailed expands every
- * sub-signal with its reasoning.
+ * `authenticity` score's five sub-signals). Everything is shown at once: the two
+ * headline score cards (each with an expandable "View breakdown" for its
+ * sub-signals), the key flags at a glance, and the screening summary.
  */
 const CvScoreCard = ({ scores }) => {
-  const [view, setView] = useState("summary");
-
   const jd = findScore(scores, "similarity");
   const trust = findScore(scores, "authenticity");
   const jdValue = jd ? toScore(jd.value) : null;
@@ -595,64 +659,34 @@ const CvScoreCard = ({ scores }) => {
 
   return (
     <Box>
-      <ToggleButtonGroup
-        exclusive
-        size="small"
-        value={view}
-        onChange={(_e, v) => v && setView(v)}
-        sx={{ mb: 2, width: "100%", "& .MuiToggleButton-root": { flex: 1, py: 0.75 } }}
-      >
-        <ToggleButton value="summary">Summary view</ToggleButton>
-        <ToggleButton value="detailed">Detailed view</ToggleButton>
-      </ToggleButtonGroup>
+      <Stack spacing={2}>
+        {trust && trustValue != null ? (
+          <TrustBanner value={trustValue} summary={trustSummary(trustBreak)} breakdown={trustBreak} />
+        ) : (
+          <PendingCard label="CV Trust Score" />
+        )}
 
-      {view === "summary" ? (
-        <Stack spacing={2}>
-          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
-            {jd ? (
-              <ScoreCard value={jdValue} label="JD Match Score" summary={jdSummary(jdBreak)} />
-            ) : (
-              <PendingCard label="JD Match Score" />
-            )}
-            {trust ? (
-              <ScoreCard value={trustValue} label="CV Trust Score" summary={trustSummary(trustBreak)} />
-            ) : (
-              <PendingCard label="CV Trust Score" />
-            )}
-          </Box>
+        {jd ? (
+          <ScoreCard value={jdValue} label="JD Outcome" summary={jdSummary(jdBreak)} computedAt={jd.computed_at}>
+            {jdBreak && <JdBreakdown b={jdBreak} />}
+          </ScoreCard>
+        ) : (
+          <PendingCard label="JD Outcome" />
+        )}
 
-          {flags.length > 0 && (
-            <Box sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, p: 2.5, bgcolor: "background.paper" }}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
-                Key flags at a glance
-              </Typography>
-              {flags.map((f, i) => (
-                <FlagRow key={i} {...f} />
-              ))}
-            </Box>
-          )}
-        </Stack>
-      ) : (
-        <Stack spacing={2}>
-          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
-            {jd ? (
-              <ScoreCard value={jdValue} label="JD Match Score" summary={jdSummary(jdBreak)} computedAt={jd.computed_at}>
-                {jdBreak && <JdBreakdown b={jdBreak} />}
-              </ScoreCard>
-            ) : (
-              <PendingCard label="JD Match Score" />
-            )}
-            {trust ? (
-              <ScoreCard value={trustValue} label="CV Trust Score" summary={trustSummary(trustBreak)} computedAt={trust.computed_at}>
-                {trustBreak && <TrustBreakdown breakdown={trustBreak} />}
-              </ScoreCard>
-            ) : (
-              <PendingCard label="CV Trust Score" />
-            )}
+        {flags.length > 0 && (
+          <Box sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, p: 2.5, bgcolor: "background.paper" }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
+              Key flags at a glance
+            </Typography>
+            {flags.map((f, i) => (
+              <FlagRow key={i} {...f} />
+            ))}
           </Box>
-          <ScreeningSummary jd={jdBreak} trust={trustBreak} />
-        </Stack>
-      )}
+        )}
+
+        <ScreeningSummary jd={jdBreak} trust={trustBreak} />
+      </Stack>
     </Box>
   );
 };
