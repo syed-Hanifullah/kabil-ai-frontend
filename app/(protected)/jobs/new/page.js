@@ -12,7 +12,6 @@ import Stepper from "@mui/material/Stepper";
 import Step from "@mui/material/Step";
 import StepLabel from "@mui/material/StepLabel";
 import Button from "@mui/material/Button";
-import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
 import ArrowBackIcon from "@mui/icons-material/ArrowBackOutlined";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForwardOutlined";
@@ -183,21 +182,9 @@ const NewJobPage = () => {
   return (
     <Stack spacing={3} sx={{ maxWidth: 1200, mx: "auto", pt: { xs: 1, md: 2 } }}>
       <Box>
-        <Stack
-          direction="row"
-          spacing={1.5}
-          sx={{ alignItems: "center", justifyContent: "space-between" }}
-        >
-          <Typography variant="h5" sx={{ fontWeight: 700 }}>
-            Post New Job
-          </Typography>
-          <Chip
-            size="small"
-            color="secondary"
-            label="✨ AI-driven screening"
-            sx={{ fontWeight: 600 }}
-          />
-        </Stack>
+        <Typography variant="h5" sx={{ fontWeight: 700 }}>
+          Post New Job
+        </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, maxWidth: 720 }}>
           Every job is screened on WhatsApp with a fixed set of questions; the AI adds a
           few background-validation checks and scores those answers. You can add your own

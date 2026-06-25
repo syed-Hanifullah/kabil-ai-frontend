@@ -303,7 +303,7 @@ const StepRoleBasics = () => {
 
           {/* Required skills */}
           <Box>
-            <FieldLabel label="Required Skills" required hardFilter />
+            <FieldLabel label="Required Skills" required />
             <Controller
               control={control}
               name="required_skills"
