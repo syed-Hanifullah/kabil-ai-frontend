@@ -9,8 +9,12 @@ import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
 import Tooltip from "@mui/material/Tooltip";
+import CircularProgress from "@mui/material/CircularProgress";
 import ContentPasteOutlinedIcon from "@mui/icons-material/ContentPasteOutlined";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
+import { useGenerateJobDescription } from "@/lib/kabil/queries";
+import { toJobSpecPayload } from "@/lib/kabil/jobOptions";
+import ErrorAlert from "@/components/ErrorAlert";
 
 const MIN = 100;
 const MAX = 20000;
@@ -19,10 +23,38 @@ const StepJdBuilder = () => {
   const {
     register,
     watch,
+    getValues,
+    setValue,
     formState: { errors },
   } = useFormContext();
 
+  const generate = useGenerateJobDescription();
+
   const jd = watch("job_description") || "";
+  const hasJd = jd.trim().length > 0;
+
+  // The AI builder drafts from the Role-Basics fields; gate it on the two
+  // load-bearing inputs so we never prompt Claude with near-empty context.
+  const title = watch("title") || "";
+  const requiredSkills = watch("required_skills") || [];
+  const canGenerate = title.trim().length > 0 && requiredSkills.length > 0;
+
+  const handleGenerate = async () => {
+    const values = getValues();
+    try {
+      const data = await generate.mutateAsync({
+        spec: toJobSpecPayload(values),
+        // A repeat click once text exists should produce a fresh draft.
+        regenerate: hasJd,
+      });
+      setValue("job_description", data.job_description, {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
+    } catch {
+      // surfaced via the ErrorAlert below
+    }
+  };
 
   return (
     <Card>
@@ -38,7 +70,7 @@ const StepJdBuilder = () => {
               Job Description
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Paste your existing JD.
+              Paste your own, or let AI draft one from your Role Basics.
             </Typography>
           </Box>
           <Stack direction="row" spacing={1}>
@@ -50,17 +82,30 @@ const StepJdBuilder = () => {
             >
               Paste JD
             </Button>
-            <Tooltip title="AI JD generation is coming soon">
+            <Tooltip
+              title={
+                canGenerate
+                  ? "Draft a job description from your Role Basics"
+                  : "Add a job title and at least one required skill first"
+              }
+            >
               <span>
                 <Button
                   variant="outlined"
                   size="small"
                   color="secondary"
-                  disabled
-                  startIcon={<AutoAwesomeOutlinedIcon />}
+                  onClick={handleGenerate}
+                  disabled={!canGenerate || generate.isPending}
+                  startIcon={
+                    generate.isPending ? (
+                      <CircularProgress size={16} color="inherit" />
+                    ) : (
+                      <AutoAwesomeOutlinedIcon />
+                    )
+                  }
                   sx={{ borderRadius: 2 }}
                 >
-                  AI Builder · Soon
+                  {generate.isPending ? "Drafting…" : hasJd ? "Regenerate" : "AI Builder"}
                 </Button>
               </span>
             </Tooltip>
@@ -102,8 +147,12 @@ const StepJdBuilder = () => {
           </Typography>
         </Stack>
 
+        {generate.isError && <ErrorAlert error={generate.error} sx={{ mt: 2 }} />}
+
         <Typography variant="body2" color="text.secondary" sx={{ mt: 2, textAlign: "right" }}>
-          Don&apos;t have a JD yet? AI Builder coming soon.
+          {hasJd
+            ? "AI-drafted text is editable — tweak anything before continuing."
+            : "Don't have a JD yet? Fill in Role Basics, then click AI Builder."}
         </Typography>
       </CardContent>
     </Card>

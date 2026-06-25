@@ -12,7 +12,15 @@ import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import TagsInput from "@/components/TagsInput";
 import FieldLabel from "./FieldLabel";
-import { COUNTRIES, CURRENCIES } from "@/lib/kabil/jobOptions";
+import ScreeningCheckbox from "./ScreeningCheckbox";
+import {
+  COUNTRIES,
+  CURRENCIES,
+  NOTICE_PERIOD_OPTIONS,
+  VISA_OPTIONS,
+  NATIONALITY_OPTIONS,
+  LANGUAGES,
+} from "@/lib/kabil/jobOptions";
 
 /** Responsive grid: `cols` columns on md+, single column on xs. */
 const Grid = ({ cols = 2, children }) => (
@@ -33,8 +41,13 @@ const StepRoleBasics = () => {
   const {
     register,
     control,
+    watch,
+    getValues,
     formState: { errors },
   } = useFormContext();
+
+  // Salary labels track the chosen currency (e.g. "Min Salary (AED per month)").
+  const currency = watch("currency") || "AED";
 
   return (
     <Card>
@@ -93,7 +106,11 @@ const StepRoleBasics = () => {
           {/* City / Min Experience / Currency */}
           <Grid cols={3}>
             <Field>
-              <FieldLabel label="City" required />
+              <FieldLabel
+                label="City"
+                required
+                action={<ScreeningCheckbox name="city" />}
+              />
               <TextField
                 fullWidth
                 placeholder="e.g. Dubai"
@@ -103,7 +120,11 @@ const StepRoleBasics = () => {
               />
             </Field>
             <Field>
-              <FieldLabel label="Min Experience (years)" required hardFilter />
+              <FieldLabel
+                label="Min Experience (years)"
+                required
+                action={<ScreeningCheckbox name="min_experience" disabled />}
+              />
               <TextField
                 fullWidth
                 type="number"
@@ -136,10 +157,141 @@ const StepRoleBasics = () => {
             </Field>
           </Grid>
 
+          {/* Min Salary / Max Salary / Notice period */}
+          <Grid cols={3}>
+            <Field>
+              <FieldLabel
+                label={`Min Salary (${currency} per month)`}
+                required
+                action={<ScreeningCheckbox name="min_salary" />}
+              />
+              <TextField
+                fullWidth
+                type="number"
+                placeholder="0"
+                inputProps={{ min: 0 }}
+                error={!!errors.min_salary}
+                helperText={errors.min_salary?.message}
+                {...register("min_salary", {
+                  required: "Min salary is required",
+                  min: { value: 0, message: "Must be 0 or more" },
+                })}
+              />
+            </Field>
+            <Field>
+              <FieldLabel label={`Max Salary (${currency} per month)`} required />
+              <TextField
+                fullWidth
+                type="number"
+                placeholder="0"
+                inputProps={{ min: 0 }}
+                error={!!errors.max_salary}
+                helperText={errors.max_salary?.message}
+                {...register("max_salary", {
+                  required: "Max salary is required",
+                  min: { value: 0, message: "Must be 0 or more" },
+                  validate: (v) => {
+                    const min = getValues("min_salary");
+                    if (v === "" || min === "" || min == null) return true;
+                    return Number(v) >= Number(min) || "Max must be ≥ min salary";
+                  },
+                })}
+              />
+            </Field>
+            <Field>
+              <FieldLabel
+                label="Immediate Join"
+                action={<ScreeningCheckbox name="notice_period" />}
+              />
+              <Controller
+                control={control}
+                name="notice_period"
+                render={({ field }) => (
+                  <TextField select fullWidth {...field}>
+                    {NOTICE_PERIOD_OPTIONS.map((o) => (
+                      <MenuItem key={o.value} value={o.value}>
+                        {o.label}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                )}
+              />
+            </Field>
+          </Grid>
+
+          {/* Visa / Nationality / Languages */}
+          <Grid cols={3}>
+            <Field>
+              <FieldLabel
+                label="Visa Requirement"
+                action={<ScreeningCheckbox name="visa_requirement" />}
+              />
+              <Controller
+                control={control}
+                name="visa_requirement"
+                render={({ field }) => (
+                  <TextField select fullWidth {...field}>
+                    {VISA_OPTIONS.map((o) => (
+                      <MenuItem key={o.value} value={o.value}>
+                        {o.icon} {o.label}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                )}
+              />
+            </Field>
+            <Field>
+              <FieldLabel
+                label="Nationality Preference"
+                action={<ScreeningCheckbox name="nationality_preference" />}
+              />
+              <Controller
+                control={control}
+                name="nationality_preference"
+                render={({ field }) => (
+                  <TextField select fullWidth {...field}>
+                    {NATIONALITY_OPTIONS.map((o) => (
+                      <MenuItem key={o.value} value={o.value}>
+                        {o.icon} {o.label}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                )}
+              />
+            </Field>
+            <Field>
+              <FieldLabel
+                label="Languages Required"
+                action={<ScreeningCheckbox name="languages_required" />}
+              />
+              <Controller
+                control={control}
+                name="languages_required"
+                render={({ field }) => (
+                  <ToggleButtonGroup
+                    value={field.value}
+                    onChange={(_, v) => field.onChange(v)}
+                    fullWidth
+                  >
+                    {LANGUAGES.map((lang) => (
+                      <ToggleButton key={lang} value={lang}>
+                        {lang}
+                      </ToggleButton>
+                    ))}
+                  </ToggleButtonGroup>
+                )}
+              />
+            </Field>
+          </Grid>
+
           {/* Employment Type / Work Mode */}
           <Grid cols={2}>
             <Field>
-              <FieldLabel label="Employment Type" required />
+              <FieldLabel
+                label="Employment Type"
+                required
+                action={<ScreeningCheckbox name="employment_type" />}
+              />
               <Controller
                 control={control}
                 name="employment_type"
@@ -158,7 +310,11 @@ const StepRoleBasics = () => {
               />
             </Field>
             <Field>
-              <FieldLabel label="Work Mode" required />
+              <FieldLabel
+                label="Work Mode"
+                required
+                action={<ScreeningCheckbox name="work_mode" />}
+              />
               <Controller
                 control={control}
                 name="work_mode"
@@ -194,6 +350,22 @@ const StepRoleBasics = () => {
                   placeholder="Type a skill and press Enter (e.g. IFRS, SAP, Excel)"
                   error={!!errors.required_skills}
                   helperText={errors.required_skills?.message}
+                />
+              )}
+            />
+          </Box>
+
+          {/* Preferred skills */}
+          <Box>
+            <FieldLabel label="Preferred Skills" />
+            <Controller
+              control={control}
+              name="preferred_skills"
+              render={({ field }) => (
+                <TagsInput
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="Nice to have skills (e.g. Power BI, CFA)"
                 />
               )}
             />

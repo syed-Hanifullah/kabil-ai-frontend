@@ -33,7 +33,7 @@ const HEAD_CELLS = [
 
 const PerformanceTable = ({ data, loading }) => {
   const router = useRouter();
-  const rows = data?.rows ?? [];
+  const rows = (data?.rows ?? []).filter((r) => r.status === "open");
 
   return (
     <Card sx={{ borderRadius: 2.5, height: "100%" }}>
@@ -42,7 +42,7 @@ const PerformanceTable = ({ data, loading }) => {
           Performance
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Open and closed roles, with the ones needing attention first.
+          Open roles, with the ones needing attention first.
         </Typography>
 
         {loading ? (
@@ -53,7 +53,7 @@ const PerformanceTable = ({ data, loading }) => {
           </Stack>
         ) : rows.length === 0 ? (
           <Typography variant="body2" color="text.secondary" sx={{ py: 3, textAlign: "center" }}>
-            No open or closed jobs yet.
+            No open jobs yet.
           </Typography>
         ) : (
           <Box sx={{ overflowX: "auto" }}>

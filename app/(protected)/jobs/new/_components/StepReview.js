@@ -9,7 +9,16 @@ import Typography from "@mui/material/Typography";
 import Divider from "@mui/material/Divider";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
 import { humanize } from "@/lib/kabil/constants";
-import { countryLabel } from "@/lib/kabil/jobOptions";
+import {
+  countryLabel,
+  NOTICE_PERIOD_OPTIONS,
+  VISA_OPTIONS,
+  NATIONALITY_OPTIONS,
+  screeningFieldLabel,
+} from "@/lib/kabil/jobOptions";
+
+const optionLabel = (options, value) =>
+  options.find((o) => o.value === value)?.label;
 
 const Row = ({ label, value }) => (
   <>
@@ -32,8 +41,21 @@ const StepReview = ({ questions = [] }) => {
   const v = getValues();
 
   const skills = (v.required_skills || []).join(", ") || "—";
+  const preferredSkills = (v.preferred_skills || []).join(", ") || "—";
+  const languages = (v.languages_required || []).join(", ") || "—";
   const minExp =
     v.min_experience_years === 1 ? "1 year" : `${v.min_experience_years || 0} years`;
+
+  const hasSalary = v.min_salary !== "" || v.max_salary !== "";
+  const salary = hasSalary
+    ? `${v.currency} ${v.min_salary || 0}–${v.max_salary || 0} / month`
+    : "—";
+
+  const screeningFields =
+    Object.keys(v.screening || {})
+      .filter((k) => v.screening[k])
+      .map(screeningFieldLabel)
+      .join(", ") || "—";
 
   return (
     <Card>
@@ -69,9 +91,20 @@ const StepReview = ({ questions = [] }) => {
           <Row label="Job Title" value={v.title || "—"} />
           <Row label="Company" value={v.hiring_company || "—"} />
           <Row label="Location" value={`${v.city}, ${countryLabel(v.country)}`} />
+          <Row label="Employment Type" value={humanize(v.employment_type)} />
           <Row label="Work Mode" value={humanize(v.work_mode)} />
+          <Row label="Salary" value={salary} />
+          <Row label="Notice Period" value={optionLabel(NOTICE_PERIOD_OPTIONS, v.notice_period) || "—"} />
+          <Row label="Visa Requirement" value={optionLabel(VISA_OPTIONS, v.visa_requirement) || "—"} />
+          <Row
+            label="Nationality Preference"
+            value={optionLabel(NATIONALITY_OPTIONS, v.nationality_preference) || "—"}
+          />
+          <Row label="Languages Required" value={languages} />
           <Row label="Min Experience" value={minExp} />
           <Row label="Required Skills" value={skills} />
+          <Row label="Preferred Skills" value={preferredSkills} />
+          <Row label="Asked on WhatsApp" value={screeningFields} />
           <Row
             label="Screening Questions"
             value={`${questions.length} question${questions.length === 1 ? "" : "s"} configured`}

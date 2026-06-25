@@ -301,6 +301,24 @@ Auth. Body `JobCreateRequest` (see types). Creates a job in `draft`.
 → `202` `{ "id": "<uuid>" }`.
 Validation: `country` must be ISO-3166 alpha-2; `currency` 3 letters;
 `min_salary ≤ max_salary`; skills ≤50 etc. (→ `422`).
+`screening_fields` (optional) is the list of Job-field keys HR ticked to ask
+about on WhatsApp; members must come from the allowed set (see
+`JobCreateRequest.screening_fields` in the types) or it's a `422`. `min_experience`
+is always asked regardless of selection.
+
+#### `POST /jobs/generate-description`
+Auth. **AI JD Builder.** Body `JobDescriptionGenerateRequest` — the Role-Basics
+fields only (same shape as `JobCreateRequest` minus `job_description` and
+`screening_fields`; unknown fields → `422`). Drafts a complete job description
+from those fields with Claude. **Synchronous and stateless** — no job is
+created; the create-job wizard calls it on the JD Builder step to pre-fill the
+description, which HR can then edit.
+Query: `regenerate` (bool, default `false`) — bypasses the server-side Claude
+cache so a repeat click yields a fresh draft.
+→ `200` `{ "job_description": "<text>" }`.
+- `503 ai_service_unavailable` if Claude isn't configured.
+- `502 job_description_generation_failed` on a transient AI error or an
+  unusably short draft.
 
 #### `GET /jobs`
 Auth. Query: `status` (`draft|open|closed`), `search` (1..120 chars),
@@ -308,12 +326,17 @@ Auth. Query: `status` (`draft|open|closed`), `search` (1..120 chars),
 
 #### `GET /jobs/{job_id}`
 Auth. → `200` `JobDetail` (full job incl. `whatsapp_questions`,
-`pipeline_status`, `ready_for_applications`, `public_slug`).
+`screening_fields`, `pipeline_status`, `ready_for_applications`, `public_slug`).
 
 #### `PATCH /jobs/{job_id}/status`
 Auth. Body `{ "status": "open" | "closed" }`.
 - `draft → open` triggers the **job pipeline** (embed JD + generate WhatsApp
   questions, async). `ready_for_applications` flips `true` when both finish.
+  The generated list = one deterministic question per selected `screening_field`
+  (categories `commitment`/`salary`, plus the always-on `min_experience`
+  background-validation question) + up to 3 AI-authored `background_validation`
+  questions that verify work history and hands-on use of the role's required
+  skills.
 - Illegal transition → `409 conflict`.
 - `status` outside `{open, closed}` → `422`.
 → `200` `JobDetail`.
@@ -323,7 +346,7 @@ Auth. → `200` `{ "questions": WhatsAppQuestion[] }`.
 
 #### `PATCH /jobs/{job_id}/whatsapp-questions`
 Auth. Body `{ "questions": WhatsAppQuestion[] }` — the **full ordered list**
-(1..10). `order` and `id` must each be unique. → `200` `{ "questions": [...] }`.
+(1..15). `order` and `id` must each be unique. → `200` `{ "questions": [...] }`.
 
 ---
 

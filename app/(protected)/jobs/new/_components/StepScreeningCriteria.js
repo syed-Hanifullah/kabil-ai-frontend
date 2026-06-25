@@ -9,45 +9,24 @@ import Typography from "@mui/material/Typography";
 import Chip from "@mui/material/Chip";
 import VerifiedOutlinedIcon from "@mui/icons-material/VerifiedOutlined";
 import ShieldOutlinedIcon from "@mui/icons-material/ShieldOutlined";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
-import PauseCircleOutlineIcon from "@mui/icons-material/PauseCircleOutlineOutlined";
-import HighlightOffIcon from "@mui/icons-material/HighlightOff";
+import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutlineOutlined";
+import { SCREENING_FIELDS, questionCategoryLabel } from "@/lib/kabil/jobOptions";
 
-/** Advisory score bands — fixed system defaults (not configurable). */
-const BANDS = [
-  {
-    key: "advance",
-    label: "Advance",
-    range: "Score ≥ 75",
-    blurb: "Strong match — push to the top of your review queue.",
-    icon: CheckCircleOutlineIcon,
-    color: "#1f9d57",
-    bg: "#e7f1ea",
-  },
-  {
-    key: "hold",
-    label: "Hold",
-    range: "Score 55–74",
-    blurb: "Borderline — worth a closer read before deciding.",
-    icon: PauseCircleOutlineIcon,
-    color: "#b7891f",
-    bg: "#faf3e0",
-  },
-  {
-    key: "reject",
-    label: "Reject",
-    range: "Score < 55",
-    blurb: "Weak match — flagged low, but still yours to review.",
-    icon: HighlightOffIcon,
-    color: "#d24a45",
-    bg: "#fdeceb",
-  },
-];
+/** MUI chip color per question category. */
+const CATEGORY_COLOR = {
+  commitment: "info",
+  salary: "warning",
+  background_validation: "secondary",
+};
 
 const StepScreeningCriteria = () => {
   const { watch } = useFormContext();
   const minExp = watch("min_experience_years");
   const skills = watch("required_skills") || [];
+  const screening = watch("screening") || {};
+
+  // Fields HR ticked "ask on WhatsApp", in canonical order.
+  const selected = SCREENING_FIELDS.filter((f) => screening[f.key]);
 
   return (
     <Card>
@@ -60,8 +39,8 @@ const StepScreeningCriteria = () => {
           </Typography>
         </Stack>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          Two locked hard filters apply to every CV. Anything else you flagged becomes a
-          WhatsApp screening question — not a filter.
+          Two locked hard filters apply to every CV. Anything else you ticked on Role Basics
+          becomes a WhatsApp screening question — not a filter.
         </Typography>
 
         {/* Hard filters (read-only echo of Role Basics) */}
@@ -139,78 +118,77 @@ const StepScreeningCriteria = () => {
           </Typography>
         </Box>
 
-        {/* AI recommendation bands */}
+        {/* WhatsApp screening questions (from the ticked Role Basics fields) */}
         <Stack
           direction="row"
           spacing={1.5}
           sx={{ alignItems: "center", justifyContent: "space-between", mt: 4, mb: 0.5 }}
         >
-          <Typography sx={{ fontWeight: 700 }}>AI recommendation bands</Typography>
-          <Chip size="small" variant="outlined" label="System default" />
+          <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+            <ChatBubbleOutlineIcon fontSize="small" sx={{ color: "primary.main" }} />
+            <Typography sx={{ fontWeight: 700 }}>WhatsApp screening questions</Typography>
+          </Stack>
+          <Chip
+            size="small"
+            color="primary"
+            label={`${selected.length} selected`}
+            sx={{ fontWeight: 700 }}
+          />
         </Stack>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          How the AI flags candidates against the 0–100 fit score.
+          Each field you ticked on Role Basics becomes a question candidates answer over
+          WhatsApp. The AI then adds up to three Background Validation checks.
         </Typography>
 
-        {/* Gradient scale */}
-        <Box sx={{ px: 0.5 }}>
+        {selected.length === 0 ? (
           <Box
             sx={{
-              height: 8,
-              borderRadius: 999,
-              background: "linear-gradient(90deg, #d24a45 0%, #e0a93b 55%, #1f9d57 100%)",
+              borderRadius: 2,
+              border: "1px dashed",
+              borderColor: "divider",
+              p: 2.5,
+              textAlign: "center",
             }}
-          />
-          <Stack direction="row" sx={{ justifyContent: "space-between", mt: 0.5 }}>
-            {["0", "55", "75", "100"].map((n) => (
-              <Typography key={n} variant="caption" color="text.secondary">
-                {n}
-              </Typography>
+          >
+            <Typography variant="body2" color="text.secondary">
+              No fields ticked. Go back to Role Basics and check &ldquo;Ask on WhatsApp&rdquo;
+              on the fields you want candidates asked about.
+            </Typography>
+          </Box>
+        ) : (
+          <Stack spacing={1}>
+            {selected.map((f) => (
+              <Stack
+                key={f.key}
+                direction="row"
+                spacing={1.5}
+                sx={{
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  borderRadius: 2,
+                  border: "1px solid",
+                  borderColor: "divider",
+                  px: 2,
+                  py: 1.25,
+                }}
+              >
+                <Stack direction="row" spacing={1} sx={{ alignItems: "center", minWidth: 0 }}>
+                  <Typography sx={{ fontWeight: 600 }}>{f.label}</Typography>
+                  {f.locked && (
+                    <Chip size="small" variant="outlined" label="Always asked" />
+                  )}
+                </Stack>
+                <Chip
+                  size="small"
+                  color={CATEGORY_COLOR[f.category] || "default"}
+                  variant="outlined"
+                  label={questionCategoryLabel(f.category)}
+                  sx={{ fontWeight: 600 }}
+                />
+              </Stack>
             ))}
           </Stack>
-        </Box>
-
-        <Box
-          sx={{
-            display: "grid",
-            gap: 2,
-            gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" },
-            mt: 2,
-          }}
-        >
-          {BANDS.map(({ key, label, range, blurb, icon: Icon, color, bg }) => (
-            <Box
-              key={key}
-              sx={{ borderRadius: 2, border: "1px solid", borderColor: "divider", p: 2 }}
-            >
-              <Stack
-                direction="row"
-                sx={{ alignItems: "center", justifyContent: "space-between", mb: 1 }}
-              >
-                <Box
-                  sx={{
-                    width: 30,
-                    height: 30,
-                    borderRadius: 1.5,
-                    display: "grid",
-                    placeItems: "center",
-                    bgcolor: bg,
-                    color,
-                  }}
-                >
-                  <Icon fontSize="small" />
-                </Box>
-                <Typography variant="caption" sx={{ fontWeight: 700, color }}>
-                  {range}
-                </Typography>
-              </Stack>
-              <Typography sx={{ fontWeight: 700, color }}>{label}</Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                {blurb}
-              </Typography>
-            </Box>
-          ))}
-        </Box>
+        )}
 
         {/* Reassurance footer */}
         <Box
@@ -228,8 +206,8 @@ const StepScreeningCriteria = () => {
             <Box component="span" sx={{ fontWeight: 700, color: "text.primary" }}>
               You stay in control.
             </Box>{" "}
-            These bands are advisory — the AI never auto-rejects on score alone. Every
-            candidate card shows its band, and you Approve, Hold, or Reject from there.
+            You can edit, reorder, or remove every question on the next step before the job
+            goes live.
           </Typography>
         </Box>
       </CardContent>

@@ -110,11 +110,15 @@ export type BulkUploadRejectionReason =
   | "duplicate_in_batch"
   | "parse_failed_no_contact";
 
+/** The three buckets a WhatsApp screening question can use.
+ *  `commitment` / `salary` questions are sourced deterministically from the
+ *  Job's selected `screening_fields`; `background_validation` covers both the
+ *  field-sourced experience question and the AI-authored work-history +
+ *  required-skill verification questions. */
 export type WhatsAppQuestionCategory =
-  | "background_validation"
-  | "skill_assessment"
-  | "logistics"
-  | "motivation";
+  | "commitment"
+  | "salary"
+  | "background_validation";
 
 /** Lifecycle of one application's WhatsApp screening conversation.
  *  awaiting_interest → (Yes) asking_questions → completed, or → declined on No.
@@ -227,11 +231,31 @@ export interface JobCreateRequest {
   visa_requirement?: VisaRequirement | null;
   nationality_preference?: string[];
   languages_required?: string[];
+  /** Job-field keys HR ticked to ask the candidate about on WhatsApp. Each
+   *  produces one deterministic field-sourced question. `min_experience` is
+   *  always included (locked on) even if omitted here. Members must be drawn
+   *  from the allowed set: `min_salary`, `min_experience`, `city`,
+   *  `notice_period`, `visa_requirement`, `nationality_preference`,
+   *  `languages_required`, `employment_type`, `work_mode`. */
+  screening_fields?: string[];
   job_description: string;
 }
 
 export interface JobCreateResponse {
   id: UUID;
+}
+
+/** Body of `POST /jobs/generate-description` (AI JD Builder). The Role-Basics
+ *  fields only — same shape as `JobCreateRequest` minus `job_description` and
+ *  `screening_fields`. Sent before any job exists to draft a description. */
+export type JobDescriptionGenerateRequest = Omit<
+  JobCreateRequest,
+  "job_description" | "screening_fields"
+>;
+
+export interface JobDescriptionGenerateResponse {
+  /** The Claude-drafted job description prose. */
+  job_description: string;
 }
 
 /** Per-step async pipeline state. Keys appear as steps run; values are the
@@ -275,6 +299,9 @@ export interface JobDetail {
   visa_requirement: VisaRequirement | null;
   nationality_preference: string[];
   languages_required: string[];
+  /** Job-field keys HR selected to ask about on WhatsApp (see
+   *  `JobCreateRequest.screening_fields`). HR view only. */
+  screening_fields: string[];
   job_description: string;
   whatsapp_questions: WhatsAppQuestion[];
   status: JobStatus;
@@ -297,14 +324,18 @@ export interface JobStatusUpdateRequest {
 export interface WhatsAppQuestion {
   /** "q_" + 8 url-safe chars, e.g. "q_Ab12Cd34". */
   id: string;
-  /** 1-based display order, 1..10. */
+  /** 1-based display order, 1..15 (≤9 field-sourced + ≤3 AI, with headroom). */
   order: number;
   category: WhatsAppQuestionCategory;
   subcategory: string;
   question_en: string;
   question_ar: string;
   reasoning: string;
+  /** `true` for AI-authored background-validation questions; `false` for
+   *  deterministic field-sourced questions. */
   is_ai_generated: boolean;
+  /** The Job field key this question was sourced from (e.g. `"min_salary"`),
+   *  or `null` for AI-authored questions. */
   source_field: string | null;
 }
 
@@ -313,7 +344,7 @@ export interface WhatsAppQuestionsResponse {
 }
 
 export interface WhatsAppQuestionsUpdateRequest {
-  /** Full ordered list (1..10). `order` values must be unique; `id` unique. */
+  /** Full ordered list (1..15). `order` values must be unique; `id` unique. */
   questions: WhatsAppQuestion[];
 }
 

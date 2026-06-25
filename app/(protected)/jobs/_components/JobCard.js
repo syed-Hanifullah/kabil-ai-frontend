@@ -27,7 +27,6 @@ import PlayArrowOutlinedIcon from "@mui/icons-material/PlayArrowOutlined";
 import ReplayOutlinedIcon from "@mui/icons-material/ReplayOutlined";
 import ArchiveOutlinedIcon from "@mui/icons-material/ArchiveOutlined";
 import { humanize, timeAgo } from "@/lib/kabil/constants";
-import { countryLabel } from "@/lib/kabil/jobOptions";
 import { useUpdateJobStatus } from "@/lib/kabil/queries";
 
 /** Status transitions surfaced in the 3-dots menu, keyed by current status. */
@@ -208,7 +207,7 @@ const JobCard = ({ job }) => {
 
           {/* Key facts */}
           <Stack spacing={1.25} sx={{ mt: 2.5 }}>
-            <Row icon={PlaceOutlinedIcon} text={`${job.city}, ${countryLabel(job.country)}`} />
+            <Row icon={PlaceOutlinedIcon} text={`${job.city}, ${job.country}`} />
             <Row icon={WorkOutlineOutlinedIcon} text={humanize(job.work_mode)} />
             {salary && <Row icon={AttachMoneyIcon} text={salary} />}
           </Stack>

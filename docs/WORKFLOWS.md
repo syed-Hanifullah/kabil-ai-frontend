@@ -79,6 +79,12 @@ sequenceDiagram
 ```
 
 **FE notes**
+- **Optional AI JD Builder.** While filling the form (before `POST /jobs`), HR
+  can draft the description from the Role-Basics fields via
+  `POST /jobs/generate-description` (synchronous — no job is created). The
+  returned text fills the editable `job_description` field; `?regenerate=true`
+  re-rolls a fresh draft. This is a pure pre-step and does not affect the
+  create/open flow below.
 - After opening, **`ready_for_applications` is `false` until both pipeline steps
   finish.** Poll `GET /jobs/{id}` (or refetch on the detail page) and gate the
   "share link" / "questions ready" UI on that flag. See

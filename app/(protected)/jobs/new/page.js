@@ -22,7 +22,7 @@ import {
   useJob,
   useSaveWhatsAppQuestions,
 } from "@/lib/kabil/queries";
-import { visaApiValue, nationalityApiList } from "@/lib/kabil/jobOptions";
+import { defaultScreening, toJobSpecPayload } from "@/lib/kabil/jobOptions";
 import ErrorAlert from "@/components/ErrorAlert";
 import StepRoleBasics from "./_components/StepRoleBasics";
 import StepJdBuilder from "./_components/StepJdBuilder";
@@ -45,7 +45,14 @@ const STEPS = [
       "work_mode",
       "min_experience_years",
       "currency",
+      "min_salary",
+      "max_salary",
+      "notice_period",
+      "visa_requirement",
+      "nationality_preference",
+      "languages_required",
       "required_skills",
+      "preferred_skills",
     ],
   },
   { label: "JD Builder", next: "AI Screening Criteria", fields: ["job_description"] },
@@ -65,7 +72,7 @@ const DEFAULT_VALUES = {
   work_mode: "onsite",
   min_experience_years: 0,
   currency: "AED",
-  // Collected with backend defaults — not surfaced in this trimmed wizard.
+  // Surfaced as inputs in StepRoleBasics; sent through toJobPayload below.
   min_salary: "",
   max_salary: "",
   notice_period: "any",
@@ -74,27 +81,16 @@ const DEFAULT_VALUES = {
   languages_required: ["English"],
   required_skills: [],
   preferred_skills: [],
+  // Per-field "ask on WhatsApp" toggles ({ min_salary: true, ... }); the checked
+  // keys are sent as `screening_fields` and become hardcoded screening questions.
+  screening: defaultScreening(),
   job_description: "",
 };
 
 /** Strip the form-only fields and coerce types into a JobCreateRequest. */
 const toJobPayload = (v) => ({
-  title: v.title.trim(),
-  hiring_company: v.hiring_company.trim(),
-  country: v.country,
-  city: v.city.trim(),
-  employment_type: v.employment_type,
-  work_mode: v.work_mode,
-  currency: v.currency,
-  min_salary: v.min_salary === "" ? null : Number(v.min_salary),
-  max_salary: v.max_salary === "" ? null : Number(v.max_salary),
-  notice_period: v.notice_period || null,
-  min_experience_years: Number(v.min_experience_years),
-  required_skills: v.required_skills,
-  preferred_skills: v.preferred_skills,
-  visa_requirement: visaApiValue(v.visa_requirement),
-  nationality_preference: nationalityApiList(v.nationality_preference),
-  languages_required: v.languages_required,
+  ...toJobSpecPayload(v),
+  screening_fields: Object.keys(v.screening).filter((k) => v.screening[k]),
   job_description: v.job_description.trim(),
 });
 
@@ -189,7 +185,7 @@ const NewJobPage = () => {
   };
 
   return (
-    <Stack spacing={3} sx={{ maxWidth: 960, mx: "auto", pt: { xs: 1, md: 2 } }}>
+    <Stack spacing={3} sx={{ maxWidth: 1200, mx: "auto", pt: { xs: 1, md: 2 } }}>
       <Box>
         <Stack
           direction="row"

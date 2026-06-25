@@ -14,9 +14,9 @@ import Tooltip from "@mui/material/Tooltip";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
-import { QUESTION_CATEGORIES } from "@/lib/kabil/jobOptions";
+import { QUESTION_CATEGORIES, screeningFieldLabel } from "@/lib/kabil/jobOptions";
 
-const MAX_QUESTIONS = 10;
+const MAX_QUESTIONS = 15;
 
 /** New custom questions need a unique, backend-shaped id ("q_" + 8 chars). */
 const newQuestionId = () =>
@@ -69,9 +69,10 @@ const StepWhatsAppQuestions = ({ questions, onChange }) => {
           <Chip size="small" color="secondary" label="✨ AI Generated" sx={{ fontWeight: 600 }} />
         </Stack>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          Sent to every candidate via WhatsApp after CV approval. The AI covers Background
-          Validation, Commitment to the Job, and Salary Expectations. Edit the wording or
-          add your own — the final list is what candidates are asked.
+          Sent to every candidate via WhatsApp after CV approval. Commitment and Salary
+          questions come from the fields you ticked on the first step; the AI adds up to
+          three Background Validation checks. Edit the wording or add your own — the final
+          list is what candidates are asked.
         </Typography>
 
         <Stack spacing={2}>
@@ -150,7 +151,15 @@ const StepWhatsAppQuestions = ({ questions, onChange }) => {
                         </MenuItem>
                       ))}
                     </TextField>
-                    {q.is_ai_generated ? (
+                    {q.source_field ? (
+                      <Chip
+                        size="small"
+                        color="primary"
+                        variant="outlined"
+                        label={`🔗 ${screeningFieldLabel(q.source_field)}`}
+                        sx={{ fontWeight: 600 }}
+                      />
+                    ) : q.is_ai_generated ? (
                       <Chip size="small" color="secondary" label="✨ AI" sx={{ fontWeight: 600 }} />
                     ) : (
                       <Chip size="small" variant="outlined" label="Custom" />
