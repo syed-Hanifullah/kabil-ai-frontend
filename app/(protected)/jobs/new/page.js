@@ -22,7 +22,7 @@ import {
   useJob,
   useSaveWhatsAppQuestions,
 } from "@/lib/kabil/queries";
-import { defaultScreening, toJobSpecPayload } from "@/lib/kabil/jobOptions";
+import { toJobSpecPayload } from "@/lib/kabil/jobOptions";
 import ErrorAlert from "@/components/ErrorAlert";
 import StepRoleBasics from "./_components/StepRoleBasics";
 import StepJdBuilder from "./_components/StepJdBuilder";
@@ -81,16 +81,12 @@ const DEFAULT_VALUES = {
   languages_required: ["English"],
   required_skills: [],
   preferred_skills: [],
-  // Per-field "ask on WhatsApp" toggles ({ min_salary: true, ... }); the checked
-  // keys are sent as `screening_fields` and become hardcoded screening questions.
-  screening: defaultScreening(),
   job_description: "",
 };
 
 /** Strip the form-only fields and coerce types into a JobCreateRequest. */
 const toJobPayload = (v) => ({
   ...toJobSpecPayload(v),
-  screening_fields: Object.keys(v.screening).filter((k) => v.screening[k]),
   job_description: v.job_description.trim(),
 });
 
@@ -203,9 +199,9 @@ const NewJobPage = () => {
           />
         </Stack>
         <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, maxWidth: 720 }}>
-          The AI will probe any field you want it to ask the candidate about during
-          WhatsApp screening. Min Experience and Required Skills are always enforced as
-          hard filters — no toggle needed.
+          Every job is screened on WhatsApp with a fixed set of questions; the AI adds a
+          few background-validation checks and scores those answers. You can add your own
+          custom questions before publishing.
         </Typography>
       </Box>
 

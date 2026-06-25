@@ -244,9 +244,8 @@ message's `button_id`).
 | Pagination max `page_size` | 100 |
 | Bulk upload files per request | 1..50 |
 | CV file size cap | 10 MB |
-| WhatsApp questions per job | 1..15 (≤9 field-sourced + ≤3 AI) |
+| WhatsApp questions per job | 1..15 (6 fixed + ≤3 AI + custom) |
 | AI-authored WhatsApp questions per job | ≤3 (`background_validation`) |
-| Screening fields per job | ≤9 (from the allowed set) |
 | Transition `reason` max length | 500 chars |
 | Job search query length | 1..120 chars |
 | Public reference number | 32 hex chars |

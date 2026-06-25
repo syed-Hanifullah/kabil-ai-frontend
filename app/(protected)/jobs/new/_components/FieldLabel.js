@@ -5,17 +5,15 @@ import Box from "@mui/material/Box";
 import { COLORS } from "@/lib/theme";
 
 /**
- * A field header: label (+ required *, + optional HARD FILTER badge), with an
- * optional right-aligned `action` slot (e.g. a "ask on WhatsApp" checkbox).
+ * A field header: label (+ required *, + optional HARD FILTER badge).
  */
-const FieldLabel = ({ label, required, hardFilter, action }) => (
+const FieldLabel = ({ label, required, hardFilter }) => (
   <Box
     sx={{
       mb: 0.75,
       minHeight: 24,
       display: "flex",
       alignItems: "center",
-      justifyContent: "space-between",
       gap: 1,
     }}
   >
@@ -41,7 +39,6 @@ const FieldLabel = ({ label, required, hardFilter, action }) => (
         </Box>
       )}
     </Typography>
-    {action}
   </Box>
 );
 

@@ -301,15 +301,14 @@ Auth. Body `JobCreateRequest` (see types). Creates a job in `draft`.
 → `202` `{ "id": "<uuid>" }`.
 Validation: `country` must be ISO-3166 alpha-2; `currency` 3 letters;
 `min_salary ≤ max_salary`; skills ≤50 etc. (→ `422`).
-`screening_fields` (optional) is the list of Job-field keys HR ticked to ask
-about on WhatsApp; members must come from the allowed set (see
-`JobCreateRequest.screening_fields` in the types) or it's a `422`. `min_experience`
-is always asked regardless of selection.
+Every job gets a fixed canonical set of 6 deterministic WhatsApp questions
+generated server-side on open; HR can additionally add custom questions in the
+wizard. There are no per-field screening checkboxes.
 
 #### `POST /jobs/generate-description`
 Auth. **AI JD Builder.** Body `JobDescriptionGenerateRequest` — the Role-Basics
-fields only (same shape as `JobCreateRequest` minus `job_description` and
-`screening_fields`; unknown fields → `422`). Drafts a complete job description
+fields only (same shape as `JobCreateRequest` minus `job_description`;
+unknown fields → `422`). Drafts a complete job description
 from those fields with Claude. **Synchronous and stateless** — no job is
 created; the create-job wizard calls it on the JD Builder step to pre-fill the
 description, which HR can then edit.
@@ -326,17 +325,18 @@ Auth. Query: `status` (`draft|open|closed`), `search` (1..120 chars),
 
 #### `GET /jobs/{job_id}`
 Auth. → `200` `JobDetail` (full job incl. `whatsapp_questions`,
-`screening_fields`, `pipeline_status`, `ready_for_applications`, `public_slug`).
+`pipeline_status`, `ready_for_applications`, `public_slug`).
 
 #### `PATCH /jobs/{job_id}/status`
 Auth. Body `{ "status": "open" | "closed" }`.
 - `draft → open` triggers the **job pipeline** (embed JD + generate WhatsApp
   questions, async). `ready_for_applications` flips `true` when both finish.
-  The generated list = one deterministic question per selected `screening_field`
-  (categories `commitment`/`salary`, plus the always-on `min_experience`
-  background-validation question) + up to 3 AI-authored `background_validation`
-  questions that verify work history and hands-on use of the role's required
-  skills.
+  The generated list = the 6 fixed canonical deterministic questions (filled
+  from the job: reason for moving, salary expectation, notice period,
+  visa/residency status, employment type, work mode) + up to 3 AI-authored
+  `background_validation` questions that verify hands-on experience with the
+  role's listed required + preferred skills (skills only — no work history) +
+  any custom questions HR added in the wizard.
 - Illegal transition → `409 conflict`.
 - `status` outside `{open, closed}` → `422`.
 → `200` `JobDetail`.
@@ -346,7 +346,11 @@ Auth. → `200` `{ "questions": WhatsAppQuestion[] }`.
 
 #### `PATCH /jobs/{job_id}/whatsapp-questions`
 Auth. Body `{ "questions": WhatsAppQuestion[] }` — the **full ordered list**
-(1..15). `order` and `id` must each be unique. → `200` `{ "questions": [...] }`.
+(1..15). `order` and `id` must each be unique. Each question carries
+`ai_verifies_response` (bool, default `false`); only questions with it `true`
+have the candidate's reply AI-scored (in practice the AI
+`background_validation` questions) — fixed and custom answers are stored but
+not scored. → `200` `{ "questions": [...] }`.
 
 ---
 

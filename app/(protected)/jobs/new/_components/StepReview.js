@@ -14,7 +14,6 @@ import {
   NOTICE_PERIOD_OPTIONS,
   VISA_OPTIONS,
   NATIONALITY_OPTIONS,
-  screeningFieldLabel,
 } from "@/lib/kabil/jobOptions";
 
 const optionLabel = (options, value) =>
@@ -50,12 +49,6 @@ const StepReview = ({ questions = [] }) => {
   const salary = hasSalary
     ? `${v.currency} ${v.min_salary || 0}–${v.max_salary || 0} / month`
     : "—";
-
-  const screeningFields =
-    Object.keys(v.screening || {})
-      .filter((k) => v.screening[k])
-      .map(screeningFieldLabel)
-      .join(", ") || "—";
 
   return (
     <Card>
@@ -104,7 +97,6 @@ const StepReview = ({ questions = [] }) => {
           <Row label="Min Experience" value={minExp} />
           <Row label="Required Skills" value={skills} />
           <Row label="Preferred Skills" value={preferredSkills} />
-          <Row label="Asked on WhatsApp" value={screeningFields} />
           <Row
             label="Screening Questions"
             value={`${questions.length} question${questions.length === 1 ? "" : "s"} configured`}

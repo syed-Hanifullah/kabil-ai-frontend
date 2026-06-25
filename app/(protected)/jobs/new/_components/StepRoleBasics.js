@@ -12,7 +12,6 @@ import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import TagsInput from "@/components/TagsInput";
 import FieldLabel from "./FieldLabel";
-import ScreeningCheckbox from "./ScreeningCheckbox";
 import {
   COUNTRIES,
   CURRENCIES,
@@ -106,11 +105,7 @@ const StepRoleBasics = () => {
           {/* City / Min Experience / Currency */}
           <Grid cols={3}>
             <Field>
-              <FieldLabel
-                label="City"
-                required
-                action={<ScreeningCheckbox name="city" />}
-              />
+              <FieldLabel label="City" required />
               <TextField
                 fullWidth
                 placeholder="e.g. Dubai"
@@ -120,11 +115,7 @@ const StepRoleBasics = () => {
               />
             </Field>
             <Field>
-              <FieldLabel
-                label="Min Experience (years)"
-                required
-                action={<ScreeningCheckbox name="min_experience" disabled />}
-              />
+              <FieldLabel label="Min Experience (years)" required />
               <TextField
                 fullWidth
                 type="number"
@@ -160,11 +151,7 @@ const StepRoleBasics = () => {
           {/* Min Salary / Max Salary / Notice period */}
           <Grid cols={3}>
             <Field>
-              <FieldLabel
-                label={`Min Salary (${currency} per month)`}
-                required
-                action={<ScreeningCheckbox name="min_salary" />}
-              />
+              <FieldLabel label={`Min Salary (${currency} per month)`} required />
               <TextField
                 fullWidth
                 type="number"
@@ -199,10 +186,7 @@ const StepRoleBasics = () => {
               />
             </Field>
             <Field>
-              <FieldLabel
-                label="Immediate Join"
-                action={<ScreeningCheckbox name="notice_period" />}
-              />
+              <FieldLabel label="Immediate Join" />
               <Controller
                 control={control}
                 name="notice_period"
@@ -222,10 +206,7 @@ const StepRoleBasics = () => {
           {/* Visa / Nationality / Languages */}
           <Grid cols={3}>
             <Field>
-              <FieldLabel
-                label="Visa Requirement"
-                action={<ScreeningCheckbox name="visa_requirement" />}
-              />
+              <FieldLabel label="Visa Requirement" />
               <Controller
                 control={control}
                 name="visa_requirement"
@@ -241,10 +222,7 @@ const StepRoleBasics = () => {
               />
             </Field>
             <Field>
-              <FieldLabel
-                label="Nationality Preference"
-                action={<ScreeningCheckbox name="nationality_preference" />}
-              />
+              <FieldLabel label="Nationality Preference" />
               <Controller
                 control={control}
                 name="nationality_preference"
@@ -260,10 +238,7 @@ const StepRoleBasics = () => {
               />
             </Field>
             <Field>
-              <FieldLabel
-                label="Languages Required"
-                action={<ScreeningCheckbox name="languages_required" />}
-              />
+              <FieldLabel label="Languages Required" />
               <Controller
                 control={control}
                 name="languages_required"
@@ -287,11 +262,7 @@ const StepRoleBasics = () => {
           {/* Employment Type / Work Mode */}
           <Grid cols={2}>
             <Field>
-              <FieldLabel
-                label="Employment Type"
-                required
-                action={<ScreeningCheckbox name="employment_type" />}
-              />
+              <FieldLabel label="Employment Type" required />
               <Controller
                 control={control}
                 name="employment_type"
@@ -310,11 +281,7 @@ const StepRoleBasics = () => {
               />
             </Field>
             <Field>
-              <FieldLabel
-                label="Work Mode"
-                required
-                action={<ScreeningCheckbox name="work_mode" />}
-              />
+              <FieldLabel label="Work Mode" required />
               <Controller
                 control={control}
                 name="work_mode"

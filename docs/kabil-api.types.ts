@@ -110,11 +110,12 @@ export type BulkUploadRejectionReason =
   | "duplicate_in_batch"
   | "parse_failed_no_contact";
 
-/** The three buckets a WhatsApp screening question can use.
- *  `commitment` / `salary` questions are sourced deterministically from the
- *  Job's selected `screening_fields`; `background_validation` covers both the
- *  field-sourced experience question and the AI-authored work-history +
- *  required-skill verification questions. */
+/** The three buckets a WhatsApp screening question can use. The fixed
+ *  canonical questions and any HR-added custom questions use `commitment`,
+ *  `salary`, or `background_validation`; the AI-authored skill-verification
+ *  questions (required + preferred skills only) are always
+ *  `background_validation`. The specific topic of a question lives in its
+ *  `subcategory`. */
 export type WhatsAppQuestionCategory =
   | "commitment"
   | "salary"
@@ -231,13 +232,6 @@ export interface JobCreateRequest {
   visa_requirement?: VisaRequirement | null;
   nationality_preference?: string[];
   languages_required?: string[];
-  /** Job-field keys HR ticked to ask the candidate about on WhatsApp. Each
-   *  produces one deterministic field-sourced question. `min_experience` is
-   *  always included (locked on) even if omitted here. Members must be drawn
-   *  from the allowed set: `min_salary`, `min_experience`, `city`,
-   *  `notice_period`, `visa_requirement`, `nationality_preference`,
-   *  `languages_required`, `employment_type`, `work_mode`. */
-  screening_fields?: string[];
   job_description: string;
 }
 
@@ -246,11 +240,11 @@ export interface JobCreateResponse {
 }
 
 /** Body of `POST /jobs/generate-description` (AI JD Builder). The Role-Basics
- *  fields only — same shape as `JobCreateRequest` minus `job_description` and
- *  `screening_fields`. Sent before any job exists to draft a description. */
+ *  fields only — same shape as `JobCreateRequest` minus `job_description`.
+ *  Sent before any job exists to draft a description. */
 export type JobDescriptionGenerateRequest = Omit<
   JobCreateRequest,
-  "job_description" | "screening_fields"
+  "job_description"
 >;
 
 export interface JobDescriptionGenerateResponse {
@@ -299,9 +293,6 @@ export interface JobDetail {
   visa_requirement: VisaRequirement | null;
   nationality_preference: string[];
   languages_required: string[];
-  /** Job-field keys HR selected to ask about on WhatsApp (see
-   *  `JobCreateRequest.screening_fields`). HR view only. */
-  screening_fields: string[];
   job_description: string;
   whatsapp_questions: WhatsAppQuestion[];
   status: JobStatus;
@@ -324,19 +315,25 @@ export interface JobStatusUpdateRequest {
 export interface WhatsAppQuestion {
   /** "q_" + 8 url-safe chars, e.g. "q_Ab12Cd34". */
   id: string;
-  /** 1-based display order, 1..15 (≤9 field-sourced + ≤3 AI, with headroom). */
+  /** 1-based display order, 1..15 (6 fixed + ≤3 AI background_validation +
+   *  custom). */
   order: number;
   category: WhatsAppQuestionCategory;
   subcategory: string;
   question_en: string;
   question_ar: string;
   reasoning: string;
-  /** `true` for AI-authored background-validation questions; `false` for
-   *  deterministic field-sourced questions. */
+  /** `true` only for AI-authored background-validation questions; `false` for
+   *  the 6 fixed canonical questions and for HR-added custom questions. */
   is_ai_generated: boolean;
-  /** The Job field key this question was sourced from (e.g. `"min_salary"`),
-   *  or `null` for AI-authored questions. */
+  /** For a fixed canonical question, the topic key it covers (e.g. `"salary"`,
+   *  `"visa"`); `null` for AI-authored and HR-added custom questions. */
   source_field: string | null;
+  /** Gates AI scoring of the candidate's reply. When `true` the answer is
+   *  scored (relevance + ai_likelihood); when `false` (default) the answer is
+   *  stored but not scored. In practice only the AI `background_validation`
+   *  questions have this set to `true`. */
+  ai_verifies_response: boolean;
 }
 
 export interface WhatsAppQuestionsResponse {
