@@ -1,18 +1,29 @@
 "use client";
 
+import { useState } from "react";
 import Stack from "@mui/material/Stack";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Avatar from "@mui/material/Avatar";
 import Chip from "@mui/material/Chip";
-import Button from "@mui/material/Button";
+import TableRow from "@mui/material/TableRow";
+import TableCell from "@mui/material/TableCell";
 import IconButton from "@mui/material/IconButton";
-import Tooltip from "@mui/material/Tooltip";
-import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
-import PhoneOutlinedIcon from "@mui/icons-material/PhoneOutlined";
+import Menu from "@mui/material/Menu";
+import MenuItem from "@mui/material/MenuItem";
+import ListItemIcon from "@mui/material/ListItemIcon";
+import ListItemText from "@mui/material/ListItemText";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
+import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import SendOutlinedIcon from "@mui/icons-material/SendOutlined";
 import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
-import { timeAgo, toScore, poolMatchColor } from "@/lib/kabil/constants";
+import {
+  timeAgo,
+  toScore,
+  poolMatchColor,
+  scoreBand,
+  authenticityBandChip,
+} from "@/lib/kabil/constants";
 
 /** Two-letter initials for the avatar; falls back to a person glyph. */
 const initials = (name) =>
@@ -23,125 +34,152 @@ const initials = (name) =>
     .map((w) => w[0]?.toUpperCase())
     .join("") || "🧑";
 
-const Meta = ({ icon, children }) =>
-  children ? (
-    <Stack direction="row" spacing={0.5} sx={{ alignItems: "center", minWidth: 0 }}>
-      {icon}
-      <Typography variant="body2" color="text.secondary" noWrap>
-        {children}
-      </Typography>
-    </Stack>
-  ) : null;
+const SKILLS_SHOWN = 2;
+
+const skillChipSx = {
+  bgcolor: "#efe8d3",
+  color: "#5b4f2c",
+  fontWeight: 600,
+  borderRadius: 1,
+  height: 20,
+  "& .MuiChip-label": { px: 0.75 },
+};
 
 /**
- * One pooled candidate. `entry.candidate` is the snapshot; `entry.similarity_score`
- * (search hits only) drives the match chip. Clicking the row opens the candidate's
- * full profile; the row also carries a direct "Source to job" action.
+ * One pooled candidate as a table row: Candidate · Role · AI Score · Source ·
+ * Status. `entry.similarity_score` (search hits only) drives the AI-score cell;
+ * `entry.candidate.authenticity_band` drives the Status chip; `source_job_title`
+ * the Source cell. Clicking the row opens the profile; the kebab holds the
+ * profile / source-to-job / history actions.
  */
 const CandidateRow = ({ entry, onOpen, onSource, onHistory }) => {
   const c = entry.candidate || {};
   const score = toScore(entry.similarity_score);
+  const band = scoreBand(entry.similarity_score);
+  const status = authenticityBandChip(c.authenticity_band);
+  const skills = c.skills ?? [];
+  const extraSkills = Math.max(0, skills.length - SKILLS_SHOWN);
+  const source = entry.source_job_title || "Direct upload";
+
+  const [menuAnchor, setMenuAnchor] = useState(null);
+  const openMenu = (e) => {
+    e.stopPropagation();
+    setMenuAnchor(e.currentTarget);
+  };
+  const closeMenu = (e) => {
+    e?.stopPropagation();
+    setMenuAnchor(null);
+  };
+  const pick = (fn) => (e) => {
+    e.stopPropagation();
+    setMenuAnchor(null);
+    fn(entry);
+  };
 
   return (
-    <Stack
-      direction={{ xs: "column", sm: "row" }}
-      spacing={1.5}
-      role="button"
-      tabIndex={0}
-      onClick={() => onOpen(entry)}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          onOpen(entry);
-        }
-      }}
-      sx={{
-        alignItems: { xs: "flex-start", sm: "center" },
-        px: { xs: 2, sm: 2.5 },
-        py: 1.75,
-        cursor: "pointer",
-        transition: "background-color 120ms",
-        "&:hover": { bgcolor: "#f6faf7" },
-        "&:focus-visible": {
-          outline: "2px solid",
-          outlineColor: "primary.main",
-          outlineOffset: -2,
-        },
-        "&:not(:last-of-type)": { borderBottom: "1px solid #eef1ef" },
-      }}
-    >
-      <Avatar sx={{ bgcolor: "primary.main", fontWeight: 700, fontSize: 15 }}>
-        {initials(c.full_name)}
-      </Avatar>
+    <TableRow hover onClick={() => onOpen(entry)} sx={{ cursor: "pointer" }}>
+      {/* Candidate */}
+      <TableCell>
+        <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", minWidth: 0 }}>
+          <Avatar sx={{ bgcolor: "primary.main", fontWeight: 700, fontSize: 14, width: 38, height: 38 }}>
+            {initials(c.full_name)}
+          </Avatar>
+          <Box sx={{ minWidth: 0 }}>
+            <Typography noWrap sx={{ fontWeight: 700 }}>
+              {c.full_name || "Unnamed candidate"}
+            </Typography>
+            <Typography variant="caption" color="text.secondary" noWrap>
+              added {timeAgo(entry.added_at)}
+              {!entry.is_active && " · Expired"}
+            </Typography>
+          </Box>
+        </Stack>
+      </TableCell>
 
-      <Box sx={{ minWidth: 0, flexGrow: 1 }}>
-        <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap", rowGap: 0.5 }}>
-          <Typography noWrap sx={{ fontWeight: 700 }}>
-            {c.full_name || "Unnamed candidate"}
+      {/* Role + skills */}
+      <TableCell>
+        {c.role ? (
+          <Box sx={{ minWidth: 0 }}>
+            <Typography variant="body2" noWrap sx={{ fontWeight: 600 }}>
+              {c.role}
+            </Typography>
+            {skills.length > 0 && (
+              <Stack direction="row" sx={{ mt: 0.5, flexWrap: "wrap", gap: 0.5 }}>
+                {skills.slice(0, SKILLS_SHOWN).map((s) => (
+                  <Chip key={s} label={s} size="small" sx={skillChipSx} />
+                ))}
+                {extraSkills > 0 && <Chip label={`+${extraSkills}`} size="small" sx={skillChipSx} />}
+              </Stack>
+            )}
+          </Box>
+        ) : (
+          <Typography variant="body2" color="text.disabled">
+            —
           </Typography>
-          {!entry.is_active && (
-            <Chip size="small" label="Expired" variant="outlined" sx={{ height: 20 }} />
+        )}
+      </TableCell>
+
+      {/* AI score (search/job-match only) */}
+      <TableCell>
+        {score != null ? (
+          <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+            <Chip size="small" color={poolMatchColor(score)} label={band.label} sx={{ fontWeight: 700 }} />
+            <Typography sx={{ fontWeight: 700 }}>{Math.round(score)}</Typography>
+          </Stack>
+        ) : (
+          <Typography variant="body2" color="text.disabled">
+            —
+          </Typography>
+        )}
+      </TableCell>
+
+      {/* Source */}
+      <TableCell>
+        <Typography variant="body2" color="text.secondary" noWrap>
+          {source}
+        </Typography>
+      </TableCell>
+
+      {/* Status (authenticity band) */}
+      <TableCell>
+        <Chip size="small" variant="outlined" color={status.color} label={status.label} />
+      </TableCell>
+
+      {/* Actions */}
+      <TableCell align="right" sx={{ width: 48 }}>
+        <IconButton size="small" aria-label="Candidate actions" onClick={openMenu}>
+          <MoreVertIcon fontSize="small" />
+        </IconButton>
+        <Menu
+          anchorEl={menuAnchor}
+          open={Boolean(menuAnchor)}
+          onClose={closeMenu}
+          anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+          transformOrigin={{ vertical: "top", horizontal: "right" }}
+        >
+          <MenuItem onClick={pick(onOpen)}>
+            <ListItemIcon>
+              <VisibilityOutlinedIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>View profile</ListItemText>
+          </MenuItem>
+          <MenuItem onClick={pick(onSource)}>
+            <ListItemIcon>
+              <SendOutlinedIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>Source to job</ListItemText>
+          </MenuItem>
+          {onHistory && (
+            <MenuItem onClick={pick(onHistory)}>
+              <ListItemIcon>
+                <HistoryOutlinedIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText>View history</ListItemText>
+            </MenuItem>
           )}
-        </Stack>
-        <Stack
-          direction="row"
-          spacing={2}
-          sx={{ flexWrap: "wrap", rowGap: 0.25, mt: 0.25 }}
-        >
-          <Meta icon={<EmailOutlinedIcon sx={{ fontSize: 15, color: "text.disabled" }} />}>
-            {c.email}
-          </Meta>
-          <Meta icon={<PhoneOutlinedIcon sx={{ fontSize: 15, color: "text.disabled" }} />}>
-            {c.phone_e164}
-          </Meta>
-          <Typography variant="body2" color="text.disabled" noWrap>
-            added {timeAgo(entry.added_at)}
-          </Typography>
-        </Stack>
-      </Box>
-
-      <Stack
-        direction="row"
-        spacing={1.5}
-        sx={{ alignItems: "center", flexShrink: 0, alignSelf: { xs: "stretch", sm: "center" } }}
-      >
-        {score != null && (
-          <Tooltip title="CV match against your search (0–100)">
-            <Chip
-              size="small"
-              color={poolMatchColor(score)}
-              label={`${Math.round(score)} match`}
-              sx={{ fontWeight: 700 }}
-            />
-          </Tooltip>
-        )}
-        {onHistory && (
-          <Tooltip title="View this candidate's full cross-job history">
-            <IconButton
-              size="small"
-              aria-label="View candidate history"
-              onClick={(e) => {
-                e.stopPropagation();
-                onHistory(entry);
-              }}
-            >
-              <HistoryOutlinedIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        )}
-        <Button
-          variant="outlined"
-          size="small"
-          startIcon={<SendOutlinedIcon />}
-          onClick={(e) => {
-            e.stopPropagation();
-            onSource(entry);
-          }}
-        >
-          Source to job
-        </Button>
-      </Stack>
-    </Stack>
+        </Menu>
+      </TableCell>
+    </TableRow>
   );
 };
 

@@ -83,7 +83,8 @@ in the UI, `parseFloat("82%") === 82`. Other breakdown leaves (reasoning text,
 raw cosine `distance`, counts, skill lists) are unchanged.
 
 > **Exception:** the talent-pool **search** `similarity_score` is a plain
-> **number** (`0–100`), not a percentage string — see §7.3.
+> **number** (`0–100`) for job (semantic) hits, or `null` for free-text
+> (lexical) hits — not a percentage string. See §7.3.
 
 ### 3.4 Pagination
 
@@ -503,18 +504,39 @@ isn't searchable until it finishes (poll `GET /talent-pool/search`).
 - `413` — CV exceeds the 10 MB cap.
 
 #### `GET /talent-pool/search`
-Auth. Query: `q` (1..1000 chars, **required**), `limit` (1..50, default 10),
-`active_only` (default `true`). Embeds `q` and ranks pooled candidates by
-cosine similarity of their current CV.
+Auth. Query: `q` (1..1000 chars), `job_id` (uuid), `limit` (1..50, default 10),
+`active_only` (default `true`). Two complementary modes; at least one of `q` /
+`job_id` is required and `job_id` wins when both are sent:
+- **`q` → lexical.** Substring-matches the phrase (case-insensitive) against the
+  candidate's **name, parsed role titles, and skills** — so "software engineer"
+  returns the software engineers, not a noisy embedding ranking. Hits have
+  `similarity_score: null` and are ordered newest-first. Use this for the
+  free-text search box.
+- **`job_id` → semantic.** Ranks pooled candidates by cosine similarity of their
+  current CV against **that job's stored JD embedding** ("candidates relevant to
+  this job", no extra embedding call), **gated to the relevant ones** (same
+  cutoff the CV pipeline uses to auto-reject — irrelevant candidates are dropped,
+  not ranked low). Hits carry a numeric `similarity_score`; the response echoes
+  the job title as `query`. Candidates whose CV isn't embedded yet are excluded.
+
 → `200` `TalentPoolSearchResponse`:
-`{ query, items: TalentPoolSearchResultItem[], total }`. Each item carries a
-`similarity_score` — here a plain **number** `0–100` (higher = closer), *not* a
-percentage string like the application scores (see §3.3). Candidates whose CV
-isn't embedded yet are excluded.
+`{ query, items: TalentPoolSearchResultItem[], total }`. Each item's
+`similarity_score` is a plain **number** `0–100` (higher = closer) for job
+(semantic) hits, or **`null`** for `q` (lexical) hits — *not* a percentage string
+like the application scores (see §3.3). Items also carry `source_job_title` and
+an enriched `candidate` (see `GET /talent-pool`).
+- Neither `q` nor `job_id` → `422 search_query_required`.
+- `job_id` for an unknown job → `404 job_not_found`; for a job not embedded yet
+  (e.g. never opened) → `409 job_not_embedded`.
 
 #### `GET /talent-pool`
 Auth. Query: `active_only` (default `true`), `page`, `page_size` (1..100,
 default 20). → `200` `TalentPoolListResponse`: `{ items, total }` (newest-first).
+Each entry carries `source_job_title` (the job the candidate was sourced from,
+or `null` for a direct upload) and an enriched `candidate` snapshot: `role`
+(most-recent work-history title), `skills` (top few), and candidate-level
+`authenticity_score` / `authenticity_band` (`null`/empty until the CV is parsed
++ scored).
 
 #### `POST /talent-pool/source`
 Auth. Body `{ "candidate_id": "<uuid>", "job_id": "<uuid>" }`.

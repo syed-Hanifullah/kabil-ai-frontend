@@ -29,8 +29,9 @@ export type ISODateTime = string;
  * A 0–100 score rendered as a trimmed percentage string, e.g. "82%", "67.5%",
  * "35%". Application-level scores (similarity / hard_filter / authenticity) and
  * the `score` / `weight` leaves inside a breakdown use this shape — NOT the
- * talent-pool search `similarity_score`, which is a plain number. Parse with
- * `parseFloat(value)` when you need to compare or sort numerically.
+ * talent-pool search `similarity_score`, which is a plain number (or `null` for
+ * lexical hits). Parse with `parseFloat(value)` when you need to compare or sort
+ * numerically.
  */
 export type PercentString = string;
 
@@ -561,12 +562,21 @@ export interface TalentPoolCandidateNested {
   full_name: string;
   email: string | null;
   phone_e164: string | null;
+  /** Most-recent work-history title from the parsed CV (null until parsed). */
+  role: string | null;
+  /** Top parsed skills (empty until the CV is parsed). */
+  skills: string[];
+  /** Candidate-level CV-trust verdict (null until scored). */
+  authenticity_score: number | null;
+  authenticity_band: string | null;
 }
 
 export interface TalentPoolEntry {
   id: UUID;
   candidate_id: UUID;
   source_job_id: UUID | null;
+  /** Title of the job the candidate was sourced from; null = direct upload. */
+  source_job_title: string | null;
   added_by: UUID | null;
   added_at: ISODateTime;
   expires_at: ISODateTime;
@@ -600,15 +610,21 @@ export interface TalentPoolSearchResultItem {
   candidate_id: UUID;
   entry_id: UUID;
   cv_document_id: UUID;
-  /** Cosine similarity of the query vs. the candidate's CV, 0–100 (higher = closer). */
-  similarity_score: number;
+  /**
+   * Job (semantic) hits: cosine similarity of the job's JD vs. the candidate's
+   * CV, 0–100 (higher = closer). Free-text (lexical) hits: `null` — text search
+   * matches on role/skills/name, not vectors, so there is no score.
+   */
+  similarity_score: number | null;
+  /** Title of the job the candidate was sourced from; null = direct upload. */
+  source_job_title: string | null;
   added_at: ISODateTime;
   expires_at: ISODateTime;
   is_active: boolean;
   candidate: TalentPoolCandidateNested;
 }
 
-/** GET /talent-pool/search?q=…&limit=…&active_only=… */
+/** GET /talent-pool/search?q=…|job_id=…&limit=…&active_only=… (one of q/job_id required). */
 export interface TalentPoolSearchResponse {
   query: string;
   items: TalentPoolSearchResultItem[];
