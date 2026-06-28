@@ -24,11 +24,16 @@ Both roles can use all HR routes today.
 | Value | Meaning |
 |---|---|
 | `draft` | Created, not yet public. Default on create. |
-| `open` | Public link live, accepting applications. Opening runs the job pipeline. |
-| `closed` | No longer accepting applications. |
+| `open` | Public link live, accepting applications. Surfaced as **"Active"** in the UI. Opening runs the job pipeline. |
+| `inactive` | Temporarily paused — not accepting applications, easily reactivated to `open`. Does **not** stamp `closed_at`. |
+| `archived` | Ended/closed-out. Terminal but still reopenable; stamps `closed_at`. |
+| `closed` | **Legacy** terminal state (predates `archived`). Retained so old rows resolve; new flows archive instead. |
 
-`PATCH /jobs/{id}/status` only accepts **`open`** or **`closed`** (`draft` is
-server-set on create). Illegal transitions return `409`.
+`PATCH /jobs/{id}/status` accepts **`open`**, **`inactive`**, **`archived`**, or
+**`closed`** (`draft` is server-set on create and never a transition target).
+Allowed edges: `draft→{open,archived}`, `open→{inactive,archived,closed}`,
+`inactive→{open,archived}`, `archived→{open}`, `closed→{open,archived}`.
+Reactivating to `open` clears `closed_at`. Illegal transitions return `409`.
 
 ---
 

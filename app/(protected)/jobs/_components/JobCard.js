@@ -26,23 +26,46 @@ import MoreVertIcon from "@mui/icons-material/MoreVert";
 import PlayArrowOutlinedIcon from "@mui/icons-material/PlayArrowOutlined";
 import ReplayOutlinedIcon from "@mui/icons-material/ReplayOutlined";
 import ArchiveOutlinedIcon from "@mui/icons-material/ArchiveOutlined";
+import PauseCircleOutlineIcon from "@mui/icons-material/PauseCircleOutlined";
+import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import { humanize, timeAgo } from "@/lib/kabil/constants";
 import { useUpdateJobStatus } from "@/lib/kabil/queries";
 
-/** Status transitions surfaced in the 3-dots menu, keyed by current status. */
+/**
+ * Status transitions surfaced in the 3-dots menu, keyed by current status.
+ * "Active" is the backend `open` state; `inactive` is a reactivatable pause;
+ * `archived` is the terminal (but reopenable) ended state. These mirror the
+ * backend transition matrix in `job_service._ALLOWED_TRANSITIONS`.
+ */
 const STATUS_ACTIONS = {
-  draft: [{ label: "Move to Active", status: "open", icon: PlayArrowOutlinedIcon }],
-  open: [{ label: "Close job", status: "closed", icon: ArchiveOutlinedIcon }],
-  closed: [{ label: "Reopen job", status: "open", icon: ReplayOutlinedIcon }],
+  draft: [
+    { label: "Activate", status: "open", icon: PlayArrowOutlinedIcon },
+    { label: "Archive", status: "archived", icon: ArchiveOutlinedIcon },
+  ],
+  open: [
+    { label: "Set inactive", status: "inactive", icon: PauseCircleOutlineIcon },
+    { label: "Archive", status: "archived", icon: ArchiveOutlinedIcon },
+  ],
+  inactive: [
+    { label: "Activate", status: "open", icon: PlayArrowOutlinedIcon },
+    { label: "Archive", status: "archived", icon: ArchiveOutlinedIcon },
+  ],
+  archived: [{ label: "Reactivate", status: "open", icon: ReplayOutlinedIcon }],
+  // Legacy `closed` jobs predate `archived`; let HR reopen or archive them.
+  closed: [
+    { label: "Reactivate", status: "open", icon: ReplayOutlinedIcon },
+    { label: "Archive", status: "archived", icon: ArchiveOutlinedIcon },
+  ],
 };
 
 /** Status → pill label + colour tokens (dot, text, background). */
 const STATUS_PILL = {
   open: { label: "Active", dot: "#1f9d57", text: "#13402d", bg: "#e7f1ea" },
   draft: { label: "Draft", dot: "#c9a23f", text: "#7a611a", bg: "#faf3e0" },
-  closed: { label: "Closed", dot: "#9aa39e", text: "#5d635f", bg: "#eef0ef" },
-  // Reserved for the design's red "Inactive" state (no backend status yet).
   inactive: { label: "Inactive", dot: "#e0524f", text: "#a3322f", bg: "#fdeceb" },
+  archived: { label: "Archived", dot: "#9aa39e", text: "#5d635f", bg: "#eef0ef" },
+  // Legacy terminal state, shown for old rows that still carry it.
+  closed: { label: "Closed", dot: "#9aa39e", text: "#5d635f", bg: "#eef0ef" },
 };
 
 /** Salary range, e.g. "AED 2,500–5,000". Returns null when no figures exist. */
@@ -80,6 +103,11 @@ const JobCard = ({ job }) => {
     setMenuAnchor(null);
     updateStatus.mutate(status);
   };
+  const viewJob = (e) => {
+    e.stopPropagation();
+    setMenuAnchor(null);
+    router.push(`/jobs/${job.id}`);
+  };
 
   const salary = formatSalary(job.min_salary, job.max_salary, job.currency);
   const skills = job.required_skills ?? [];
@@ -110,53 +138,56 @@ const JobCard = ({ job }) => {
         },
       }}
     >
-      {actions.length > 0 && (
-        <>
-          <Tooltip title="More actions">
-            <IconButton
-              size="small"
-              aria-label="Job actions"
-              onClick={openMenu}
-              disabled={updateStatus.isPending}
-              sx={{
-                position: "absolute",
-                top: 8,
-                right: 8,
-                zIndex: 2,
-                color: "text.secondary",
-                opacity: 0,
-                transition: "opacity .2s ease",
-                ".MuiCard-root:hover &": { opacity: 1 },
-                "&:focus-visible": { opacity: 1 },
-                bgcolor: "background.paper",
-                "&:hover": { bgcolor: "action.hover" },
-              }}
-            >
-              {updateStatus.isPending ? (
-                <CircularProgress size={16} color="inherit" />
-              ) : (
-                <MoreVertIcon fontSize="small" />
-              )}
-            </IconButton>
-          </Tooltip>
-          <Menu
-            anchorEl={menuAnchor}
-            open={Boolean(menuAnchor)}
-            onClose={closeMenu}
-            anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-            transformOrigin={{ vertical: "top", horizontal: "right" }}
-          >
-            {actions.map((a) => (
-              <MenuItem key={a.status} onClick={(e) => applyStatus(e, a.status)}>
-                <ListItemIcon>
-                  <a.icon fontSize="small" />
-                </ListItemIcon>
-                <ListItemText>{a.label}</ListItemText>
-              </MenuItem>
-            ))}
-          </Menu>
-        </>
-      )}
+      <Tooltip title="More actions">
+        <IconButton
+          size="small"
+          aria-label="Job actions"
+          onClick={openMenu}
+          disabled={updateStatus.isPending}
+          sx={{
+            position: "absolute",
+            top: 8,
+            right: 8,
+            zIndex: 2,
+            color: "text.secondary",
+            opacity: 0,
+            transition: "opacity .2s ease",
+            ".MuiCard-root:hover &": { opacity: 1 },
+            "&:focus-visible": { opacity: 1 },
+            bgcolor: "background.paper",
+            "&:hover": { bgcolor: "action.hover" },
+          }}
+        >
+          {updateStatus.isPending ? (
+            <CircularProgress size={16} color="inherit" />
+          ) : (
+            <MoreVertIcon fontSize="small" />
+          )}
+        </IconButton>
+      </Tooltip>
+      <Menu
+        anchorEl={menuAnchor}
+        open={Boolean(menuAnchor)}
+        onClose={closeMenu}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        transformOrigin={{ vertical: "top", horizontal: "right" }}
+      >
+        {actions.map((a) => (
+          <MenuItem key={a.status} onClick={(e) => applyStatus(e, a.status)}>
+            <ListItemIcon>
+              <a.icon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>{a.label}</ListItemText>
+          </MenuItem>
+        ))}
+        {actions.length > 0 && <Divider />}
+        <MenuItem onClick={viewJob}>
+          <ListItemIcon>
+            <VisibilityOutlinedIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>View job</ListItemText>
+        </MenuItem>
+      </Menu>
 
       <CardActionArea
         onClick={goToPipeline}

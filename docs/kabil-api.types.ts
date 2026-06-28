@@ -40,9 +40,9 @@ export type PercentString = string;
 
 export type UserRole = "admin" | "hiring_manager";
 
-export type JobStatus = "draft" | "open" | "closed";
-/** Only these two are accepted by PATCH /jobs/{id}/status. */
-export type JobStatusPatch = "open" | "closed";
+export type JobStatus = "draft" | "open" | "inactive" | "archived" | "closed";
+/** Accepted by PATCH /jobs/{id}/status (`draft` is server-set only). */
+export type JobStatusPatch = "open" | "inactive" | "archived" | "closed";
 
 export type EmploymentType = "permanent" | "contract" | "temporary";
 export type WorkMode = "onsite" | "hybrid" | "remote";

@@ -18,15 +18,14 @@ import SearchField from "@/components/SearchField";
 import { useJobs } from "@/lib/kabil/queries";
 import JobCard, { JobCardSkeleton } from "./_components/JobCard";
 
-// Tabs as drawn in the design. `status: null` → no status filter; the
-// `placeholder` flag marks tabs with no backend status yet (e.g. Inactive),
-// which render a "coming soon" state instead of querying the API.
+// Tabs as drawn in the design. `status: null` → no status filter; every other
+// tab filters the list by its backend status value ("Active" === `open`).
 const TABS = [
   { label: "All", status: null },
   { label: "Drafts", status: "draft" },
-  { label: "Archived", status: "closed" },
   { label: "Active", status: "open" },
-  { label: "Inactive", status: null, placeholder: true },
+  { label: "Inactive", status: "inactive" },
+  { label: "Archived", status: "archived" },
 ];
 
 /** 3-up responsive grid (1 / 2 / 3 columns). */
@@ -95,15 +94,7 @@ const JobsPageInner = () => {
         </Tabs>
       </Box>
 
-      {activeTab.placeholder ? (
-        <Card sx={{ borderRadius: 2 }}>
-          <EmptyState
-            emoji="🚧"
-            title="Inactive jobs are coming soon"
-            description="This view isn't available yet. Active, draft, and archived jobs are in the other tabs."
-          />
-        </Card>
-      ) : isLoading ? (
+      {isLoading ? (
         <JobsGridSkeleton />
       ) : isError ? (
         <ErrorAlert error={error} />

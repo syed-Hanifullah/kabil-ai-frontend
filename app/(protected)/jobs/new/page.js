@@ -25,7 +25,6 @@ import { toJobSpecPayload } from "@/lib/kabil/jobOptions";
 import ErrorAlert from "@/components/ErrorAlert";
 import StepRoleBasics from "./_components/StepRoleBasics";
 import StepJdBuilder from "./_components/StepJdBuilder";
-import StepScreeningCriteria from "./_components/StepScreeningCriteria";
 import StepWhatsAppQuestions from "./_components/StepWhatsAppQuestions";
 import StepReview from "./_components/StepReview";
 
@@ -54,13 +53,12 @@ const STEPS = [
       "preferred_skills",
     ],
   },
-  { label: "JD Builder", next: "AI Screening Criteria", fields: ["job_description"] },
-  { label: "AI Screening Criteria", next: "Baseline Questions", fields: [] },
+  { label: "JD Builder", next: "Baseline Questions", fields: ["job_description"] },
   { label: "Baseline Questions", next: "Review", fields: [] },
   { label: "Review", next: null, fields: [] },
 ];
 
-const SCREENING_STEP = 2; // boundary where the job is created + opened
+const CREATE_STEP = 1; // boundary where the job is created + opened (JD Builder)
 
 const DEFAULT_VALUES = {
   title: "",
@@ -120,7 +118,7 @@ const NewJobPage = () => {
     /* eslint-disable react-hooks/set-state-in-effect */
     setQuestions(job.whatsapp_questions ?? []);
     setGenerating(false);
-    setActive(SCREENING_STEP + 1);
+    setActive(CREATE_STEP + 1);
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [generating, job]);
 
@@ -129,15 +127,18 @@ const NewJobPage = () => {
     if (ok) setActive((s) => s + 1);
   };
 
-  // Next on the screening step: create the job, open it (which kicks off the
-  // async embed-JD + generate-questions pipeline), then stay put while it runs.
-  // The poll above advances to the baseline-questions step once they land.
+  // Next on the JD Builder step: validate the description, create the job, open
+  // it (which kicks off the async embed-JD + generate-questions pipeline), then
+  // stay put while it runs. The poll above advances to the baseline-questions
+  // step once they land.
   const generateQuestions = async () => {
     // Came back to this step after already creating the job — just move forward.
     if (jobId) {
-      setActive(SCREENING_STEP + 1);
+      setActive(CREATE_STEP + 1);
       return;
     }
+    const ok = await methods.trigger(STEPS[active].fields);
+    if (!ok) return;
     setGenerating(true);
     try {
       const { id } = await createJob.mutateAsync(toJobPayload(methods.getValues()));
@@ -150,7 +151,7 @@ const NewJobPage = () => {
   };
 
   const handleNext = () =>
-    active === SCREENING_STEP ? generateQuestions() : advanceWithValidation();
+    active === CREATE_STEP ? generateQuestions() : advanceWithValidation();
 
   const finish = async () => {
     try {
@@ -173,8 +174,7 @@ const NewJobPage = () => {
   const renderStep = () => {
     if (active === 0) return <StepRoleBasics />;
     if (active === 1) return <StepJdBuilder />;
-    if (active === 2) return <StepScreeningCriteria />;
-    if (active === 3)
+    if (active === 2)
       return <StepWhatsAppQuestions questions={questions} onChange={setQuestions} />;
     return <StepReview questions={questions} />;
   };

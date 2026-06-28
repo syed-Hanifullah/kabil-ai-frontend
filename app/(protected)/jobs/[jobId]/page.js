@@ -126,7 +126,8 @@ const ViewJobPage = ({ params }) => {
   }
 
   const isOpen = job.status === "open";
-  const toggleStatus = () => updateStatus.mutate(isOpen ? "closed" : "open");
+  // Active jobs archive; anything else (draft/inactive/archived/closed) activates.
+  const toggleStatus = () => updateStatus.mutate(isOpen ? "archived" : "open");
   const publicUrl =
     typeof window !== "undefined"
       ? `${window.location.origin}/apply/${job.public_slug}`
@@ -158,7 +159,7 @@ const ViewJobPage = ({ params }) => {
                 </Typography>
                 <Chip
                   size="small"
-                  label={humanize(job.status)}
+                  label={job.status === "open" ? "Active" : humanize(job.status)}
                   color={jobStatusColor(job.status)}
                   sx={{ fontWeight: 600 }}
                 />
@@ -178,7 +179,7 @@ const ViewJobPage = ({ params }) => {
               >
                 View Pipeline
               </Button>
-              <Tooltip title={isOpen ? "Close this job" : "Open this job for applications"}>
+              <Tooltip title={isOpen ? "Archive this job" : "Activate this job for applications"}>
                 <span>
                   <Button
                     variant="outlined"
@@ -188,7 +189,7 @@ const ViewJobPage = ({ params }) => {
                     onClick={toggleStatus}
                     disabled={updateStatus.isPending}
                   >
-                    {isOpen ? "Close Job" : "Open Job"}
+                    {isOpen ? "Archive Job" : "Activate Job"}
                   </Button>
                 </span>
               </Tooltip>

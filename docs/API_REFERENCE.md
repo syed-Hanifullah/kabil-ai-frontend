@@ -320,15 +320,19 @@ cache so a repeat click yields a fresh draft.
   unusably short draft.
 
 #### `GET /jobs`
-Auth. Query: `status` (`draft|open|closed`), `search` (1..120 chars),
-`page`, `page_size`. → `200` `JobListResponse` (paginated `JobListItem`).
+Auth. Query: `status` (`draft|open|inactive|archived|closed`), `search`
+(1..120 chars), `page`, `page_size`. → `200` `JobListResponse` (paginated
+`JobListItem`).
 
 #### `GET /jobs/{job_id}`
 Auth. → `200` `JobDetail` (full job incl. `whatsapp_questions`,
 `pipeline_status`, `ready_for_applications`, `public_slug`).
 
 #### `PATCH /jobs/{job_id}/status`
-Auth. Body `{ "status": "open" | "closed" }`.
+Auth. Body `{ "status": "open" | "inactive" | "archived" | "closed" }`
+(`open` = "Active" in the UI; `inactive` = paused; `archived` = ended terminal).
+Allowed edges: `draft→{open,archived}`, `open→{inactive,archived,closed}`,
+`inactive→{open,archived}`, `archived→{open}`, `closed→{open,archived}`.
 - `draft → open` triggers the **job pipeline** (embed JD + generate WhatsApp
   questions, async). `ready_for_applications` flips `true` when both finish.
   The generated list = the 6 fixed canonical deterministic questions (filled
@@ -338,7 +342,9 @@ Auth. Body `{ "status": "open" | "closed" }`.
   role's listed required + preferred skills (skills only — no work history) +
   any custom questions HR added in the wizard.
 - Illegal transition → `409 conflict`.
-- `status` outside `{open, closed}` → `422`.
+- `status` outside `{open, inactive, archived, closed}` (e.g. `draft`) → `422`.
+- Archiving (or closing) stamps `closed_at`; pausing to `inactive` does not;
+  reactivating to `open` clears it.
 → `200` `JobDetail`.
 
 #### `GET /jobs/{job_id}/whatsapp-questions`
