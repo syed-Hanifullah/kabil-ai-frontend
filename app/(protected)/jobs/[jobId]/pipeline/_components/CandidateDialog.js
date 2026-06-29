@@ -16,14 +16,8 @@ import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
 import Alert from "@mui/material/Alert";
 import Skeleton from "@mui/material/Skeleton";
-import LinearProgress from "@mui/material/LinearProgress";
-import Accordion from "@mui/material/Accordion";
-import AccordionSummary from "@mui/material/AccordionSummary";
-import AccordionDetails from "@mui/material/AccordionDetails";
 import CloseIcon from "@mui/icons-material/Close";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
-import PhoneOutlinedIcon from "@mui/icons-material/PhoneOutlined";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import BlockIcon from "@mui/icons-material/Block";
 import ReplayIcon from "@mui/icons-material/Replay";
@@ -33,9 +27,13 @@ import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import PersonAddAltOutlinedIcon from "@mui/icons-material/PersonAddAltOutlined";
 import VideocamOutlinedIcon from "@mui/icons-material/VideocamOutlined";
 import PlaceOutlinedIcon from "@mui/icons-material/PlaceOutlined";
+import WorkOutlineIcon from "@mui/icons-material/WorkOutlineOutlined";
+import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
+import TranslateOutlinedIcon from "@mui/icons-material/TranslateOutlined";
 import EventAvailableOutlinedIcon from "@mui/icons-material/EventAvailableOutlined";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
+import CheckIcon from "@mui/icons-material/Check";
 import ErrorAlert from "@/components/ErrorAlert";
 import WhatsAppDialog from "./WhatsAppDialog";
 import CvScoreCard from "./CvScoreCard";
@@ -47,17 +45,12 @@ import {
   useMoveToPool,
   useUpdateCandidateContact,
 } from "@/lib/kabil/queries";
-import {
-  APPLICATION_STAGES,
-  NEXT_STAGE,
-  humanize,
-  statusColor,
-  bandColor,
-  authenticityLabel,
-  scoreBand,
-  toScore,
-  timeAgo,
-} from "@/lib/kabil/constants";
+import { APPLICATION_STAGES, NEXT_STAGE, humanize, timeAgo } from "@/lib/kabil/constants";
+import { COLORS } from "@/lib/theme";
+
+/** Requested brand green for the candidate dialog chrome. */
+const GREEN = "#0F6E56";
+const GREEN_DARK = "#0c5a46";
 
 const initials = (name) =>
   (name || "?")
@@ -68,8 +61,6 @@ const initials = (name) =>
     .join("");
 
 const asArray = (v) => (Array.isArray(v) ? v : []);
-const isPlainObject = (v) => v && typeof v === "object" && !Array.isArray(v);
-const scoreColor = (v) => scoreBand(v).color;
 
 /** One labelled value row. */
 const Field = ({ label, children }) => (
@@ -96,135 +87,59 @@ const Section = ({ title, action, children }) => (
   </Box>
 );
 
-/** A single leaf value: scalar, boolean, or array (as wrapping chips). */
-const LeafValue = ({ value }) => {
-  if (value == null || value === "") {
-    return (
-      <Typography variant="caption" color="text.disabled">
-        —
-      </Typography>
-    );
-  }
-  if (typeof value === "boolean") {
-    return (
-      <Chip
-        size="small"
-        variant="outlined"
-        color={value ? "success" : "default"}
-        label={value ? "Yes" : "No"}
-        sx={{ height: 20 }}
-      />
-    );
-  }
-  if (Array.isArray(value)) {
-    if (!value.length) {
-      return (
-        <Typography variant="caption" color="text.disabled">
-          None
-        </Typography>
-      );
-    }
-    const asText = (v) => (typeof v === "object" ? JSON.stringify(v) : String(v));
-    // Long, sentence-like items (e.g. "reasons") clip badly inside fixed-height
-    // chips — render those as wrapping bullet lines instead. Short tokens
-    // (skills, tags) stay as chips.
-    const hasLongText = value.some((v) => asText(v).length > 40);
-    if (hasLongText) {
-      return (
-        <Stack component="ul" spacing={0.5} sx={{ m: 0, pl: 2 }}>
-          {value.map((v, i) => (
-            <Typography
-              key={i}
-              component="li"
-              variant="caption"
-              sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}
-            >
-              {asText(v)}
-            </Typography>
-          ))}
-        </Stack>
-      );
-    }
-    return (
-      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-        {value.map((v, i) => (
-          <Chip
-            key={i}
-            size="small"
-            variant="outlined"
-            label={asText(v)}
-            sx={{ height: "auto", maxWidth: "100%", "& .MuiChip-label": { whiteSpace: "normal", py: 0.25 } }}
-          />
-        ))}
-      </Box>
-    );
-  }
-  return (
-    <Typography variant="caption" sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-      {String(value)}
-    </Typography>
-  );
+/** Cream surface shared by the candidate-profile cards (matches the score cards). */
+const PROFILE_BG = "#FBF9F2";
+const PROFILE_BORDER = "#ECE5D6";
+const SKILL_LIMIT = 21;
+
+const skillChipSx = {
+  bgcolor: "#fff",
+  border: "1px solid #dfe5e0",
+  borderRadius: 999,
+  color: "#2b3530",
+  fontWeight: 500,
+  height: 32,
+  "& .MuiChip-label": { px: 1.75 },
 };
 
-/**
- * Recursively renders a breakdown. Nested objects indent under a heading (so
- * the value area always stays wide); leaves are label + value rows that wrap.
- */
-const BreakdownNode = ({ label, value, depth }) => {
-  if (isPlainObject(value)) {
-    return (
-      <Box
-        sx={
-          depth > 0
-            ? { pl: 1.5, borderLeft: "2px solid", borderColor: "#eef0ef" }
-            : undefined
-        }
-      >
-        {label && (
-          <Typography variant="caption" sx={{ fontWeight: 700, display: "block", mb: 0.5 }}>
-            {humanize(label)}
-          </Typography>
-        )}
-        <Stack spacing={0.75}>
-          {Object.entries(value).map(([k, v]) => (
-            <BreakdownNode key={k} label={k} value={v} depth={depth + 1} />
-          ))}
-        </Stack>
-      </Box>
-    );
-  }
-  return (
-    <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", alignItems: "baseline" }}>
-      <Typography variant="caption" color="text.secondary" sx={{ minWidth: 130, flexShrink: 0 }}>
-        {humanize(label)}
-      </Typography>
-      <Box sx={{ flex: "1 1 280px", minWidth: 0 }}>
-        <LeafValue value={value} />
-      </Box>
-    </Box>
-  );
-};
-
-const Breakdown = ({ data }) => {
-  const entries = Object.entries(data || {});
-  if (!entries.length) return null;
-  return (
-    <Stack spacing={1} sx={{ mt: 1 }}>
-      {entries.map(([key, value]) => (
-        <BreakdownNode key={key} label={key} value={value} depth={0} />
-      ))}
+/** Eyebrow stat card (Experience / Languages). */
+const StatCard = ({ icon, label, children }) => (
+  <Box sx={{ border: `1px solid ${PROFILE_BORDER}`, bgcolor: PROFILE_BG, borderRadius: 2.5, px: 2.5, py: 2.25 }}>
+    <Stack direction="row" spacing={0.85} sx={{ alignItems: "center", mb: 1 }}>
+      {icon}
+      <Typography sx={{ color: GREEN, fontWeight: 800, fontSize: 11, letterSpacing: 0.8 }}>{label}</Typography>
     </Stack>
-  );
-};
+    {children}
+  </Box>
+);
+
+/** Cream info card used for education + work-history rows. */
+const InfoCard = ({ children }) => (
+  <Box sx={{ border: `1px solid ${PROFILE_BORDER}`, bgcolor: PROFILE_BG, borderRadius: 2.5, px: 2.25, py: 1.85 }}>
+    {children}
+  </Box>
+);
+
+/** Green-icon column heading (Education / Work History). */
+const ProfileHeading = ({ icon: Icon, title }) => (
+  <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+    <Icon sx={{ fontSize: 20, color: GREEN }} />
+    <Typography sx={{ fontWeight: 700, fontSize: 16 }}>{title}</Typography>
+  </Stack>
+);
 
 /** Structured CV from `candidate.parsed_profile` (shape is loose — render defensively). */
 const ParsedProfile = ({ profile }) => {
   const p = profile || {};
-  const skills = asArray(p.skills);
+  const skills = asArray(p.skills).map(String).filter(Boolean);
   const work = asArray(p.work_history);
   const education = asArray(p.education);
-  const languages = asArray(p.languages);
+  const languages = asArray(p.languages)
+    .map((l) => (typeof l === "object" ? l?.name || "" : l))
+    .filter(Boolean);
   const years = p.total_experience_years;
+
+  const [showAllSkills, setShowAllSkills] = useState(false);
 
   if (!Object.keys(p).length) {
     return (
@@ -234,81 +149,153 @@ const ParsedProfile = ({ profile }) => {
     );
   }
 
+  const stats = [];
+  if (years != null) {
+    stats.push(
+      <StatCard key="exp" icon={<WorkOutlineIcon sx={{ fontSize: 18, color: GREEN }} />} label="EXPERIENCE">
+        <Stack direction="row" spacing={0.75} sx={{ alignItems: "baseline" }}>
+          <Typography sx={{ fontSize: 30, fontWeight: 800, lineHeight: 1, color: "#1c2522" }}>{years}</Typography>
+          <Typography sx={{ color: "text.secondary", fontWeight: 600 }}>{years === 1 ? "yr" : "yrs"}</Typography>
+        </Stack>
+      </StatCard>,
+    );
+  }
+  if (languages.length > 0) {
+    stats.push(
+      <StatCard key="lang" icon={<TranslateOutlinedIcon sx={{ fontSize: 18, color: GREEN }} />} label="LANGUAGES">
+        <Typography sx={{ fontWeight: 700, fontSize: 17, color: "#1c2522" }}>{languages.join(", ")}</Typography>
+      </StatCard>,
+    );
+  }
+
+  const visibleSkills = showAllSkills ? skills : skills.slice(0, SKILL_LIMIT);
+  const hiddenCount = skills.length - visibleSkills.length;
+
   return (
-    <Stack spacing={2}>
-      {years != null && <Field label="Total experience">{`${years} year${years === 1 ? "" : "s"}`}</Field>}
+    <Stack spacing={3.5}>
+      {stats.length > 0 && (
+        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>{stats}</Box>
+      )}
 
       {skills.length > 0 && (
         <Box>
-          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: "block", mb: 0.75 }}>
-            Skills
-          </Typography>
-          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75 }}>
-            {skills.map((s, i) => (
-              <Chip
-                key={`${s}-${i}`}
-                size="small"
-                variant="outlined"
-                label={String(s)}
-                sx={{ maxWidth: "100%" }}
-              />
+          <Typography sx={{ fontWeight: 700, fontSize: 16, mb: 1.25 }}>Skills</Typography>
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+            {visibleSkills.map((s, i) => (
+              <Chip key={`${s}-${i}`} label={s} sx={skillChipSx} />
             ))}
+            {hiddenCount > 0 && (
+              <Chip
+                label={`+${hiddenCount} more...`}
+                onClick={() => setShowAllSkills(true)}
+                sx={{ ...skillChipSx, color: GREEN, cursor: "pointer" }}
+              />
+            )}
+            {showAllSkills && skills.length > SKILL_LIMIT && (
+              <Chip
+                label="Show less"
+                onClick={() => setShowAllSkills(false)}
+                sx={{ ...skillChipSx, color: GREEN, cursor: "pointer" }}
+              />
+            )}
           </Box>
         </Box>
       )}
 
-      {languages.length > 0 && (
-        <Field label="Languages">
-          {languages.map((l) => (typeof l === "object" ? l.name || JSON.stringify(l) : l)).join(", ")}
-        </Field>
-      )}
+      {(education.length > 0 || work.length > 0) && (
+        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 3 }}>
+          {education.length > 0 && (
+            <Box>
+              <ProfileHeading icon={SchoolOutlinedIcon} title="Education" />
+              <Stack spacing={1.5} sx={{ mt: 1.5 }}>
+                {education.map((e, i) => {
+                  const obj = typeof e === "object" && e ? e : null;
+                  const degree = obj ? obj.degree || obj.title || "—" : String(e);
+                  const inst = obj ? obj.institution || obj.school || "" : "";
+                  const year = obj ? obj.year : "";
+                  return (
+                    <InfoCard key={i}>
+                      <Typography sx={{ fontWeight: 700, fontSize: 16, color: "#1c2522" }}>{degree}</Typography>
+                      {(inst || year) && (
+                        <Typography variant="body2" color="text.secondary">
+                          {[inst, year].filter(Boolean).join(" · ")}
+                        </Typography>
+                      )}
+                    </InfoCard>
+                  );
+                })}
+              </Stack>
+            </Box>
+          )}
 
-      {work.length > 0 && (
-        <Box>
-          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: "block", mb: 0.75 }}>
-            Work history
-          </Typography>
-          <Stack spacing={1}>
-            {work.map((w, i) => (
-              <Box key={i} sx={{ border: "1px solid #eef0ef", borderRadius: 1.5, p: 1.25 }}>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  {w.title || w.role || "Role"}
-                </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
-                  {[w.company, [w.start_date || w.start, w.end_date || w.end].filter(Boolean).join(" – ")]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </Typography>
-                {w.summary && (
-                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
-                    {w.summary}
-                  </Typography>
-                )}
-              </Box>
-            ))}
-          </Stack>
-        </Box>
-      )}
-
-      {education.length > 0 && (
-        <Box>
-          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: "block", mb: 0.75 }}>
-            Education
-          </Typography>
-          <Stack spacing={0.5}>
-            {education.map((e, i) => (
-              <Typography key={i} variant="body2">
-                {typeof e === "object"
-                  ? [e.degree, e.institution || e.school, e.year].filter(Boolean).join(" · ")
-                  : String(e)}
-              </Typography>
-            ))}
-          </Stack>
+          {work.length > 0 && (
+            <Box>
+              <ProfileHeading icon={WorkOutlineIcon} title="Work History" />
+              <Stack spacing={1.5} sx={{ mt: 1.5 }}>
+                {work.map((w, i) => {
+                  const dates = [w.start_date || w.start, w.end_date || w.end].filter(Boolean).join(" – ");
+                  const sub = [w.company, dates].filter(Boolean).join(" · ");
+                  return (
+                    <InfoCard key={i}>
+                      <Stack direction="row" spacing={1.25} sx={{ alignItems: "flex-start" }}>
+                        <Box
+                          sx={{
+                            width: 9,
+                            height: 9,
+                            borderRadius: "50%",
+                            bgcolor: i === 0 ? COLORS.gold : GREEN,
+                            mt: 0.85,
+                            flexShrink: 0,
+                          }}
+                        />
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography sx={{ fontWeight: 700, fontSize: 16, color: "#1c2522" }}>
+                            {w.title || w.role || "Role"}
+                          </Typography>
+                          {sub && (
+                            <Typography variant="body2" color="text.secondary">
+                              {sub}
+                            </Typography>
+                          )}
+                          {w.summary && (
+                            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
+                              {w.summary}
+                            </Typography>
+                          )}
+                        </Box>
+                      </Stack>
+                    </InfoCard>
+                  );
+                })}
+              </Stack>
+            </Box>
+          )}
         </Box>
       )}
     </Stack>
   );
 };
+
+/** Centered "Open CV" button matching the mock. */
+const OpenCvButton = ({ doc }) => (
+  <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0.75 }}>
+    <Button
+      variant="contained"
+      startIcon={<OpenInNewIcon />}
+      component="a"
+      href={doc.blob_url}
+      target="_blank"
+      rel="noopener noreferrer"
+      sx={{ bgcolor: GREEN, px: 4, py: 1.25, borderRadius: 2, "&:hover": { bgcolor: GREEN_DARK } }}
+    >
+      Open CV
+    </Button>
+    <Typography variant="caption" color="text.secondary">
+      Uploaded {timeAgo(doc.uploaded_at)}
+      {doc.language ? ` · ${doc.language.toUpperCase()}` : ""}
+    </Typography>
+  </Box>
+);
 
 /** Absolute date + time, optionally rendered in the invitee's IANA timezone. */
 const formatDateTime = (iso, tz) => {
@@ -381,23 +368,12 @@ const InterviewSection = ({ interview }) => {
     <Section
       title="Interview"
       action={
-        <Chip
-          size="small"
-          label={meta.label}
-          color={meta.color}
-          variant={booked ? "filled" : "outlined"}
-        />
+        <Chip size="small" label={meta.label} color={meta.color} variant={booked ? "filled" : "outlined"} />
       }
     >
       <Stack spacing={2}>
         {booked && (
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
-              gap: 2,
-            }}
-          >
+          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
             <Field label="Scheduled slot">
               {formatDateTime(interview.scheduled_start_at, tz)}
               {interview.scheduled_end_at ? ` – ${formatTime(interview.scheduled_end_at, tz)}` : ""}
@@ -438,9 +414,7 @@ const InterviewSection = ({ interview }) => {
               Rescheduled {interview.reschedule_count}×
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              {interview.previous_start_at
-                ? `Previously ${formatDateTime(interview.previous_start_at, tz)}`
-                : ""}
+              {interview.previous_start_at ? `Previously ${formatDateTime(interview.previous_start_at, tz)}` : ""}
               {interview.rescheduled_at ? ` · changed ${timeAgo(interview.rescheduled_at)}` : ""}
             </Typography>
           </Box>
@@ -461,9 +435,7 @@ const InterviewSection = ({ interview }) => {
         {!booked && !canceled && (
           <Typography variant="body2" color="text.secondary">
             Invite sent {timeAgo(interview.created_at)}. Awaiting the candidate to pick a slot.
-            {interview.reminder_sent_at
-              ? ` Reminder sent ${timeAgo(interview.reminder_sent_at)}.`
-              : ""}
+            {interview.reminder_sent_at ? ` Reminder sent ${timeAgo(interview.reminder_sent_at)}.` : ""}
           </Typography>
         )}
 
@@ -491,6 +463,30 @@ const InterviewSection = ({ interview }) => {
       </Stack>
     </Section>
   );
+};
+
+/** Static field caption sitting above each contact input (mock style). */
+const FieldLabel = ({ children, required }) => (
+  <Typography component="label" sx={{ display: "block", fontWeight: 600, fontSize: 15, color: "#1c2522", mb: 0.85 }}>
+    {children}
+    {required && (
+      <Box component="span" sx={{ color: "#d24a39", ml: 0.5 }}>
+        *
+      </Box>
+    )}
+  </Typography>
+);
+
+/** Warm-gray filled input matching the contact-details mock. */
+const contactFieldSx = {
+  "& .MuiOutlinedInput-root": {
+    bgcolor: "#f6f5ef",
+    borderRadius: 2,
+    "& fieldset": { borderColor: "#e7e4d9" },
+    "&:hover fieldset": { borderColor: "#d8d3c4" },
+    "&.Mui-focused fieldset": { borderColor: GREEN, borderWidth: 1 },
+  },
+  "& .MuiOutlinedInput-input": { py: 1.6 },
 };
 
 /**
@@ -551,73 +547,122 @@ const DetailsTab = ({ appId, candidate, editable }) => {
     );
   };
 
+  const disabled = !editable || update.isPending;
+
   return (
-    <Section title="Contact details">
+    <Box component="form" onSubmit={submit} sx={{ maxWidth: 720, mx: "auto" }}>
       {!editable && (
-        <Alert severity="info" icon={<LockOutlinedIcon fontSize="inherit" />} sx={{ mb: 2 }}>
-          Contact details are locked once WhatsApp screening begins. They can only
-          be edited while the candidate is in the Applied or L1 (CV screened) stage.
+        <Alert severity="info" icon={<LockOutlinedIcon fontSize="inherit" />} sx={{ mb: 3 }}>
+          Contact details are locked once WhatsApp screening begins. They can only be edited while the
+          candidate is in the Applied or L1 (CV screened) stage.
         </Alert>
       )}
-      <Box component="form" onSubmit={submit}>
-        <Stack spacing={2}>
+
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, columnGap: 3, rowGap: 2.5 }}>
+        <Box>
+          <FieldLabel required>Full Name</FieldLabel>
           <TextField
-            label="Full name"
-            size="small"
             fullWidth
-            required
             value={form.full_name}
             onChange={set("full_name")}
-            disabled={!editable || update.isPending}
+            disabled={disabled}
+            placeholder="Ali Saqib"
             inputProps={{ maxLength: 255 }}
+            sx={contactFieldSx}
           />
+        </Box>
+        <Box>
+          <FieldLabel>Email</FieldLabel>
           <TextField
-            label="Email"
-            type="email"
-            size="small"
             fullWidth
+            type="email"
             value={form.email}
             onChange={set("email")}
-            disabled={!editable || update.isPending}
+            disabled={disabled}
+            placeholder="aliSaqib@gmail.com"
             inputProps={{ maxLength: 254 }}
             error={!hasContact}
             helperText={!hasContact ? "Provide at least an email or a phone number." : " "}
+            sx={contactFieldSx}
           />
+        </Box>
+        <Box>
+          <FieldLabel>Phone</FieldLabel>
           <TextField
-            label="Phone"
-            size="small"
             fullWidth
             value={form.phone}
             onChange={set("phone")}
-            disabled={!editable || update.isPending}
+            disabled={disabled}
+            placeholder="+923409297758"
             inputProps={{ maxLength: 40 }}
-            placeholder="+971501234567"
             helperText="Include the country code, e.g. +971501234567."
+            sx={contactFieldSx}
           />
-
-          {update.isError && <ErrorAlert error={update.error} />}
-          {saved && !update.isError && (
-            <Alert severity="success">Contact details updated.</Alert>
-          )}
-
-          {editable && (
-            <Box>
-              <Button
-                type="submit"
-                variant="contained"
-                size="small"
-                startIcon={<SaveOutlinedIcon />}
-                disabled={!canSave}
-              >
-                {update.isPending ? "Saving…" : "Save changes"}
-              </Button>
-            </Box>
-          )}
-        </Stack>
+        </Box>
       </Box>
-    </Section>
+
+      {update.isError && (
+        <Box sx={{ mt: 2.5 }}>
+          <ErrorAlert error={update.error} />
+        </Box>
+      )}
+      {saved && !update.isError && (
+        <Alert severity="success" sx={{ mt: 2.5 }}>
+          Contact details updated.
+        </Alert>
+      )}
+
+      {editable && (
+        <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+          <Button
+            type="submit"
+            variant="contained"
+            endIcon={<CheckIcon />}
+            disabled={!canSave}
+            sx={{ bgcolor: GREEN, px: 4, py: 1.25, borderRadius: 2, "&:hover": { bgcolor: GREEN_DARK } }}
+          >
+            {update.isPending ? "Saving…" : "Save Changes"}
+          </Button>
+        </Box>
+      )}
+    </Box>
   );
 };
+
+/** The Activity (audit) log — shared by the Candidate Profile tab and the
+ *  read-only pooled-candidate view. */
+const ProfileExtras = ({ audit }) => (
+  <>
+    <Section title="Activity">
+      {asArray(audit?.items).length === 0 ? (
+        <Typography variant="body2" color="text.secondary">
+          No activity recorded yet.
+        </Typography>
+      ) : (
+        <Stack spacing={1.25}>
+          {asArray(audit?.items).map((entry) => (
+            <Stack key={entry.id} direction="row" spacing={1.25}>
+              <HistoryOutlinedIcon sx={{ fontSize: 18, color: "text.disabled", mt: 0.25 }} />
+              <Box sx={{ minWidth: 0 }}>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  {humanize(entry.action)}
+                </Typography>
+                {entry.after_state?.reason && (
+                  <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                    {String(entry.after_state.reason)}
+                  </Typography>
+                )}
+                <Typography variant="caption" color="text.disabled">
+                  {timeAgo(entry.created_at)}
+                </Typography>
+              </Box>
+            </Stack>
+          ))}
+        </Stack>
+      )}
+    </Section>
+  </>
+);
 
 const DialogSkeleton = () => (
   <Stack spacing={2}>
@@ -634,18 +679,40 @@ const DialogSkeleton = () => (
   </Stack>
 );
 
+/** Pill-style tab strip matching the mock (rounded track, filled-green active). */
+const pillTabsSx = {
+  minHeight: 0,
+  bgcolor: "#f0f1ec",
+  borderRadius: 2,
+  p: 0.5,
+  "& .MuiTabs-indicator": { display: "none" },
+  "& .MuiTabs-flexContainer": { gap: 0.5 },
+  "& .MuiTab-root": {
+    textTransform: "none",
+    fontWeight: 600,
+    minHeight: 0,
+    py: 1,
+    px: { xs: 1.5, sm: 2.5 },
+    borderRadius: 1.5,
+    color: "text.secondary",
+    transition: "background-color .15s, color .15s",
+  },
+  "& .MuiTab-root.Mui-selected": { bgcolor: GREEN, color: "#fff" },
+};
+
 /**
  * Modal with the full application + candidate record and pipeline actions.
- * Pass `readOnly` (e.g. when viewing a pooled candidate) to hide the pipeline
- * controls — "Add to talent pool", WhatsApp chat, and the stage/reject section —
- * leaving a clean profile view.
+ * Three tabs — Scoring (scores, interview, move controls), Contact Details
+ * (editable contact), Candidate Profile (parsed CV, CV document, activity).
+ * Pass `readOnly` (e.g. when viewing a pooled candidate) to drop the pipeline
+ * controls and tabs, leaving a clean combined profile view.
  */
 const CandidateDialog = ({ appId, open, onClose, readOnly = false }) => {
   const [reason, setReason] = useState("");
   const [waOpen, setWaOpen] = useState(false);
-  const [tab, setTab] = useState(0); // 0 = Overview, 1 = Details
+  const [tab, setTab] = useState(0); // 0 = Scoring, 1 = Contact Details, 2 = Candidate Profile
 
-  // Reset to the Overview tab whenever the dialog switches candidates. This is
+  // Reset to the Scoring tab whenever the dialog switches candidates. This is
   // the "adjust state during render" pattern (no effect) — React applies the
   // setState before painting, and it avoids a setState-in-effect.
   const [prevAppId, setPrevAppId] = useState(appId);
@@ -679,7 +746,9 @@ const CandidateDialog = ({ appId, open, onClose, readOnly = false }) => {
   const contactEditable =
     !!app && APPLICATION_STAGES.indexOf(app.stage) <= APPLICATION_STAGES.indexOf("hard_filter");
   const showTabs = !readOnly;
-  const detailsActive = showTabs && tab === 1;
+  const eyebrow = readOnly
+    ? "CANDIDATE PROFILE"
+    : ["CANDIDATE SCORING", "CANDIDATE CONTACT DETAILS", "CANDIDATE PROFILE"][tab];
 
   const advance = () => {
     if (!nextStage) return;
@@ -700,6 +769,69 @@ const CandidateDialog = ({ appId, open, onClose, readOnly = false }) => {
     moveToPool.mutate(appId, { onSuccess: onClose });
   };
 
+  // The stage/reject controls (Scoring tab only).
+  const moveCandidate = app && (
+    <Section title="Move candidate">
+      {app.rejection_reason && (
+        <Typography variant="body2" color="error.main" sx={{ mb: 1.5 }}>
+          {app.rejection_reason}
+        </Typography>
+      )}
+      <TextField
+        fullWidth
+        size="small"
+        multiline
+        minRows={2}
+        label="Reason (optional, recorded in audit log)"
+        value={reason}
+        onChange={(e) => setReason(e.target.value)}
+        inputProps={{ maxLength: 500 }}
+        disabled={busy}
+        sx={{ mb: 1.5 }}
+      />
+      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+        {isActive && nextStage && (
+          <Button
+            variant="contained"
+            size="small"
+            endIcon={<ArrowForwardIcon />}
+            onClick={advance}
+            disabled={busy}
+            sx={{ bgcolor: GREEN, "&:hover": { bgcolor: GREEN_DARK } }}
+          >
+            Advance to {humanize(nextStage)}
+          </Button>
+        )}
+        {isActive && (
+          <Button
+            variant="outlined"
+            size="small"
+            color="error"
+            startIcon={<BlockIcon />}
+            onClick={() => setStatus("rejected")}
+            disabled={busy}
+          >
+            Reject
+          </Button>
+        )}
+        {app.status === "rejected" && (
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<ReplayIcon />}
+            onClick={() => setStatus("active")}
+            disabled={busy}
+          >
+            Reactivate
+          </Button>
+        )}
+      </Box>
+      {(updateStage.isError || updateStatus.isError) && (
+        <ErrorAlert error={updateStage.error || updateStatus.error} sx={{ mt: 1.5 }} />
+      )}
+    </Section>
+  );
+
   return (
     <Dialog
       open={open}
@@ -707,324 +839,138 @@ const CandidateDialog = ({ appId, open, onClose, readOnly = false }) => {
       fullWidth
       maxWidth="md"
       scroll="paper"
-      slotProps={{ paper: { sx: { borderRadius: 2 } } }}
+      slotProps={{ paper: { sx: { borderRadius: 3 } } }}
     >
       <IconButton
         onClick={onClose}
         aria-label="Close"
-        sx={{ position: "absolute", top: 8, right: 8, zIndex: 1, color: "text.secondary" }}
+        sx={{ position: "absolute", top: 10, right: 10, zIndex: 2, color: "#fff" }}
       >
         <CloseIcon />
       </IconButton>
 
-      <DialogContent sx={{ p: { xs: 2.5, sm: 3 } }}>
+      <DialogContent sx={{ p: 0 }}>
         {isError ? (
-          <ErrorAlert error={error} sx={{ mt: 2 }} />
+          <Box sx={{ p: 3 }}>
+            <ErrorAlert error={error} />
+          </Box>
         ) : isLoading || !app ? (
-          <DialogSkeleton />
+          <Box sx={{ p: 3 }}>
+            <DialogSkeleton />
+          </Box>
         ) : (
           <Box>
-            {/* Header */}
-            <Box sx={{ pr: 4 }}>
-              <Stack direction="row" spacing={1.5} sx={{ alignItems: "flex-start" }}>
-                <Avatar sx={{ width: 48, height: 48, bgcolor: "primary.main" }}>
+            {/* Header banner */}
+            <Box sx={{ bgcolor: GREEN, color: "#fff", px: { xs: 2.5, sm: 3.5 }, py: 3 }}>
+              <Stack direction="row" spacing={2} sx={{ alignItems: "center", pr: 4 }}>
+                <Avatar sx={{ width: 56, height: 56, bgcolor: COLORS.gold, color: "#fff", fontWeight: 700, fontSize: 20 }}>
                   {initials(candidate?.full_name)}
                 </Avatar>
-                <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                  <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                    {candidate?.full_name}
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 700, color: "#fff" }}>
+                    {candidate?.full_name || "Candidate"}
                   </Typography>
-                  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75, mt: 0.5 }}>
-                    <Chip size="small" label={humanize(app.stage)} color="primary" variant="outlined" />
-                    <Chip size="small" label={humanize(app.status)} color={statusColor(app.status)} />
-                    {candidate?.authenticity_band && (
-                      <Chip
-                        size="small"
-                        label={authenticityLabel(candidate.authenticity_band)}
-                        color={bandColor(candidate.authenticity_band)}
-                        variant="outlined"
-                      />
-                    )}
-                  </Box>
+                  <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.82)" }}>
+                    Applied {timeAgo(app.created_at)}
+                  </Typography>
                 </Box>
               </Stack>
-
-              <Box
-                sx={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  columnGap: 3,
-                  rowGap: 0.5,
-                  mt: 1.75,
-                  color: "text.secondary",
-                }}
-              >
-                {candidate?.email && (
-                  <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-                    <EmailOutlinedIcon sx={{ fontSize: 18 }} />
-                    <Typography variant="body2">{candidate.email}</Typography>
-                  </Stack>
-                )}
-                {candidate?.phone_e164 && (
-                  <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-                    <PhoneOutlinedIcon sx={{ fontSize: 18 }} />
-                    <Typography variant="body2">{candidate.phone_e164}</Typography>
-                  </Stack>
-                )}
-              </Box>
-              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.75 }}>
-                Applied {timeAgo(app.created_at)} · stage updated {timeAgo(app.stage_updated_at)}
-              </Typography>
-
-              {!readOnly && (
-              <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", rowGap: 1, mt: 1.5 }}>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  color="secondary"
-                  startIcon={<PersonAddAltOutlinedIcon />}
-                  onClick={moveToPoolNow}
-                  disabled={moveToPool.isPending || !appId}
-                >
-                  {moveToPool.isPending ? "Moving…" : "Move to talent pool"}
-                </Button>
-                {reachedWhatsApp && (
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    color="success"
-                    startIcon={<WhatsAppIcon />}
-                    onClick={() => setWaOpen(true)}
-                  >
-                    WhatsApp chat
-                  </Button>
-                )}
-              </Stack>
-              )}
-              {!readOnly && moveToPool.isError && <ErrorAlert error={moveToPool.error} sx={{ mt: 1 }} />}
             </Box>
 
-            {showTabs && (
-              <Tabs
-                value={tab}
-                onChange={(_e, v) => setTab(v)}
-                sx={{ mt: 1.5, borderBottom: 1, borderColor: "divider" }}
+            {/* Body */}
+            <Box sx={{ px: { xs: 2.5, sm: 3.5 }, py: 3 }}>
+              {/* Eyebrow + email + actions */}
+              <Stack
+                direction="row"
+                sx={{ justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 1.5 }}
               >
-                <Tab label="Overview" />
-                <Tab label="Details" />
-              </Tabs>
-            )}
-
-            {detailsActive ? (
-              <Box sx={{ mt: 2.5 }}>
-                <DetailsTab key={appId} appId={appId} candidate={candidate} editable={contactEditable} />
-              </Box>
-            ) : (
-              <Stack spacing={2.5} divider={<Divider flexItem />} sx={{ mt: showTabs ? 2.5 : 0 }}>
-            {/* Actions */}
-            {!readOnly && (
-            <Section title="Move candidate">
-              {app.rejection_reason && (
-                <Typography variant="body2" color="error.main" sx={{ mb: 1.5 }}>
-                  {app.rejection_reason}
-                </Typography>
-              )}
-              <TextField
-                fullWidth
-                size="small"
-                multiline
-                minRows={2}
-                label="Reason (optional, recorded in audit log)"
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                inputProps={{ maxLength: 500 }}
-                disabled={busy}
-                sx={{ mb: 1.5 }}
-              />
-              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-                {isActive && nextStage && (
-                  <Button
-                    variant="contained"
-                    size="small"
-                    endIcon={<ArrowForwardIcon />}
-                    onClick={advance}
-                    disabled={busy}
-                  >
-                    Advance to {humanize(nextStage)}
-                  </Button>
-                )}
-                {isActive && (
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    color="error"
-                    startIcon={<BlockIcon />}
-                    onClick={() => setStatus("rejected")}
-                    disabled={busy}
-                  >
-                    Reject
-                  </Button>
-                )}
-                {app.status === "rejected" && (
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    startIcon={<ReplayIcon />}
-                    onClick={() => setStatus("active")}
-                    disabled={busy}
-                  >
-                    Reactivate
-                  </Button>
-                )}
-              </Box>
-              {(updateStage.isError || updateStatus.isError) && (
-                <ErrorAlert error={updateStage.error || updateStatus.error} sx={{ mt: 1.5 }} />
-              )}
-            </Section>
-            )}
-
-            {/* Interview booking (Calendly) — present once HR moves to L3 */}
-            {app.interview && <InterviewSection interview={app.interview} />}
-
-            {/* Scores — JD Match (similarity) + CV Trust (authenticity) as a
-                rich score card, with any other score families below. */}
-            <Section title="Scores">
-              <CvScoreCard scores={app.scores} />
-            </Section>
-
-            {/* Other score families (e.g. the hard-filter recruiter rubric) keep
-                their generic, explainable rendering so nothing is lost. */}
-            {asArray(app.scores).some(
-              (s) => s.score_type !== "similarity" && s.score_type !== "authenticity",
-            ) && (
-            <Section title="Recruiter rubric">
-              <Stack spacing={2}>
-                {asArray(app.scores)
-                  .filter((s) => s.score_type !== "similarity" && s.score_type !== "authenticity")
-                  .map((s, i) => {
-                  const value = toScore(s.value);
-                  return (
-                  <Box key={s.id || `${s.score_type}-${i}`}>
-                    <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        {humanize(s.score_type)}
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography sx={{ color: GREEN, fontWeight: 800, fontSize: 12, letterSpacing: 0.6 }}>
+                    {eyebrow}
+                  </Typography>
+                  {candidate?.email && (
+                    <Stack direction="row" spacing={0.75} sx={{ alignItems: "center", mt: 0.5 }}>
+                      <EmailOutlinedIcon sx={{ fontSize: 16, color: GREEN }} />
+                      <Typography variant="body2" sx={{ color: GREEN, wordBreak: "break-all" }}>
+                        {candidate.email}
                       </Typography>
-                      <Chip
+                    </Stack>
+                  )}
+                </Box>
+                {!readOnly && (
+                  <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", rowGap: 1 }}>
+                    {reachedWhatsApp && (
+                      <Button
+                        variant="outlined"
                         size="small"
-                        label={value != null ? `${Math.round(value)}` : "—"}
-                        color={scoreColor(s.value)}
-                        sx={{ fontWeight: 700 }}
-                      />
-                    </Stack>
-                    <LinearProgress
-                      variant="determinate"
-                      value={value != null ? Math.min(100, Math.max(0, value)) : 0}
-                      color={scoreColor(s.value)}
-                      sx={{ mt: 0.75, height: 6, borderRadius: 3 }}
-                    />
-                    <Typography variant="caption" color="text.secondary">
-                      {timeAgo(s.computed_at)}
-                    </Typography>
-                    {s.breakdown && Object.keys(s.breakdown).length > 0 && (
-                      <Accordion
-                        disableGutters
-                        elevation={0}
-                        square
-                        sx={{ mt: 0.5, bgcolor: "transparent", "&:before": { display: "none" } }}
+                        color="success"
+                        startIcon={<WhatsAppIcon />}
+                        onClick={() => setWaOpen(true)}
                       >
-                        <AccordionSummary
-                          expandIcon={<ExpandMoreIcon fontSize="small" />}
-                          sx={{
-                            px: 0,
-                            minHeight: 0,
-                            bgcolor: "transparent",
-                            "&.Mui-focusVisible": { bgcolor: "transparent" },
-                            "& .MuiAccordionSummary-content": { my: 0.5 },
-                          }}
-                        >
-                          <Typography variant="caption" color="primary" sx={{ fontWeight: 600 }}>
-                            Breakdown
-                          </Typography>
-                        </AccordionSummary>
-                        <AccordionDetails sx={{ px: 0, pt: 0, pb: 0 }}>
-                          <Breakdown data={s.breakdown} />
-                        </AccordionDetails>
-                      </Accordion>
+                        WhatsApp chat
+                      </Button>
                     )}
-                  </Box>
-                  );
-                })}
+                    <Button
+                      variant="contained"
+                      size="small"
+                      startIcon={<PersonAddAltOutlinedIcon />}
+                      onClick={moveToPoolNow}
+                      disabled={moveToPool.isPending || !appId}
+                      sx={{ bgcolor: GREEN, "&:hover": { bgcolor: GREEN_DARK } }}
+                    >
+                      {moveToPool.isPending ? "Moving…" : "Move to Talent Pool"}
+                    </Button>
+                  </Stack>
+                )}
               </Stack>
-            </Section>
-            )}
+              {!readOnly && moveToPool.isError && <ErrorAlert error={moveToPool.error} sx={{ mt: 1.5 }} />}
 
-            {/* Profile */}
-            <Section title="Candidate profile">
-              <ParsedProfile profile={candidate?.parsed_profile} />
-            </Section>
+              {/* Tabs */}
+              {showTabs && (
+                <Box sx={{ display: "flex", justifyContent: "center", mt: 3 }}>
+                  <Tabs value={tab} onChange={(_e, v) => setTab(v)} sx={pillTabsSx}>
+                    <Tab label="Scoring" />
+                    <Tab label="Contact Details" />
+                    <Tab label="Candidate Profile" />
+                  </Tabs>
+                </Box>
+              )}
 
-            {/* CV document */}
-            {app.cv_document?.blob_url && (
-              <Section title="CV document">
-                <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={<OpenInNewIcon />}
-                  component="a"
-                  href={app.cv_document.blob_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Open CV
-                </Button>
-                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.75 }}>
-                  Uploaded {timeAgo(app.cv_document.uploaded_at)}
-                  {app.cv_document.language ? ` · ${app.cv_document.language.toUpperCase()}` : ""}
-                </Typography>
-              </Section>
-            )}
-
-            {/* Audit log */}
-            <Section title="Activity">
-              {asArray(audit?.items).length === 0 ? (
-                <Typography variant="body2" color="text.secondary">
-                  No activity recorded yet.
-                </Typography>
+              {/* Content */}
+              {readOnly ? (
+                <Stack spacing={3} sx={{ mt: 3 }} divider={<Divider flexItem />}>
+                  <CvScoreCard scores={app.scores} />
+                  {app.interview && <InterviewSection interview={app.interview} />}
+                  <Stack spacing={3.5}>
+                    <ParsedProfile profile={candidate?.parsed_profile} />
+                    {app.cv_document?.blob_url && <OpenCvButton doc={app.cv_document} />}
+                  </Stack>
+                  <ProfileExtras audit={audit} />
+                </Stack>
+              ) : tab === 0 ? (
+                <Stack spacing={3} sx={{ mt: 3 }} divider={<Divider flexItem />}>
+                  <CvScoreCard scores={app.scores} />
+                  {app.interview && <InterviewSection interview={app.interview} />}
+                  {moveCandidate}
+                </Stack>
+              ) : tab === 1 ? (
+                <Box sx={{ mt: 3 }}>
+                  <DetailsTab key={appId} appId={appId} candidate={candidate} editable={contactEditable} />
+                </Box>
               ) : (
-                <Stack spacing={1.25}>
-                  {asArray(audit?.items).map((entry) => (
-                    <Stack key={entry.id} direction="row" spacing={1.25}>
-                      <HistoryOutlinedIcon sx={{ fontSize: 18, color: "text.disabled", mt: 0.25 }} />
-                      <Box sx={{ minWidth: 0 }}>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          {humanize(entry.action)}
-                        </Typography>
-                        {entry.after_state?.reason && (
-                          <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
-                            {String(entry.after_state.reason)}
-                          </Typography>
-                        )}
-                        <Typography variant="caption" color="text.disabled">
-                          {timeAgo(entry.created_at)}
-                        </Typography>
-                      </Box>
-                    </Stack>
-                  ))}
+                <Stack spacing={3.5} sx={{ mt: 3 }}>
+                  <ParsedProfile profile={candidate?.parsed_profile} />
+                  {app.cv_document?.blob_url && <OpenCvButton doc={app.cv_document} />}
+                  <Divider />
+                  <ProfileExtras audit={audit} />
                 </Stack>
               )}
-            </Section>
-              </Stack>
-            )}
+            </Box>
           </Box>
         )}
       </DialogContent>
 
-      <WhatsAppDialog
-        appId={appId}
-        candidate={candidate}
-        open={waOpen}
-        onClose={() => setWaOpen(false)}
-      />
+      <WhatsAppDialog appId={appId} candidate={candidate} open={waOpen} onClose={() => setWaOpen(false)} />
     </Dialog>
   );
 };

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useTheme, alpha } from "@mui/material/styles";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
@@ -10,6 +9,7 @@ import Tooltip from "@mui/material/Tooltip";
 import Divider from "@mui/material/Divider";
 import Collapse from "@mui/material/Collapse";
 import Button from "@mui/material/Button";
+import LinearProgress from "@mui/material/LinearProgress";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import CheckIcon from "@mui/icons-material/Check";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
@@ -20,7 +20,8 @@ import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
 import WorkOutlineIcon from "@mui/icons-material/WorkOutlineOutlined";
 import VerifiedUserOutlinedIcon from "@mui/icons-material/VerifiedUserOutlined";
 import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
-import { toScore, scoreBand, timeAgo } from "@/lib/kabil/constants";
+import { toScore, scoreBand, timeAgo, humanize } from "@/lib/kabil/constants";
+import { COLORS } from "@/lib/theme";
 
 const asArray = (v) => (Array.isArray(v) ? v : []);
 const findScore = (scores, type) => asArray(scores).find((s) => s?.score_type === type);
@@ -28,13 +29,24 @@ const findScore = (scores, type) => asArray(scores).find((s) => s?.score_type ==
 /** 0–100 → "65" or "37.8" (one decimal only when it isn't whole). */
 const fmtPct = (v) => (v == null ? "—" : Number.isInteger(v) ? `${v}` : v.toFixed(1));
 
-/** scoreBand() palette name → a concrete hex from the theme, for SVG/inline use. */
-const bandHex = (theme, band) =>
-  ({
-    success: theme.palette.success.main,
-    warning: theme.palette.warning.main,
-    error: theme.palette.error.main,
-  })[band] || theme.palette.text.disabled;
+/* ── Shared visual language ────────────────────────────────────────────────── */
+
+const GREEN = "#0F6E56";
+const CARD_BG = "#FBF9F2";
+const CARD_BORDER = "#ECE5D6";
+const TRACK = "#E7E1D2";
+
+/** scoreBand() palette name → a concrete brand hex (gold for the mid band, to
+ *  match the cream/gold scoring cards). */
+const bandHex = (band) =>
+  ({ success: "#1f9d57", warning: COLORS.gold, error: "#d24a39" })[band] || "#9aa3a0";
+
+const cardSx = {
+  bgcolor: CARD_BG,
+  border: `1px solid ${CARD_BORDER}`,
+  borderRadius: 2.5,
+  overflow: "hidden",
+};
 
 /** The five authenticity sub-signals, in the order the recruiter reads them.
  *  Keys are the backend SignalKey values; labels/tips are recruiter-facing. */
@@ -66,47 +78,167 @@ const TRUST_SIGNALS = [
   },
 ];
 
-/** Circular gauge mirroring the mock's SVG ring. */
-const ScoreRing = ({ value, size = 72, stroke = 6 }) => {
-  const theme = useTheme();
+/** CV authenticity verdict bands — score → recruiter-facing badge. */
+const TRUST_BADGES = [
+  { min: 75, label: "Authentic", color: "success" },
+  { min: 50, label: "Review", color: "warning" },
+  { min: 0, label: "Likely Fabricated", color: "error" },
+];
+const trustBadge = (value) => TRUST_BADGES.find((b) => value >= b.min) || TRUST_BADGES[2];
+
+/** Solid, band-coloured score disc (white numeral), mirroring the mock. */
+const ScoreBadge = ({ value, size = 56 }) => {
   const has = value != null;
-  const r = size / 2 - stroke;
-  const circ = 2 * Math.PI * r;
-  const pct = has ? Math.min(100, Math.max(0, value)) : 0;
-  const color = has ? bandHex(theme, scoreBand(value).color) : theme.palette.text.disabled;
+  const color = has ? bandHex(scoreBand(value).color) : "#c4c8c4";
   return (
-    <Box sx={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
-      <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={theme.palette.divider} strokeWidth={stroke} />
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={r}
-          fill="none"
-          stroke={color}
-          strokeWidth={stroke}
-          strokeLinecap="round"
-          strokeDasharray={circ}
-          strokeDashoffset={circ * (1 - pct / 100)}
-        />
-      </svg>
-      <Box
-        sx={{
-          position: "absolute",
-          inset: 0,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: size > 56 ? 20 : 16,
-          fontWeight: 700,
-          color,
-        }}
-      >
-        {fmtPct(has ? Math.round(value) : null)}
-      </Box>
+    <Box
+      sx={{
+        width: size,
+        height: size,
+        borderRadius: "50%",
+        bgcolor: color,
+        color: "#fff",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontWeight: 700,
+        fontSize: 17,
+        flexShrink: 0,
+      }}
+    >
+      {has ? Math.round(value) : "—"}
     </Box>
   );
 };
+
+/** Green "Breakdown ⌄" toggle that sits in a card footer. */
+const BreakdownToggle = ({ open, onClick }) => (
+  <Button
+    onClick={onClick}
+    disableRipple
+    size="small"
+    endIcon={
+      <ExpandMoreIcon
+        sx={{ transform: open ? "rotate(180deg)" : "none", transition: "transform .2s" }}
+      />
+    }
+    sx={{ color: GREEN, fontWeight: 700, minWidth: 0, p: 0, "&:hover": { bgcolor: "transparent" } }}
+  >
+    {open ? "Hide Breakdown" : "Breakdown"}
+  </Button>
+);
+
+/** Small green section eyebrow ("Score"). */
+const Eyebrow = ({ children }) => (
+  <Typography sx={{ color: GREEN, fontWeight: 800, fontSize: 12, letterSpacing: 0.5, mb: 1 }}>
+    {children}
+  </Typography>
+);
+
+/* ── Cards ─────────────────────────────────────────────────────────────────── */
+
+/** A numeric score (Profile Match, CV Score): title + meter + score disc, with
+ *  an expandable breakdown drawer. */
+const ScoreMeterCard = ({ label, value, computedAt, children }) => {
+  const [open, setOpen] = useState(false);
+  const has = value != null;
+  const color = has ? bandHex(scoreBand(value).color) : TRACK;
+  const hasBreakdown = !!children;
+  return (
+    <Box sx={cardSx}>
+      <Stack direction="row" spacing={2} sx={{ alignItems: "center", px: 2.5, pt: 2.5 }}>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Typography sx={{ fontWeight: 700, fontSize: "1rem", mb: 1.25 }}>{label}</Typography>
+          <LinearProgress
+            variant="determinate"
+            value={has ? Math.min(100, Math.max(0, value)) : 0}
+            sx={{
+              height: 10,
+              borderRadius: 5,
+              bgcolor: TRACK,
+              "& .MuiLinearProgress-bar": { bgcolor: color, borderRadius: 5 },
+            }}
+          />
+        </Box>
+        <ScoreBadge value={value} />
+      </Stack>
+
+      {hasBreakdown && (
+        <Collapse in={open} timeout="auto" unmountOnExit>
+          <Box sx={{ px: 2.5, pt: 2.5 }}>
+            <Stack spacing={2.5}>{children}</Stack>
+          </Box>
+        </Collapse>
+      )}
+
+      {/* Footer sits at the bottom, so expanded detail nests above it. */}
+      <Stack
+        direction="row"
+        sx={{ justifyContent: "space-between", alignItems: "center", px: 2.5, pt: 1.75, pb: 2 }}
+      >
+        <Typography variant="caption" color="text.secondary">
+          {computedAt ? `Computed ${timeAgo(computedAt)}` : "—"}
+        </Typography>
+        {hasBreakdown && <BreakdownToggle open={open} onClick={() => setOpen((o) => !o)} />}
+      </Stack>
+    </Box>
+  );
+};
+
+/** CV Authenticity verdict card: title + coloured band label + concern summary,
+ *  with an expandable breakdown drawer (signals + key flags). */
+const AuthenticityCard = ({ value, summary, breakdown, flags }) => {
+  const [open, setOpen] = useState(false);
+  const badge = trustBadge(value);
+  const labelColor = bandHex(badge.color);
+  const hasFlags = asArray(flags).length > 0;
+  const hasBreakdown = (breakdown && Object.keys(breakdown).length > 0) || hasFlags;
+  return (
+    <Box sx={cardSx}>
+      <Box sx={{ p: 2.5 }}>
+        <Stack direction="row" spacing={2} sx={{ justifyContent: "space-between", alignItems: "flex-start" }}>
+          <Typography sx={{ fontWeight: 700, fontSize: "1rem" }}>CV Authenticity</Typography>
+          <Typography sx={{ fontWeight: 700, color: labelColor, flexShrink: 0, whiteSpace: "nowrap" }}>
+            {badge.label}
+          </Typography>
+        </Stack>
+        {summary && (
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1, lineHeight: 1.6 }}>
+            {summary}
+          </Typography>
+        )}
+        {hasBreakdown && (
+          <Stack direction="row" sx={{ justifyContent: "flex-end", mt: 1 }}>
+            <BreakdownToggle open={open} onClick={() => setOpen((o) => !o)} />
+          </Stack>
+        )}
+      </Box>
+      {hasBreakdown && (
+        <Collapse in={open} timeout="auto" unmountOnExit>
+          <Divider sx={{ borderColor: CARD_BORDER }} />
+          <Box sx={{ p: 2.5 }}>
+            <Stack spacing={2}>
+              <TrustBreakdown breakdown={breakdown} />
+              {hasFlags && <KeyFlags flags={flags} />}
+            </Stack>
+          </Box>
+        </Collapse>
+      )}
+    </Box>
+  );
+};
+
+/** Empty placeholder when a score family hasn't been computed yet. */
+const PendingCard = ({ label }) => (
+  <Box sx={{ ...cardSx, p: 2.5 }}>
+    <Typography sx={{ fontWeight: 700, fontSize: "1rem" }}>{label}</Typography>
+    <Typography variant="caption" color="text.secondary">
+      Not computed yet.
+    </Typography>
+  </Box>
+);
+
+/* ── Breakdown bodies ──────────────────────────────────────────────────────── */
 
 /** One labelled signal inside a detailed breakdown (label + reasons, no score). */
 const SignalBar = ({ label, tip, children }) => (
@@ -171,277 +303,6 @@ const ChipRow = ({ lead, items, color, leadingIcon, max }) => {
     </Box>
   );
 };
-
-/** Shared card chrome: ring + label + summary, with an expandable breakdown. */
-const ScoreCard = ({ value, label, summary, computedAt, children }) => {
-  const [open, setOpen] = useState(false);
-  return (
-    <Box sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, overflow: "hidden", bgcolor: "background.paper" }}>
-      <Stack direction="row" spacing={2} sx={{ alignItems: "center", p: 2.5 }}>
-        <ScoreRing value={value} />
-        <Box sx={{ minWidth: 0 }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-            {label}
-          </Typography>
-          <Typography variant="caption" color="text.secondary" sx={{ display: "block", lineHeight: 1.5 }}>
-            {summary}
-          </Typography>
-        </Box>
-      </Stack>
-      {children && (
-        <>
-          <Collapse in={open} timeout="auto" unmountOnExit>
-            <Divider />
-            <Box sx={{ p: 2.5 }}>
-              <Stack spacing={2}>{children}</Stack>
-              {computedAt && (
-                <Typography variant="caption" color="text.disabled" sx={{ display: "block", mt: 2 }}>
-                  Computed {timeAgo(computedAt)}
-                </Typography>
-              )}
-            </Box>
-          </Collapse>
-          <Button
-            fullWidth
-            onClick={() => setOpen((o) => !o)}
-            endIcon={<ExpandMoreIcon sx={{ transform: open ? "rotate(180deg)" : "none", transition: "transform .2s" }} />}
-            sx={{
-              borderTop: "1px solid",
-              borderColor: "divider",
-              borderRadius: 0,
-              py: 1,
-              color: "text.secondary",
-              fontWeight: 500,
-              bgcolor: "action.hover",
-            }}
-          >
-            {open ? "Hide breakdown" : "View breakdown"}
-          </Button>
-        </>
-      )}
-    </Box>
-  );
-};
-
-/** Empty placeholder when a score family hasn't been computed yet. */
-const PendingCard = ({ label }) => (
-  <Box
-    sx={{
-      border: "1px dashed",
-      borderColor: "divider",
-      borderRadius: 2,
-      p: 2.5,
-      display: "flex",
-      alignItems: "center",
-      gap: 2,
-      bgcolor: "background.paper",
-    }}
-  >
-    <ScoreRing value={null} />
-    <Box>
-      <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-        {label}
-      </Typography>
-      <Typography variant="caption" color="text.secondary">
-        Not computed yet.
-      </Typography>
-    </Box>
-  </Box>
-);
-
-/** CV Trust verdict bands — score → recruiter-facing badge. */
-const TRUST_BADGES = [
-  { min: 75, emoji: "🟢", label: "Authentic", color: "success" },
-  { min: 50, emoji: "🟡", label: "Review", color: "warning" },
-  { min: 0, emoji: "🔴", label: "Likely Fabricated", color: "error" },
-];
-
-const trustBadge = (value) => TRUST_BADGES.find((b) => value >= b.min) || TRUST_BADGES[2];
-
-/** CV Trust is shown as a verdict banner (no numeric score) with an expandable
- *  signal breakdown. */
-const TrustBanner = ({ value, summary, breakdown }) => {
-  const theme = useTheme();
-  const [open, setOpen] = useState(false);
-  const badge = trustBadge(value);
-  const { color } = badge;
-  return (
-    <Box
-      sx={{
-        borderRadius: 2,
-        border: "1px solid",
-        borderColor: `${color}.main`,
-        bgcolor: alpha(theme.palette[color].main, 0.08),
-        overflow: "hidden",
-      }}
-    >
-      <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", p: 2 }}>
-        <Box sx={{ fontSize: 22, lineHeight: 1, flexShrink: 0 }}>{badge.emoji}</Box>
-        <Box sx={{ minWidth: 0, flex: 1 }}>
-          <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-              CV Trust Score
-            </Typography>
-            <Chip
-              size="small"
-              color={color}
-              label={badge.label}
-              sx={{ height: 20, "& .MuiChip-label": { px: 0.75, fontSize: 11, fontWeight: 700 } }}
-            />
-          </Stack>
-          {summary && (
-            <Typography variant="caption" color="text.secondary" sx={{ display: "block", lineHeight: 1.5 }}>
-              {summary}
-            </Typography>
-          )}
-        </Box>
-      </Stack>
-      {breakdown && (
-        <>
-          <Collapse in={open} timeout="auto" unmountOnExit>
-            <Divider sx={{ borderColor: alpha(theme.palette[color].main, 0.25) }} />
-            <Box sx={{ p: 2.5 }}>
-              <Stack spacing={2}>
-                <TrustBreakdown breakdown={breakdown} />
-              </Stack>
-            </Box>
-          </Collapse>
-          <Button
-            fullWidth
-            onClick={() => setOpen((o) => !o)}
-            endIcon={<ExpandMoreIcon sx={{ transform: open ? "rotate(180deg)" : "none", transition: "transform .2s" }} />}
-            sx={{
-              borderTop: "1px solid",
-              borderColor: alpha(theme.palette[color].main, 0.25),
-              borderRadius: 0,
-              py: 1,
-              color: "text.secondary",
-              fontWeight: 500,
-            }}
-          >
-            {open ? "Hide breakdown" : "View breakdown"}
-          </Button>
-        </>
-      )}
-    </Box>
-  );
-};
-
-/* ── Data → view-model helpers ─────────────────────────────────────────────── */
-
-const jdSummary = (b) => {
-  const total = b?.required_skills_total;
-  const matched = b?.required_skills_matched;
-  if (total == null || matched == null) return "Awaiting the skills breakdown.";
-  const gaps = total - matched;
-  const head = `${matched} of ${total} required skill${total === 1 ? "" : "s"} found.`;
-  return gaps > 0 ? `${head} ${gaps} skill gap${gaps === 1 ? "" : "s"} identified.` : `${head} No gaps.`;
-};
-
-const trustSummary = (breakdown) => {
-  const weak = TRUST_SIGNALS.map((s) => ({ label: s.label, score: toScore(breakdown?.[s.key]?.score) }))
-    .filter((s) => s.score != null && s.score < 75)
-    .sort((a, b) => a.score - b.score)
-    .slice(0, 2);
-  if (!weak.length) return "All authenticity checks look solid.";
-  return `${weak.map((w) => w.label).join(" and ")} flagged for review.`;
-};
-
-/** Build the "key flags at a glance" rows from both breakdowns. */
-const buildFlags = (jd, trust) => {
-  const flags = [];
-
-  const total = jd?.required_skills_total;
-  const matched = jd?.required_skills_matched;
-  if (total != null && matched != null) {
-    const missing = total - matched;
-    if (missing > 0) {
-      const critical = matched / total < 0.5;
-      flags.push({
-        icon: <WarningAmberOutlinedIcon fontSize="small" />,
-        color: critical ? "error" : "warning",
-        label: `${missing} of ${total} required skills missing from CV`,
-        tag: critical ? "Critical" : "Warning",
-      });
-    }
-  }
-
-  const consistency = toScore(trust?.consistency?.score);
-  if (consistency != null && consistency < 75) {
-    flags.push({
-      icon: <AccessTimeOutlinedIcon fontSize="small" />,
-      color: consistency < 50 ? "error" : "warning",
-      label: asArray(trust?.consistency?.reasons)[0] || "Experience claims may exceed documented history",
-      tag: consistency < 50 ? "Critical" : "Warning",
-    });
-  }
-
-  const markers = trust?.linguistic_genericity?.details?.top_markers;
-  const markerCount = trust?.linguistic_genericity?.details?.marker_count;
-  if (markerCount > 0 && markers) {
-    const terms = Object.keys(markers);
-    flags.push({
-      icon: <SmartToyOutlinedIcon fontSize="small" />,
-      color: "warning",
-      label: `${markerCount} AI buzzword${markerCount === 1 ? "" : "s"} detected: ${terms.slice(0, 4).map((t) => `"${t}"`).join(", ")}`,
-      tag: "Warning",
-    });
-  }
-
-  const tc = trust?.timeline_coherence?.details;
-  if (tc && tc.total > 0) {
-    const untraced = tc.total - tc.matched;
-    if (untraced > 0) {
-      flags.push({
-        icon: <ManageSearchOutlinedIcon fontSize="small" />,
-        color: "warning",
-        label: `${untraced} of ${tc.total} listed skills can't be traced to a job role`,
-        tag: "Warning",
-      });
-    }
-  }
-
-  const specificity = toScore(trust?.specificity?.score);
-  if (specificity != null && specificity >= 50) {
-    flags.push({
-      icon: <CheckCircleOutlineIcon fontSize="small" />,
-      color: "success",
-      label: asArray(trust?.specificity?.reasons)[0] || "Names specific clients, projects and outcomes",
-      tag: "Good",
-    });
-  }
-
-  return flags;
-};
-
-const FlagRow = ({ icon, color, label, tag }) => (
-  <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", py: 1, borderBottom: "1px solid", borderColor: "action.hover", "&:last-of-type": { border: 0 } }}>
-    <Box
-      sx={{
-        width: 30,
-        height: 30,
-        borderRadius: 1.5,
-        flexShrink: 0,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        color: `${color}.main`,
-        bgcolor: `${color}.light`,
-        opacity: 0.95,
-      }}
-    >
-      {icon}
-    </Box>
-    <Typography variant="body2" color="text.secondary" sx={{ flex: 1 }}>
-      {label}
-    </Typography>
-    <Typography variant="caption" sx={{ fontWeight: 700, color: `${color}.main` }}>
-      {tag}
-    </Typography>
-  </Stack>
-);
-
-/* ── Detailed-view breakdown bodies ────────────────────────────────────────── */
 
 const JdBreakdown = ({ b }) => {
   const total = b?.required_skills_total ?? 0;
@@ -552,11 +413,357 @@ const TrustBreakdown = ({ breakdown }) =>
     );
   });
 
-/* ── Screening-summary bar (detailed view footer) ──────────────────────────── */
+/* The hard-filter (CV Score) rubric: an open-ended `{ criterion: … }` map where
+ * each criterion typically carries a numeric `score` (a percent string per the
+ * API) plus a prose reason — but the leaf shape and field names vary. Extract
+ * the score + reason defensively, and render any remaining structure generically
+ * so nothing is ever silently dropped. Meta leaves (model/version/…) are skipped. */
+const RUBRIC_META_KEYS = new Set(["computed_by", "model", "model_used", "version", "id"]);
+const SCORE_KEYS = ["score", "points", "points_awarded", "awarded", "rating", "mark", "value"];
+const WEIGHT_KEYS = ["weight", "max", "max_points", "out_of"];
+const REASON_KEYS = [
+  "reason", "reasoning", "explanation", "description", "detail", "details",
+  "notes", "note", "rationale", "comment", "comments", "justification",
+  "summary", "text", "feedback", "remark", "remarks", "analysis",
+];
+const NUMERIC_RE = /^\s*\d+(\.\d+)?%?\s*$/;
+const SMALL_WORDS = new Set(["and", "or", "of", "the", "to", "a", "for", "in", "on", "with"]);
+
+const isObj = (v) => v != null && typeof v === "object" && !Array.isArray(v);
+const firstKey = (obj, keys) => keys.find((k) => obj[k] != null && obj[k] !== "");
+
+/** snake_case / loose key → Title Case ("role_and_seniority" → "Role and Seniority"). */
+const titleCase = (key) =>
+  String(key)
+    .replace(/_/g, " ")
+    .trim()
+    .split(/\s+/)
+    .map((w, i) =>
+      i > 0 && SMALL_WORDS.has(w.toLowerCase())
+        ? w.toLowerCase()
+        : w.charAt(0).toUpperCase() + w.slice(1),
+    )
+    .join(" ");
+
+const padScore = (n) => (n == null ? null : String(Math.round(n)).padStart(2, "0"));
+
+/** The numeric points for a rubric criterion, whatever leaf shape it takes. */
+const rubricScore = (v) => {
+  if (typeof v === "number") return v;
+  if (typeof v === "string") return NUMERIC_RE.test(v) ? toScore(v) : null;
+  if (isObj(v)) {
+    const k = firstKey(v, SCORE_KEYS);
+    return k ? toScore(v[k]) : null;
+  }
+  return null;
+};
+
+/** The reason / explanation prose for a rubric criterion. */
+const rubricText = (v) => {
+  if (typeof v === "string") return NUMERIC_RE.test(v) ? "" : v;
+  if (Array.isArray(v)) return v.every((x) => !isObj(x) && !Array.isArray(x)) ? v.join(", ") : "";
+  if (isObj(v)) {
+    const k = firstKey(v, REASON_KEYS);
+    if (k) return String(v[k]);
+    if (Array.isArray(v.reasons)) return v.reasons.join(" ");
+    if (Array.isArray(v.evidence)) return v.evidence.join(" ");
+  }
+  return "";
+};
+
+/** A primitive leaf → display string ("" for objects/arrays, handled by Tree). */
+const leafString = (v) => {
+  if (v == null || v === "") return "—";
+  if (typeof v === "boolean") return v ? "Yes" : "No";
+  if (Array.isArray(v)) return v.every((x) => !isObj(x)) ? v.join(", ") : "";
+  if (typeof v === "object") return "";
+  return String(v);
+};
+
+/** Generic indented renderer for any leftover nested structure. */
+const Tree = ({ data }) => {
+  const entries = Array.isArray(data) ? data.map((v, i) => [String(i + 1), v]) : Object.entries(data || {});
+  return (
+    <Stack spacing={0.75} sx={{ pl: 2.25, mt: 0.75 }}>
+      {entries.map(([k, v]) =>
+        isObj(v) || (Array.isArray(v) && v.some(isObj)) ? (
+          <Box key={k}>
+            <Typography variant="caption" sx={{ fontWeight: 700 }}>
+              {titleCase(k)}
+            </Typography>
+            <Tree data={v} />
+          </Box>
+        ) : (
+          <Stack key={k} direction="row" spacing={1.5} sx={{ justifyContent: "space-between" }}>
+            <Typography variant="caption" color="text.secondary">
+              {titleCase(k)}
+            </Typography>
+            <Typography variant="caption" sx={{ fontWeight: 600, textAlign: "right", wordBreak: "break-word" }}>
+              {leafString(v) || "—"}
+            </Typography>
+          </Stack>
+        ),
+      )}
+    </Stack>
+  );
+};
+
+/** Keys already surfaced as score / weight / reason — dropped from the leftover Tree. */
+const consumedKeys = (v) => {
+  const used = new Set();
+  if (isObj(v)) {
+    const sk = firstKey(v, SCORE_KEYS);
+    const wk = firstKey(v, WEIGHT_KEYS);
+    const rk = firstKey(v, REASON_KEYS);
+    if (sk) used.add(sk);
+    if (wk) used.add(wk);
+    if (rk) used.add(rk);
+  }
+  return used;
+};
+
+/* The five documented hard-filter signals (ENUMS.md: skills / experience /
+ * industry / regional / role-seniority), in weight order, mapped to the
+ * recruiter-facing labels from the mock. Keys are matched flexibly so minor
+ * backend spelling differences (e.g. `role_seniority` vs `role_and_seniority`)
+ * still resolve. */
+const HARD_FILTER_SIGNALS = [
+  { keys: ["skills", "skill"], label: "Skills" },
+  { keys: ["experience"], label: "Experience" },
+  { keys: ["industry", "industry_match"], label: "Industry Match" },
+  { keys: ["regional", "region", "regional_experience"], label: "Regional Experience" },
+  {
+    keys: ["role_seniority", "role_and_seniority", "role_and_seniority_alignment", "seniority", "role"],
+    label: "Role and Seniority Alignment",
+  },
+];
+const normKey = (k) => String(k).toLowerCase().replace(/[\s-]+/g, "_");
+
+/** Order the breakdown into the documented signals first (with polished labels),
+ *  then any leftover non-meta keys (title-cased) so nothing is lost. */
+const orderRubric = (data) => {
+  // The signals live under a `signals` wrapper; fall back to the root otherwise.
+  const source = isObj(data?.signals) ? data.signals : data;
+  const entries = Object.entries(source || {}).filter(([k]) => !RUBRIC_META_KEYS.has(k));
+  const used = new Set();
+  const rows = [];
+  for (const sig of HARD_FILTER_SIGNALS) {
+    const hit = entries.find(([k]) => !used.has(k) && sig.keys.includes(normKey(k)));
+    if (hit) {
+      used.add(hit[0]);
+      rows.push({ key: hit[0], label: sig.label, value: hit[1] });
+    }
+  }
+  for (const [k, v] of entries) {
+    if (!used.has(k)) rows.push({ key: k, label: titleCase(k), value: v });
+  }
+  return rows;
+};
+
+const RubricRow = ({ label, value }) => {
+  const raw = rubricScore(value);
+  const weight = isObj(value) ? toScore(value.weight ?? value.max ?? value.max_points ?? value.out_of) : null;
+  // The mock shows each signal's weighted point contribution (these sum to the
+  // overall CV Score). Fall back to the raw score when there's no weight.
+  const score = padScore(raw != null && weight != null ? (raw / 100) * weight : raw);
+  const text = rubricText(value);
+  // Whatever the score + reason didn't capture, surface it generically.
+  let leftover = null;
+  if (isObj(value)) {
+    const used = consumedKeys(value);
+    const rest = Object.fromEntries(Object.entries(value).filter(([k]) => !used.has(k)));
+    if (Object.keys(rest).length) leftover = rest;
+  } else if (Array.isArray(value) && !text) {
+    leftover = value;
+  }
+  const primitiveOnly = !text && !leftover && score == null;
+  return (
+    <Box>
+      <Stack direction="row" spacing={1} sx={{ justifyContent: "space-between", alignItems: "center" }}>
+        <Stack direction="row" spacing={1.25} sx={{ alignItems: "center", minWidth: 0 }}>
+          <Box sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: GREEN, flexShrink: 0 }} />
+          <Typography sx={{ fontWeight: 700, color: GREEN, fontSize: "0.95rem" }}>{label}</Typography>
+        </Stack>
+        {score != null && <Typography sx={{ fontWeight: 700, color: GREEN, flexShrink: 0 }}>{score}</Typography>}
+      </Stack>
+      {text && (
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75, ml: 2.25, lineHeight: 1.6 }}>
+          {text}
+        </Typography>
+      )}
+      {primitiveOnly && (
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75, ml: 2.25, lineHeight: 1.6 }}>
+          {leafString(value)}
+        </Typography>
+      )}
+      {leftover && (
+        <Box sx={{ ml: 2.25 }}>
+          <Tree data={leftover} />
+        </Box>
+      )}
+    </Box>
+  );
+};
+
+const RubricBreakdown = ({ data }) => {
+  const rows = orderRubric(data);
+  if (!rows.length)
+    return (
+      <Typography variant="caption" color="text.disabled">
+        No breakdown details.
+      </Typography>
+    );
+  return (
+    <Stack spacing={2.5} divider={<Divider sx={{ borderColor: CARD_BORDER }} />}>
+      {rows.map((r) => (
+        <RubricRow key={r.key} label={r.label} value={r.value} />
+      ))}
+    </Stack>
+  );
+};
+
+/* ── Key flags + screening summary (folded into the breakdown drawers) ──────── */
+
+const FlagRow = ({ icon, color, label, tag }) => (
+  <Stack
+    direction="row"
+    spacing={1.5}
+    sx={{
+      alignItems: "center",
+      py: 1,
+      borderBottom: "1px solid",
+      borderColor: "action.hover",
+      "&:last-of-type": { border: 0 },
+    }}
+  >
+    <Box
+      sx={{
+        width: 30,
+        height: 30,
+        borderRadius: 1.5,
+        flexShrink: 0,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color: `${color}.main`,
+        bgcolor: `${color}.light`,
+        opacity: 0.95,
+      }}
+    >
+      {icon}
+    </Box>
+    <Typography variant="body2" color="text.secondary" sx={{ flex: 1 }}>
+      {label}
+    </Typography>
+    <Typography variant="caption" sx={{ fontWeight: 700, color: `${color}.main` }}>
+      {tag}
+    </Typography>
+  </Stack>
+);
+
+/** Build the "key flags at a glance" rows from both breakdowns. */
+const buildFlags = (jd, trust) => {
+  const flags = [];
+
+  const total = jd?.required_skills_total;
+  const matched = jd?.required_skills_matched;
+  if (total != null && matched != null) {
+    const missing = total - matched;
+    if (missing > 0) {
+      const critical = matched / total < 0.5;
+      flags.push({
+        icon: <WarningAmberOutlinedIcon fontSize="small" />,
+        color: critical ? "error" : "warning",
+        label: `${missing} of ${total} required skills missing from CV`,
+        tag: critical ? "Critical" : "Warning",
+      });
+    }
+  }
+
+  const consistency = toScore(trust?.consistency?.score);
+  if (consistency != null && consistency < 75) {
+    flags.push({
+      icon: <AccessTimeOutlinedIcon fontSize="small" />,
+      color: consistency < 50 ? "error" : "warning",
+      label: asArray(trust?.consistency?.reasons)[0] || "Experience claims may exceed documented history",
+      tag: consistency < 50 ? "Critical" : "Warning",
+    });
+  }
+
+  const markers = trust?.linguistic_genericity?.details?.top_markers;
+  const markerCount = trust?.linguistic_genericity?.details?.marker_count;
+  if (markerCount > 0 && markers) {
+    const terms = Object.keys(markers);
+    flags.push({
+      icon: <SmartToyOutlinedIcon fontSize="small" />,
+      color: "warning",
+      label: `${markerCount} AI buzzword${markerCount === 1 ? "" : "s"} detected: ${terms.slice(0, 4).map((t) => `"${t}"`).join(", ")}`,
+      tag: "Warning",
+    });
+  }
+
+  const tc = trust?.timeline_coherence?.details;
+  if (tc && tc.total > 0) {
+    const untraced = tc.total - tc.matched;
+    if (untraced > 0) {
+      flags.push({
+        icon: <ManageSearchOutlinedIcon fontSize="small" />,
+        color: "warning",
+        label: `${untraced} of ${tc.total} listed skills can't be traced to a job role`,
+        tag: "Warning",
+      });
+    }
+  }
+
+  const specificity = toScore(trust?.specificity?.score);
+  if (specificity != null && specificity >= 50) {
+    flags.push({
+      icon: <CheckCircleOutlineIcon fontSize="small" />,
+      color: "success",
+      label: asArray(trust?.specificity?.reasons)[0] || "Names specific clients, projects and outcomes",
+      tag: "Good",
+    });
+  }
+
+  return flags;
+};
+
+const KeyFlags = ({ flags }) => (
+  <Box sx={{ border: `1px solid ${CARD_BORDER}`, borderRadius: 2, p: 2, bgcolor: CARD_BG }}>
+    <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5 }}>
+      Key flags at a glance
+    </Typography>
+    {flags.map((f, i) => (
+      <FlagRow key={i} {...f} />
+    ))}
+  </Box>
+);
 
 const SummaryRow = ({ icon, label, value, tagColor: tc, tag }) => (
-  <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", py: 1, borderBottom: "1px solid", borderColor: "action.hover", "&:last-of-type": { border: 0 } }}>
-    <Box sx={{ width: 28, height: 28, borderRadius: 1.5, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "text.secondary", bgcolor: "action.hover" }}>
+  <Stack
+    direction="row"
+    spacing={1.5}
+    sx={{
+      alignItems: "center",
+      py: 1,
+      borderBottom: "1px solid",
+      borderColor: "action.hover",
+      "&:last-of-type": { border: 0 },
+    }}
+  >
+    <Box
+      sx={{
+        width: 28,
+        height: 28,
+        borderRadius: 1.5,
+        flexShrink: 0,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color: "text.secondary",
+        bgcolor: "action.hover",
+      }}
+    >
       {icon}
     </Box>
     <Typography variant="body2" color="text.secondary" sx={{ flex: 1 }}>
@@ -579,7 +786,7 @@ const ScreeningSummary = ({ jd, trust }) => {
   const specificity = toScore(trust?.specificity?.score);
   const passes = jd?.passes_threshold;
   return (
-    <Box sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, p: 2.5, bgcolor: "background.paper" }}>
+    <Box sx={{ border: `1px solid ${CARD_BORDER}`, borderRadius: 2, p: 2, bgcolor: CARD_BG }}>
       <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
         Screening summary
       </Typography>
@@ -632,22 +839,56 @@ const ScreeningSummary = ({ jd, trust }) => {
   );
 };
 
+/* ── Data → view-model helpers ─────────────────────────────────────────────── */
+
+const trustSummary = (breakdown) => {
+  const weak = TRUST_SIGNALS.map((s) => ({ label: s.label, score: toScore(breakdown?.[s.key]?.score) }))
+    .filter((s) => s.score != null && s.score < 75)
+    .sort((a, b) => a.score - b.score)
+    .slice(0, 2);
+  if (!weak.length) return "All authenticity checks look solid.";
+  return `${weak.map((w) => w.label).join(" and ")} flagged for review.`;
+};
+
+/** A recruiter-facing concern summary for the CV Authenticity card face: the
+ *  actual reason sentences from the weakest sub-signals, falling back to a
+ *  generic "which checks are flagged" line. */
+const authenticitySummary = (breakdown) => {
+  const reasons = TRUST_SIGNALS.map((s) => ({
+    score: toScore(breakdown?.[s.key]?.score),
+    reasons: asArray(breakdown?.[s.key]?.reasons),
+  }))
+    .filter((s) => s.score != null && s.score < 75 && s.reasons.length)
+    .sort((a, b) => a.score - b.score)
+    .flatMap((s) => s.reasons)
+    .map((r) => String(r).trim().replace(/\.$/, ""))
+    .slice(0, 2);
+  if (reasons.length) return `Some concerns: ${reasons.join("; ")}.`;
+  return trustSummary(breakdown);
+};
+
 /**
- * The CV Score Card — a recruiter-facing read of an application's two headline
- * scores: JD Match (the `similarity` score's skill breakdown) and CV Trust (the
- * `authenticity` score's five sub-signals). Everything is shown at once: the two
- * headline score cards (each with an expandable "View breakdown" for its
- * sub-signals), the key flags at a glance, and the screening summary.
+ * The CV Score Card — a recruiter-facing read of an application's headline
+ * scores, styled as the cream/gold scoring cards: CV Authenticity (the
+ * `authenticity` verdict + its five sub-signals), Profile Match (the
+ * `similarity` skill breakdown), and CV Score (the `hard_filter` rubric). Each
+ * card carries an expandable "Breakdown" drawer; the screening summary and key
+ * flags live inside those drawers.
  */
 const CvScoreCard = ({ scores }) => {
-  const jd = findScore(scores, "similarity");
   const trust = findScore(scores, "authenticity");
-  const jdValue = jd ? toScore(jd.value) : null;
-  const trustValue = trust ? toScore(trust.value) : null;
-  const jdBreak = jd?.breakdown || null;
-  const trustBreak = trust?.breakdown || null;
+  const jd = findScore(scores, "similarity");
+  const others = asArray(scores).filter(
+    (s) => s && s.score_type !== "authenticity" && s.score_type !== "similarity",
+  );
 
-  if (!jd && !trust) {
+  const trustBreak = trust?.breakdown || null;
+  const jdBreak = jd?.breakdown || null;
+  const trustValue = trust ? toScore(trust.value) : null;
+  const jdValue = jd ? toScore(jd.value) : null;
+  const flags = buildFlags(jdBreak, trustBreak);
+
+  if (!trust && !jd && !others.length) {
     return (
       <Typography variant="body2" color="text.secondary">
         No scores computed yet.
@@ -655,39 +896,48 @@ const CvScoreCard = ({ scores }) => {
     );
   }
 
-  const flags = buildFlags(jdBreak, trustBreak);
+  const otherLabel = (t) => (t === "hard_filter" ? "CV Score" : humanize(t));
 
   return (
-    <Box>
-      <Stack spacing={2}>
-        {trust && trustValue != null ? (
-          <TrustBanner value={trustValue} summary={trustSummary(trustBreak)} breakdown={trustBreak} />
-        ) : (
-          <PendingCard label="CV Trust Score" />
-        )}
+    <Stack spacing={2.5}>
+      {trust && trustValue != null ? (
+        <AuthenticityCard
+          value={trustValue}
+          summary={authenticitySummary(trustBreak)}
+          breakdown={trustBreak}
+          flags={flags}
+        />
+      ) : (
+        <PendingCard label="CV Authenticity" />
+      )}
 
-        {jd ? (
-          <ScoreCard value={jdValue} label="JD Outcome" summary={jdSummary(jdBreak)} computedAt={jd.computed_at}>
-            {jdBreak && <JdBreakdown b={jdBreak} />}
-          </ScoreCard>
-        ) : (
-          <PendingCard label="JD Outcome" />
-        )}
+      <Box>
+        <Eyebrow>Score</Eyebrow>
+        <Stack spacing={2}>
+          {/* Once the CV Score (hard filter) exists — i.e. the candidate reached
+              the hard-filter stage — it leads, with Profile Match below it. */}
+          {others.map((s, i) => (
+            <ScoreMeterCard
+              key={s.id || `${s.score_type}-${i}`}
+              label={otherLabel(s.score_type)}
+              value={toScore(s.value)}
+              computedAt={s.computed_at}
+            >
+              {s.breakdown && Object.keys(s.breakdown).length > 0 ? <RubricBreakdown data={s.breakdown} /> : null}
+            </ScoreMeterCard>
+          ))}
 
-        {flags.length > 0 && (
-          <Box sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, p: 2.5, bgcolor: "background.paper" }}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
-              Key flags at a glance
-            </Typography>
-            {flags.map((f, i) => (
-              <FlagRow key={i} {...f} />
-            ))}
-          </Box>
-        )}
-
-        <ScreeningSummary jd={jdBreak} trust={trustBreak} />
-      </Stack>
-    </Box>
+          {jd ? (
+            <ScoreMeterCard label="Profile Match" value={jdValue} computedAt={jd.computed_at}>
+              {jdBreak && <JdBreakdown b={jdBreak} />}
+              <ScreeningSummary jd={jdBreak} trust={trustBreak} />
+            </ScoreMeterCard>
+          ) : (
+            <PendingCard label="Profile Match" />
+          )}
+        </Stack>
+      </Box>
+    </Stack>
   );
 };
 
