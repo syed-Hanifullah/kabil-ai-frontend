@@ -31,7 +31,7 @@ import {
   useMoveStage,
   useSetStatus,
 } from "@/lib/kabil/queries";
-import { PIPELINE_COLUMNS, humanize } from "@/lib/kabil/constants";
+import { PIPELINE_COLUMNS, humanize, stageLabel } from "@/lib/kabil/constants";
 import { countryLabel } from "@/lib/kabil/jobOptions";
 import PipelineBoard from "./_components/PipelineBoard";
 import RejectedList from "./_components/RejectedList";
@@ -184,7 +184,7 @@ const PipelinePage = ({ params }) => {
         onSuccess: () =>
           setToast({
             severity: "success",
-            msg: `${app.candidate_full_name} moved to ${humanize(stage)}`,
+            msg: `${app.candidate_full_name} moved to ${stageLabel(stage)}`,
           }),
         onError: () =>
           setToast({ severity: "error", msg: "Couldn't move candidate. Please try again." }),

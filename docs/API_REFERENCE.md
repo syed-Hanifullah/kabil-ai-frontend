@@ -514,9 +514,10 @@ Auth. Query: `q` (1..1000 chars), `job_id` (uuid), `limit` (1..50, default 10),
   free-text search box.
 - **`job_id` → semantic.** Ranks pooled candidates by cosine similarity of their
   current CV against **that job's stored JD embedding** ("candidates relevant to
-  this job", no extra embedding call), **gated to the relevant ones** (same
-  cutoff the CV pipeline uses to auto-reject — irrelevant candidates are dropped,
-  not ranked low). Hits carry a numeric `similarity_score`; the response echoes
+  this job", no extra embedding call), **gated to the relevant ones** (a stricter
+  search-relevance bar than the CV pipeline's ingestion floor — weak cross-role
+  matches like a Software Engineer under a QA job are dropped, not ranked low).
+  Hits carry a numeric `similarity_score`; the response echoes
   the job title as `query`. Candidates whose CV isn't embedded yet are excluded.
 
 → `200` `TalentPoolSearchResponse`:

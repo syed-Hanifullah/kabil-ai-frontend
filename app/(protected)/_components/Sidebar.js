@@ -66,7 +66,7 @@ const Sidebar = () => {
 
       {/* Primary nav */}
       <List sx={{ px: 1.5, py: 1, flex: 1, overflowY: "auto" }}>
-        {NAV_ITEMS.map(({ label, href, icon: Icon }) => {
+        {NAV_ITEMS.map(({ label, href, icon }) => {
           const active = pathname === href || pathname.startsWith(`${href}/`);
           return (
             <ListItemButton
@@ -85,13 +85,22 @@ const Sidebar = () => {
                 "&.Mui-selected, &.Mui-selected:hover": {
                   bgcolor: COLORS.sidebarActive,
                   color: "#fff",
-                  "& .MuiListItemIcon-root": { color: "#fff" },
+                  // Recolor the (black-stroked) SVG to white when active.
+                  "& .MuiListItemIcon-root img": {
+                    filter: "brightness(0) invert(1)",
+                  },
                 },
                 "&:hover": { bgcolor: "rgba(47,125,91,0.08)" },
               }}
             >
               <ListItemIcon>
-                <Icon fontSize="small" />
+                <Box
+                  component="img"
+                  src={icon}
+                  alt=""
+                  aria-hidden
+                  sx={{ width: 20, height: 20, objectFit: "contain", display: "block" }}
+                />
               </ListItemIcon>
               <ListItemText
                 primary={label}

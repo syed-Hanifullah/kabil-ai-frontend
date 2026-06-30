@@ -29,6 +29,7 @@ import ErrorAlert from "@/components/ErrorAlert";
 import { useCandidateHistory } from "@/lib/kabil/queries";
 import {
   humanize,
+  stageLabel,
   statusColor,
   statusLabel,
   bandColor,
@@ -315,7 +316,7 @@ const StintCard = ({ stint, onClose }) => {
         </Stack>
 
         <Stack direction="row" spacing={0.75} sx={{ flexWrap: "wrap", rowGap: 0.5 }}>
-          <Chip size="small" label={humanize(stint.stage)} color="primary" variant="outlined" sx={{ height: 22 }} />
+          <Chip size="small" label={stageLabel(stint.stage)} color="primary" variant="outlined" sx={{ height: 22 }} />
           <Chip size="small" label={statusLabel(stint.status)} color={statusColor(stint.status)} sx={{ height: 22 }} />
           {stint.sourced_from_talent_pool && (
             <Chip size="small" label="Sourced from pool" variant="outlined" sx={{ height: 22 }} />

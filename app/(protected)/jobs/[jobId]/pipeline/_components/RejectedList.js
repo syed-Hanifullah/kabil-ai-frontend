@@ -10,7 +10,7 @@ import Button from "@mui/material/Button";
 import Divider from "@mui/material/Divider";
 import Typography from "@mui/material/Typography";
 import ReplayIcon from "@mui/icons-material/Replay";
-import { humanize, scoreBand, toScore, timeAgo } from "@/lib/kabil/constants";
+import { stageLabel, scoreBand, toScore, timeAgo } from "@/lib/kabil/constants";
 
 const initials = (name) =>
   (name || "?")
@@ -51,7 +51,7 @@ const RejectedCard = ({ app, jobTitle, onOpen, onReactivate, busy }) => {
         </Stack>
 
         <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75, mt: 1.25 }}>
-          <Chip size="small" label={`Rejected at ${humanize(app.stage)}`} color="error" variant="outlined" sx={{ height: 22 }} />
+          <Chip size="small" label={`Rejected at ${stageLabel(app.stage)}`} color="error" variant="outlined" sx={{ height: 22 }} />
           {score != null && (
             <Chip size="small" label={`AI · ${scoreBand(score).label}`} variant="outlined" sx={{ height: 22 }} />
           )}
