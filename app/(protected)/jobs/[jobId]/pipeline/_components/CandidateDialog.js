@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
 import Box from "@mui/material/Box";
@@ -44,6 +44,8 @@ import {
   useUpdateStatus,
   useMoveToPool,
   useUpdateCandidateContact,
+  useWhatsAppConversation,
+  useWhatsAppQuestions,
 } from "@/lib/kabil/queries";
 import { APPLICATION_STAGES, NEXT_STAGE, humanize, timeAgo } from "@/lib/kabil/constants";
 import { COLORS } from "@/lib/theme";
@@ -61,6 +63,59 @@ const initials = (name) =>
     .join("");
 
 const asArray = (v) => (Array.isArray(v) ? v : []);
+
+/**
+ * The six fixed eligibility questions every candidate answers over WhatsApp,
+ * in the order the recruiter reads them. `key` is the backend `source_field`
+ * stamped on each fixed question; `label` is recruiter-facing.
+ */
+const ELIGIBILITY_FIELDS = [
+  { key: "commitment", label: "Commitment" },
+  { key: "salary", label: "Salary Expectation" },
+  { key: "notice_period", label: "Notice Period" },
+  { key: "visa", label: "Visa" },
+  { key: "employment_type", label: "Employment Type" },
+  { key: "work_mode", label: "Work Mode" },
+];
+
+/**
+ * Fold the WhatsApp screening conversation + the job's question list into the
+ * view-model the score card needs:
+ *  - `eligibility`: the candidate's verbatim answer to each fixed question,
+ *    recovered by joining `answers[].question_id` back to the question's
+ *    `source_field` (the answer copy carries no source_field of its own).
+ *  - `bgValidation`: a 0–100 "background validation" score derived from the
+ *    AI-scored answers' relevance (0–10, only the AI questions are scored) —
+ *    the backend computes no such aggregate, so we mean-then-scale here. Null
+ *    until at least one AI answer has been scored.
+ */
+const deriveScreening = (convo, questions) => {
+  const answers = asArray(convo?.answers);
+  const sourceById = new Map(asArray(questions).map((q) => [q.id, q.source_field]));
+
+  const answerBySource = new Map();
+  for (const a of answers) {
+    const sf = sourceById.get(a?.question_id);
+    if (!sf || answerBySource.has(sf)) continue;
+    const val = typeof a.answer === "string" ? a.answer.trim() : a.answer;
+    if (val) answerBySource.set(sf, val);
+  }
+  const eligibility = ELIGIBILITY_FIELDS.map((f) => ({
+    label: f.label,
+    value: answerBySource.get(f.key) ?? null,
+  }));
+
+  const scored = answers.filter((a) => a?.relevance_score != null);
+  const bgValidation = scored.length
+    ? Math.round((scored.reduce((s, a) => s + a.relevance_score, 0) / scored.length) * 10)
+    : null;
+
+  return {
+    eligibility,
+    bgValidation,
+    computedAt: convo?.closed_at || convo?.updated_at || null,
+  };
+};
 
 /** One labelled value row. */
 const Field = ({ label, children }) => (
@@ -742,6 +797,25 @@ const CandidateDialog = ({ appId, open, onClose, readOnly = false }) => {
   // (the `whatsapp` stage) and stays relevant through later stages.
   const reachedWhatsApp =
     !!app && APPLICATION_STAGES.indexOf(app.stage) >= APPLICATION_STAGES.indexOf("whatsapp");
+
+  // Screening results (eligibility answers + derived background-validation
+  // score) only exist once the candidate reaches the WhatsApp stage, so gate
+  // both fetches on that. The conversation carries the answers; the job's
+  // question list lets us map each answer back to its `source_field`.
+  const { data: convo } = useWhatsAppConversation(appId, { enabled: reachedWhatsApp, poll: true });
+  const { data: waQuestions } = useWhatsAppQuestions(app?.job_id, { enabled: reachedWhatsApp });
+  const screening = useMemo(
+    () => (reachedWhatsApp ? deriveScreening(convo, waQuestions?.questions) : null),
+    [reachedWhatsApp, convo, waQuestions],
+  );
+
+  // HR's manual interview evaluation (mark + comment), editable only while the
+  // application is actively sitting at the interview stage — mirrors the
+  // backend's stage guard.
+  const interviewFeedback = app
+    ? { score: app.interview_score, comment: app.interview_comment, scoredAt: app.interview_scored_at }
+    : null;
+  const interviewEditable = app?.stage === "interview" && app?.status === "active";
   // Contact details are editable only through the hard_filter stage; from
   // whatsapp onward the screening flow owns the contact channel (mirrors the
   // backend's CONTACT_EDITABLE_STAGES gate).
@@ -956,7 +1030,14 @@ const CandidateDialog = ({ appId, open, onClose, readOnly = false }) => {
               {/* Content */}
               {readOnly ? (
                 <Stack spacing={2} sx={{ mt: 2 }} divider={<Divider flexItem />}>
-                  <CvScoreCard scores={app.scores} />
+                  <CvScoreCard
+                    scores={app.scores}
+                    stage={app.stage}
+                    screening={screening}
+                    appId={appId}
+                    interviewFeedback={interviewFeedback}
+                    interviewEditable={false}
+                  />
                   {app.interview && <InterviewSection interview={app.interview} />}
                   <Stack spacing={2.5}>
                     <ParsedProfile profile={candidate?.parsed_profile} />
@@ -966,7 +1047,14 @@ const CandidateDialog = ({ appId, open, onClose, readOnly = false }) => {
                 </Stack>
               ) : tab === 0 ? (
                 <Stack spacing={2} sx={{ mt: 2 }} divider={<Divider flexItem />}>
-                  <CvScoreCard scores={app.scores} />
+                  <CvScoreCard
+                    scores={app.scores}
+                    stage={app.stage}
+                    screening={screening}
+                    appId={appId}
+                    interviewFeedback={interviewFeedback}
+                    interviewEditable={interviewEditable}
+                  />
                   {app.interview && <InterviewSection interview={app.interview} />}
                   {moveCandidate}
                 </Stack>

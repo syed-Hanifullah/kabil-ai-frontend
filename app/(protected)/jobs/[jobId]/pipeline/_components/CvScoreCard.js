@@ -9,6 +9,7 @@ import Tooltip from "@mui/material/Tooltip";
 import Divider from "@mui/material/Divider";
 import Collapse from "@mui/material/Collapse";
 import Button from "@mui/material/Button";
+import TextField from "@mui/material/TextField";
 import LinearProgress from "@mui/material/LinearProgress";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import CheckIcon from "@mui/icons-material/Check";
@@ -20,8 +21,14 @@ import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
 import WorkOutlineIcon from "@mui/icons-material/WorkOutlineOutlined";
 import VerifiedUserOutlinedIcon from "@mui/icons-material/VerifiedUserOutlined";
 import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
-import { toScore, scoreBand, timeAgo, humanize } from "@/lib/kabil/constants";
+import { toScore, scoreBand, timeAgo, humanize, APPLICATION_STAGES } from "@/lib/kabil/constants";
+import { useSubmitInterviewFeedback } from "@/lib/kabil/queries";
+import ErrorAlert from "@/components/ErrorAlert";
 import { COLORS } from "@/lib/theme";
+
+/** HR interview mark bounds — mirrors the backend `INTERVIEW_SCORE_*` thresholds. */
+const INTERVIEW_SCORE_MIN = 0;
+const INTERVIEW_SCORE_MAX = 100;
 
 const asArray = (v) => (Array.isArray(v) ? v : []);
 const findScore = (scores, type) => asArray(scores).find((s) => s?.score_type === type);
@@ -135,18 +142,26 @@ const Eyebrow = ({ children }) => (
   </Typography>
 );
 
-/* ── Cards ─────────────────────────────────────────────────────────────────── */
+/* ── Rows (stacked inside the single Credibility Check card) ─────────────────── */
 
-/** A numeric score (Profile Match, CV Score): title + meter + score disc, with
- *  an expandable breakdown drawer. */
-const ScoreMeterCard = ({ label, value, computedAt, children }) => {
+/** One row inside the unified card; a hairline separates it from the next (the
+ *  last row has none). */
+const RowShell = ({ children }) => (
+  <Box sx={{ px: 2, py: 1.75, "&:not(:last-of-type)": { borderBottom: `1px solid ${CARD_BORDER}` } }}>
+    {children}
+  </Box>
+);
+
+/** A numeric score row (CV Score, Background Validation): title + meter + score
+ *  disc, with an optional expandable breakdown drawer + computed footer. */
+const MeterRow = ({ label, value, computedAt, showFooter = true, children }) => {
   const [open, setOpen] = useState(false);
   const has = value != null;
   const color = has ? bandHex(scoreBand(value).color) : TRACK;
   const hasBreakdown = !!children;
   return (
-    <Box sx={cardSx}>
-      <Stack direction="row" spacing={2} sx={{ alignItems: "center", px: 2, pt: 1.5 }}>
+    <RowShell>
+      <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Typography sx={{ fontWeight: 700, fontSize: "0.775rem", mb: 1 }}>{label}</Typography>
           <LinearProgress
@@ -165,77 +180,237 @@ const ScoreMeterCard = ({ label, value, computedAt, children }) => {
 
       {hasBreakdown && (
         <Collapse in={open} timeout="auto" unmountOnExit>
-          <Box sx={{ px: 2, pt: 1.75 }}>
+          <Box sx={{ pt: 1.75 }}>
             <Stack spacing={2.5}>{children}</Stack>
           </Box>
         </Collapse>
       )}
 
       {/* Footer sits at the bottom, so expanded detail nests above it. */}
-      <Stack
-        direction="row"
-        sx={{ justifyContent: "space-between", alignItems: "center", px: 2, pt: 1, pb: 1.25 }}
-      >
-        <Typography variant="caption" color="text.secondary">
-          {computedAt ? `Computed ${timeAgo(computedAt)}` : "—"}
-        </Typography>
-        {hasBreakdown && <BreakdownToggle open={open} onClick={() => setOpen((o) => !o)} />}
-      </Stack>
-    </Box>
+      {showFooter && (computedAt || hasBreakdown) && (
+        <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", pt: 1 }}>
+          <Typography variant="caption" color="text.secondary">
+            {computedAt ? `Computed ${timeAgo(computedAt)}` : "—"}
+          </Typography>
+          {hasBreakdown && <BreakdownToggle open={open} onClick={() => setOpen((o) => !o)} />}
+        </Stack>
+      )}
+    </RowShell>
   );
 };
 
-/** CV Authenticity verdict card: title + coloured band label + concern summary,
+/** CV Authenticity verdict row: title + coloured band label + concern summary,
  *  with an expandable breakdown drawer (signals + key flags). */
-const AuthenticityCard = ({ value, summary, breakdown, flags }) => {
+const AuthenticityRow = ({ value, summary, breakdown, flags }) => {
   const [open, setOpen] = useState(false);
   const badge = trustBadge(value);
   const labelColor = bandHex(badge.color);
   const hasFlags = asArray(flags).length > 0;
   const hasBreakdown = (breakdown && Object.keys(breakdown).length > 0) || hasFlags;
   return (
-    <Box sx={cardSx}>
-      <Box sx={{ p: 2 }}>
-        <Stack direction="row" spacing={2} sx={{ justifyContent: "space-between", alignItems: "flex-start" }}>
-          <Typography sx={{ fontWeight: 700, fontSize: "0.775rem" }}>CV Authenticity</Typography>
-          <Typography sx={{ fontWeight: 700, color: labelColor, flexShrink: 0, whiteSpace: "nowrap" }}>
-            {badge.label}
-          </Typography>
-        </Stack>
-        {summary && (
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1, lineHeight: 1.6 }}>
-            {summary}
-          </Typography>
-        )}
-        {hasBreakdown && (
-          <Stack direction="row" sx={{ justifyContent: "flex-end", mt: 1 }}>
+    <RowShell>
+      <Stack direction="row" spacing={2} sx={{ justifyContent: "space-between", alignItems: "flex-start" }}>
+        <Typography sx={{ fontWeight: 700, fontSize: "0.775rem" }}>CV Authenticity</Typography>
+        <Typography sx={{ fontWeight: 700, color: labelColor, flexShrink: 0, whiteSpace: "nowrap" }}>
+          {badge.label}
+        </Typography>
+      </Stack>
+      {summary && (
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 1, lineHeight: 1.6 }}>
+          {summary}
+        </Typography>
+      )}
+      {hasBreakdown && (
+        <>
+          <Stack direction="row" sx={{ justifyContent: "flex-end", mt: 0.5 }}>
             <BreakdownToggle open={open} onClick={() => setOpen((o) => !o)} />
           </Stack>
-        )}
-      </Box>
-      {hasBreakdown && (
-        <Collapse in={open} timeout="auto" unmountOnExit>
-          <Divider sx={{ borderColor: CARD_BORDER }} />
-          <Box sx={{ p: 2 }}>
-            <Stack spacing={2}>
-              <TrustBreakdown breakdown={breakdown} />
-              {hasFlags && <KeyFlags flags={flags} />}
-            </Stack>
-          </Box>
-        </Collapse>
+          <Collapse in={open} timeout="auto" unmountOnExit>
+            <Box sx={{ pt: 1 }}>
+              <Stack spacing={2}>
+                <TrustBreakdown breakdown={breakdown} />
+                {hasFlags && <KeyFlags flags={flags} />}
+              </Stack>
+            </Box>
+          </Collapse>
+        </>
       )}
-    </Box>
+    </RowShell>
   );
 };
 
-/** Empty placeholder when a score family hasn't been computed yet. */
-const PendingCard = ({ label }) => (
-  <Box sx={{ ...cardSx, p: 2 }}>
+/** Eligibility Questions row: the candidate's verbatim answers to the six fixed
+ *  WhatsApp screening questions, shown as an open-by-default breakdown. */
+const EligibilityRow = ({ items, computedAt }) => {
+  const [open, setOpen] = useState(true); // open by default per the mock
+  return (
+    <RowShell>
+      <Typography sx={{ fontWeight: 700, fontSize: "0.775rem" }}>Eligibility Questions</Typography>
+      <Collapse in={open} timeout="auto" unmountOnExit>
+        <Stack sx={{ mt: 1.25 }}>
+          {items.map((it) => (
+            <Stack
+              key={it.label}
+              direction="row"
+              spacing={2}
+              sx={{
+                alignItems: "center",
+                justifyContent: "space-between",
+                py: 1,
+                borderBottom: "1px solid",
+                borderColor: "action.hover",
+                "&:last-of-type": { border: 0 },
+              }}
+            >
+              <Stack direction="row" spacing={1.25} sx={{ alignItems: "center", minWidth: 0 }}>
+                <Box sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: GREEN, flexShrink: 0 }} />
+                <Typography sx={{ fontWeight: 700, fontSize: "0.75rem" }}>{it.label}</Typography>
+              </Stack>
+              <Typography
+                sx={{
+                  fontWeight: 700,
+                  color: it.value ? GREEN : "text.disabled",
+                  textAlign: "right",
+                  wordBreak: "break-word",
+                }}
+              >
+                {it.value ?? "—"}
+              </Typography>
+            </Stack>
+          ))}
+        </Stack>
+      </Collapse>
+      <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", pt: 1 }}>
+        <Typography variant="caption" color="text.secondary">
+          {computedAt ? `Computed ${timeAgo(computedAt)}` : "—"}
+        </Typography>
+        <BreakdownToggle open={open} onClick={() => setOpen((o) => !o)} />
+      </Stack>
+    </RowShell>
+  );
+};
+
+/** Empty placeholder row when a score family hasn't been computed yet. */
+const PendingRow = ({ label }) => (
+  <RowShell>
     <Typography sx={{ fontWeight: 700, fontSize: "0.775rem" }}>{label}</Typography>
     <Typography variant="caption" color="text.secondary">
       Not computed yet.
     </Typography>
-  </Box>
+  </RowShell>
+);
+
+/** Interview Scoring row: HR's manual post-interview mark + comment.
+ *  Fresh (no mark yet): the breakdown opens by default onto the entry form.
+ *  Once a mark exists: it shows as a score disc and the breakdown stays
+ *  collapsed. While the app is at the interview stage HR can (re)open the form
+ *  to edit; past that it's read-only (the comment, if any). */
+const InterviewScoringRow = ({ appId, feedback, editable }) => {
+  const scoreVal = toScore(feedback?.score);
+  const has = scoreVal != null;
+  const [open, setOpen] = useState(!has); // fresh → open onto the form
+  const [marks, setMarks] = useState(has ? String(Math.round(scoreVal)) : "");
+  const [comment, setComment] = useState(feedback?.comment || "");
+  const submit = useSubmitInterviewFeedback(appId);
+
+  const trimmed = marks.trim();
+  const marksNum = trimmed === "" ? null : Number(trimmed);
+  const marksValid =
+    marksNum != null &&
+    Number.isFinite(marksNum) &&
+    marksNum >= INTERVIEW_SCORE_MIN &&
+    marksNum <= INTERVIEW_SCORE_MAX;
+  const canSave = editable && marksValid && !submit.isPending;
+
+  const save = () => {
+    if (!canSave) return;
+    submit.mutate(
+      { score: marksNum, comment: comment.trim() || null },
+      { onSuccess: () => setOpen(false) },
+    );
+  };
+
+  const hasDrawer = editable || !!feedback?.comment;
+
+  return (
+    <RowShell>
+      <Stack direction="row" spacing={2} sx={{ alignItems: "center", justifyContent: "space-between" }}>
+        <Box sx={{ minWidth: 0 }}>
+          <Typography sx={{ fontWeight: 700, fontSize: "0.775rem" }}>Interview Scoring</Typography>
+          <Typography variant="caption" color="text.secondary">
+            {has ? (feedback?.scoredAt ? timeAgo(feedback.scoredAt) : "Scored") : "Not scored yet"}
+          </Typography>
+        </Box>
+        {has && <ScoreBadge value={scoreVal} />}
+      </Stack>
+
+      {hasDrawer && (
+        <Collapse in={open} timeout="auto" unmountOnExit>
+          <Box sx={{ pt: 1.5 }}>
+            {editable ? (
+              <Stack spacing={1.5}>
+                <TextField
+                  label="Marks (0–100)"
+                  value={marks}
+                  onChange={(e) => setMarks(e.target.value)}
+                  type="number"
+                  size="small"
+                  inputProps={{ min: INTERVIEW_SCORE_MIN, max: INTERVIEW_SCORE_MAX }}
+                  error={trimmed !== "" && !marksValid}
+                  helperText={trimmed !== "" && !marksValid ? "Enter a number from 0 to 100." : " "}
+                  sx={{ maxWidth: 200 }}
+                />
+                <TextField
+                  label="Comment (optional)"
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  multiline
+                  minRows={2}
+                  size="small"
+                  inputProps={{ maxLength: 2000 }}
+                  fullWidth
+                />
+                {submit.isError && <ErrorAlert error={submit.error} />}
+                <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+                  <Button
+                    variant="contained"
+                    size="small"
+                    onClick={save}
+                    disabled={!canSave}
+                    sx={{ bgcolor: GREEN, "&:hover": { bgcolor: "#0c5a46" } }}
+                  >
+                    {submit.isPending ? "Saving…" : has ? "Update marks" : "Save marks"}
+                  </Button>
+                </Box>
+              </Stack>
+            ) : (
+              feedback?.comment && (
+                <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
+                  {feedback.comment}
+                </Typography>
+              )
+            )}
+          </Box>
+        </Collapse>
+      )}
+
+      {hasDrawer && (
+        <Stack direction="row" sx={{ justifyContent: "flex-end", pt: 1 }}>
+          <BreakdownToggle open={open} onClick={() => setOpen((o) => !o)} />
+        </Stack>
+      )}
+    </RowShell>
+  );
+};
+
+/** Final-shortlist row: a plain verdict, no score or breakdown. */
+const ShortlistRow = () => (
+  <RowShell>
+    <Stack direction="row" spacing={2} sx={{ alignItems: "center", justifyContent: "space-between" }}>
+      <Typography sx={{ fontWeight: 700, fontSize: "0.775rem" }}>Shortlist</Typography>
+      <Typography sx={{ fontWeight: 700, color: "#1f9d57", whiteSpace: "nowrap" }}>Shortlisted</Typography>
+    </Stack>
+  </RowShell>
 );
 
 /* ── Breakdown bodies ──────────────────────────────────────────────────────── */
@@ -868,14 +1043,28 @@ const authenticitySummary = (breakdown) => {
 };
 
 /**
- * The CV Score Card — a recruiter-facing read of an application's headline
- * scores, styled as the cream/gold scoring cards: CV Authenticity (the
- * `authenticity` verdict + its five sub-signals), Profile Match (the
- * `similarity` skill breakdown), and CV Score (the `hard_filter` rubric). Each
- * card carries an expandable "Breakdown" drawer; the screening summary and key
- * flags live inside those drawers.
+ * The Credibility Check card — a recruiter-facing read of an application's
+ * headline signals, stacked as rows inside one cream card: CV Authenticity (the
+ * `authenticity` verdict + its five sub-signals), the CV Score (the
+ * `hard_filter` rubric), a derived Background Validation score, and — once the
+ * candidate has been through WhatsApp screening — the Eligibility Questions.
+ *
+ * Stage-gated per the pipeline levels:
+ *  - Profile Match (the `similarity` score) is the L1 headline and is dropped
+ *    once the candidate advances to hard_filter (L2), where CV Score leads.
+ *  - Background Validation + Eligibility Questions appear at whatsapp (L3),
+ *    fed by the derived `screening` view-model from the parent.
+ *  - Interview Scoring (HR's manual mark + comment) appears at the interview
+ *    stage; the Shortlist verdict appears at the final (done) stage.
  */
-const CvScoreCard = ({ scores }) => {
+const CvScoreCard = ({
+  scores,
+  stage,
+  screening,
+  appId,
+  interviewFeedback,
+  interviewEditable = false,
+}) => {
   const trust = findScore(scores, "authenticity");
   const jd = findScore(scores, "similarity");
   const others = asArray(scores).filter(
@@ -888,7 +1077,19 @@ const CvScoreCard = ({ scores }) => {
   const jdValue = jd ? toScore(jd.value) : null;
   const flags = buildFlags(jdBreak, trustBreak);
 
-  if (!trust && !jd && !others.length) {
+  const stageIdx = APPLICATION_STAGES.indexOf(stage);
+  const reachedHardFilter = stageIdx >= APPLICATION_STAGES.indexOf("hard_filter");
+  const reachedWhatsApp = stageIdx >= APPLICATION_STAGES.indexOf("whatsapp");
+  const reachedInterview = stageIdx >= APPLICATION_STAGES.indexOf("interview");
+  const reachedDone = stageIdx >= APPLICATION_STAGES.indexOf("done");
+  // Profile Match only ever leads at the initial vector-screen level (L1).
+  const showProfileMatch = !!jd && !reachedHardFilter;
+
+  const bgValidation = screening?.bgValidation ?? null;
+  const eligibility = asArray(screening?.eligibility);
+  const screenedAt = screening?.computedAt || null;
+
+  if (!trust && !jd && !others.length && !reachedWhatsApp) {
     return (
       <Typography variant="body2" color="text.secondary">
         No scores computed yet.
@@ -897,47 +1098,68 @@ const CvScoreCard = ({ scores }) => {
   }
 
   const otherLabel = (t) => (t === "hard_filter" ? "CV Score" : humanize(t));
+  const hasHardFilter = others.some((s) => s.score_type === "hard_filter");
 
   return (
-    <Stack spacing={2.5}>
-      {trust && trustValue != null ? (
-        <AuthenticityCard
-          value={trustValue}
-          summary={authenticitySummary(trustBreak)}
-          breakdown={trustBreak}
-          flags={flags}
-        />
-      ) : (
-        <PendingCard label="CV Authenticity" />
-      )}
+    <Box>
+      <Eyebrow>Credibility Check</Eyebrow>
+      <Box sx={cardSx}>
+        {trust && trustValue != null ? (
+          <AuthenticityRow
+            value={trustValue}
+            summary={authenticitySummary(trustBreak)}
+            breakdown={trustBreak}
+            flags={flags}
+          />
+        ) : (
+          <PendingRow label="CV Authenticity" />
+        )}
 
-      <Box>
-        <Eyebrow>Score</Eyebrow>
-        <Stack spacing={2}>
-          {/* Once the CV Score (hard filter) exists — i.e. the candidate reached
-              the hard-filter stage — it leads, with Profile Match below it. */}
-          {others.map((s, i) => (
-            <ScoreMeterCard
-              key={s.id || `${s.score_type}-${i}`}
-              label={otherLabel(s.score_type)}
-              value={toScore(s.value)}
-              computedAt={s.computed_at}
-            >
-              {s.breakdown && Object.keys(s.breakdown).length > 0 ? <RubricBreakdown data={s.breakdown} /> : null}
-            </ScoreMeterCard>
-          ))}
+        {others.map((s, i) => (
+          <MeterRow
+            key={s.id || `${s.score_type}-${i}`}
+            label={otherLabel(s.score_type)}
+            value={toScore(s.value)}
+            computedAt={s.computed_at}
+          >
+            {s.breakdown && Object.keys(s.breakdown).length > 0 ? <RubricBreakdown data={s.breakdown} /> : null}
+          </MeterRow>
+        ))}
 
-          {jd ? (
-            <ScoreMeterCard label="Profile Match" value={jdValue} computedAt={jd.computed_at}>
-              {jdBreak && <JdBreakdown b={jdBreak} />}
-              <ScreeningSummary jd={jdBreak} trust={trustBreak} />
-            </ScoreMeterCard>
-          ) : (
-            <PendingCard label="Profile Match" />
-          )}
-        </Stack>
+        {/* Reached hard filter but the CV Score hasn't landed yet — show it as
+            pending rather than leaving a gap (Profile Match is already gone). */}
+        {reachedHardFilter && !hasHardFilter && <PendingRow label="CV Score" />}
+
+        {showProfileMatch && (
+          <MeterRow label="Profile Match" value={jdValue} computedAt={jd.computed_at}>
+            {jdBreak && <JdBreakdown b={jdBreak} />}
+            <ScreeningSummary jd={jdBreak} trust={trustBreak} />
+          </MeterRow>
+        )}
+
+        {/* Derived client-side from the AI-scored answers; hidden until any exist. */}
+        {bgValidation != null && (
+          <MeterRow label="Background Validation" value={bgValidation} showFooter={false} />
+        )}
+
+        {reachedWhatsApp && eligibility.length > 0 && (
+          <EligibilityRow items={eligibility} computedAt={screenedAt} />
+        )}
+
+        {/* HR's manual interview mark + comment (keyed by appId so the form
+            state resets when the dialog switches candidates). */}
+        {reachedInterview && (
+          <InterviewScoringRow
+            key={appId}
+            appId={appId}
+            feedback={interviewFeedback}
+            editable={interviewEditable}
+          />
+        )}
+
+        {reachedDone && <ShortlistRow />}
       </Box>
-    </Stack>
+    </Box>
   );
 };
 
