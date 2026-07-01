@@ -87,7 +87,7 @@ const TRUST_BADGES = [
 const trustBadge = (value) => TRUST_BADGES.find((b) => value >= b.min) || TRUST_BADGES[2];
 
 /** Solid, band-coloured score disc (white numeral), mirroring the mock. */
-const ScoreBadge = ({ value, size = 56 }) => {
+const ScoreBadge = ({ value, size = 44 }) => {
   const has = value != null;
   const color = has ? bandHex(scoreBand(value).color) : "#c4c8c4";
   return (
@@ -102,7 +102,7 @@ const ScoreBadge = ({ value, size = 56 }) => {
         alignItems: "center",
         justifyContent: "center",
         fontWeight: 700,
-        fontSize: 17,
+        fontSize: 13,
         flexShrink: 0,
       }}
     >
@@ -130,7 +130,7 @@ const BreakdownToggle = ({ open, onClick }) => (
 
 /** Small green section eyebrow ("Score"). */
 const Eyebrow = ({ children }) => (
-  <Typography sx={{ color: GREEN, fontWeight: 800, fontSize: 12, letterSpacing: 0.5, mb: 1 }}>
+  <Typography sx={{ color: GREEN, fontWeight: 800, fontSize: 11, letterSpacing: 0.5, mb: 1 }}>
     {children}
   </Typography>
 );
@@ -146,17 +146,17 @@ const ScoreMeterCard = ({ label, value, computedAt, children }) => {
   const hasBreakdown = !!children;
   return (
     <Box sx={cardSx}>
-      <Stack direction="row" spacing={2} sx={{ alignItems: "center", px: 2.5, pt: 2.5 }}>
+      <Stack direction="row" spacing={2} sx={{ alignItems: "center", px: 2, pt: 1.5 }}>
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography sx={{ fontWeight: 700, fontSize: "1rem", mb: 1.25 }}>{label}</Typography>
+          <Typography sx={{ fontWeight: 700, fontSize: "0.775rem", mb: 1 }}>{label}</Typography>
           <LinearProgress
             variant="determinate"
             value={has ? Math.min(100, Math.max(0, value)) : 0}
             sx={{
-              height: 10,
-              borderRadius: 5,
+              height: 8,
+              borderRadius: 4,
               bgcolor: TRACK,
-              "& .MuiLinearProgress-bar": { bgcolor: color, borderRadius: 5 },
+              "& .MuiLinearProgress-bar": { bgcolor: color, borderRadius: 4 },
             }}
           />
         </Box>
@@ -165,7 +165,7 @@ const ScoreMeterCard = ({ label, value, computedAt, children }) => {
 
       {hasBreakdown && (
         <Collapse in={open} timeout="auto" unmountOnExit>
-          <Box sx={{ px: 2.5, pt: 2.5 }}>
+          <Box sx={{ px: 2, pt: 1.75 }}>
             <Stack spacing={2.5}>{children}</Stack>
           </Box>
         </Collapse>
@@ -174,7 +174,7 @@ const ScoreMeterCard = ({ label, value, computedAt, children }) => {
       {/* Footer sits at the bottom, so expanded detail nests above it. */}
       <Stack
         direction="row"
-        sx={{ justifyContent: "space-between", alignItems: "center", px: 2.5, pt: 1.75, pb: 2 }}
+        sx={{ justifyContent: "space-between", alignItems: "center", px: 2, pt: 1, pb: 1.25 }}
       >
         <Typography variant="caption" color="text.secondary">
           {computedAt ? `Computed ${timeAgo(computedAt)}` : "—"}
@@ -195,9 +195,9 @@ const AuthenticityCard = ({ value, summary, breakdown, flags }) => {
   const hasBreakdown = (breakdown && Object.keys(breakdown).length > 0) || hasFlags;
   return (
     <Box sx={cardSx}>
-      <Box sx={{ p: 2.5 }}>
+      <Box sx={{ p: 2 }}>
         <Stack direction="row" spacing={2} sx={{ justifyContent: "space-between", alignItems: "flex-start" }}>
-          <Typography sx={{ fontWeight: 700, fontSize: "1rem" }}>CV Authenticity</Typography>
+          <Typography sx={{ fontWeight: 700, fontSize: "0.775rem" }}>CV Authenticity</Typography>
           <Typography sx={{ fontWeight: 700, color: labelColor, flexShrink: 0, whiteSpace: "nowrap" }}>
             {badge.label}
           </Typography>
@@ -216,7 +216,7 @@ const AuthenticityCard = ({ value, summary, breakdown, flags }) => {
       {hasBreakdown && (
         <Collapse in={open} timeout="auto" unmountOnExit>
           <Divider sx={{ borderColor: CARD_BORDER }} />
-          <Box sx={{ p: 2.5 }}>
+          <Box sx={{ p: 2 }}>
             <Stack spacing={2}>
               <TrustBreakdown breakdown={breakdown} />
               {hasFlags && <KeyFlags flags={flags} />}
@@ -230,8 +230,8 @@ const AuthenticityCard = ({ value, summary, breakdown, flags }) => {
 
 /** Empty placeholder when a score family hasn't been computed yet. */
 const PendingCard = ({ label }) => (
-  <Box sx={{ ...cardSx, p: 2.5 }}>
-    <Typography sx={{ fontWeight: 700, fontSize: "1rem" }}>{label}</Typography>
+  <Box sx={{ ...cardSx, p: 2 }}>
+    <Typography sx={{ fontWeight: 700, fontSize: "0.775rem" }}>{label}</Typography>
     <Typography variant="caption" color="text.secondary">
       Not computed yet.
     </Typography>
@@ -582,7 +582,7 @@ const RubricRow = ({ label, value }) => {
       <Stack direction="row" spacing={1} sx={{ justifyContent: "space-between", alignItems: "center" }}>
         <Stack direction="row" spacing={1.25} sx={{ alignItems: "center", minWidth: 0 }}>
           <Box sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: GREEN, flexShrink: 0 }} />
-          <Typography sx={{ fontWeight: 700, color: GREEN, fontSize: "0.95rem" }}>{label}</Typography>
+          <Typography sx={{ fontWeight: 700, color: GREEN, fontSize: "0.725rem" }}>{label}</Typography>
         </Stack>
         {score != null && <Typography sx={{ fontWeight: 700, color: GREEN, flexShrink: 0 }}>{score}</Typography>}
       </Stack>

@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
-import Chip from "@mui/material/Chip";
 import Typography from "@mui/material/Typography";
 import { PIPELINE_COLUMNS, NEXT_STAGE, humanize } from "@/lib/kabil/constants";
 import CandidateCard from "./CandidateCard";
@@ -39,24 +38,41 @@ const StageColumn = ({ column, apps, jobTitle, onOpen, dragApp, onDragStart, onD
         transition: "opacity .15s ease",
       }}
     >
-      <Box
-        sx={{
-          borderRadius: 2,
-          bgcolor: "#fafbfb",
-          border: "1px solid #e7eae8",
-          borderTopWidth: 3,
-          borderTopColor: column.accent,
-          px: 1.5,
-          py: 1.25,
-          mb: 1.5,
-        }}
-      >
-        <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between" }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+      <Box sx={{ px: 0.5, mb: 1.5 }}>
+        <Stack
+          direction="row"
+          sx={{ alignItems: "center", justifyContent: "space-between", mb: 1 }}
+        >
+          <Typography sx={{ fontWeight: 700, fontSize: "0.9rem", color: "#2c3a34" }}>
             {column.label}
           </Typography>
-          <Chip size="small" label={apps.length} sx={{ fontWeight: 700, height: 22 }} />
+          {/* Final "Shortlist" column gets a dark badge; earlier stages orange. */}
+          <Box
+            sx={{
+              minWidth: 24,
+              height: 24,
+              px: 0.75,
+              borderRadius: 999,
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "0.72rem",
+              fontWeight: 700,
+              color: "#fff",
+              bgcolor: column.stage === "done" ? "#1c2522" : "#EF9F27",
+            }}
+          >
+            {String(apps.length).padStart(2, "0")}
+          </Box>
         </Stack>
+        <Box
+          sx={{
+            height: 3,
+            borderRadius: 2,
+            background:
+              "linear-gradient(90deg, #EF9F27 0%, rgba(239,159,39,0.18) 55%, rgba(239,159,39,0) 100%)",
+          }}
+        />
       </Box>
       <Stack
         spacing={1.5}

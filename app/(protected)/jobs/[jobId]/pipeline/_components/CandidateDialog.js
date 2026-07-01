@@ -98,16 +98,17 @@ const skillChipSx = {
   borderRadius: 999,
   color: "#2b3530",
   fontWeight: 500,
-  height: 32,
-  "& .MuiChip-label": { px: 1.75 },
+  fontSize: "0.655rem",
+  height: 28,
+  "& .MuiChip-label": { px: 1.5 },
 };
 
 /** Eyebrow stat card (Experience / Languages). */
 const StatCard = ({ icon, label, children }) => (
-  <Box sx={{ border: `1px solid ${PROFILE_BORDER}`, bgcolor: PROFILE_BG, borderRadius: 2.5, px: 2.5, py: 2.25 }}>
+  <Box sx={{ border: `1px solid ${PROFILE_BORDER}`, bgcolor: PROFILE_BG, borderRadius: 2.5, px: 2.5, py: 1.75 }}>
     <Stack direction="row" spacing={0.85} sx={{ alignItems: "center", mb: 1 }}>
       {icon}
-      <Typography sx={{ color: GREEN, fontWeight: 800, fontSize: 11, letterSpacing: 0.8 }}>{label}</Typography>
+      <Typography sx={{ color: GREEN, fontWeight: 800, fontSize: 10, letterSpacing: 0.8 }}>{label}</Typography>
     </Stack>
     {children}
   </Box>
@@ -123,8 +124,8 @@ const InfoCard = ({ children }) => (
 /** Green-icon column heading (Education / Work History). */
 const ProfileHeading = ({ icon: Icon, title }) => (
   <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-    <Icon sx={{ fontSize: 20, color: GREEN }} />
-    <Typography sx={{ fontWeight: 700, fontSize: 16 }}>{title}</Typography>
+    <Icon sx={{ fontSize: 18, color: GREEN }} />
+    <Typography sx={{ fontWeight: 700, fontSize: 11 }}>{title}</Typography>
   </Stack>
 );
 
@@ -154,7 +155,7 @@ const ParsedProfile = ({ profile }) => {
     stats.push(
       <StatCard key="exp" icon={<WorkOutlineIcon sx={{ fontSize: 18, color: GREEN }} />} label="EXPERIENCE">
         <Stack direction="row" spacing={0.75} sx={{ alignItems: "baseline" }}>
-          <Typography sx={{ fontSize: 30, fontWeight: 800, lineHeight: 1, color: "#1c2522" }}>{years}</Typography>
+          <Typography sx={{ fontSize: 18, fontWeight: 800, lineHeight: 1, color: "#1c2522" }}>{years}</Typography>
           <Typography sx={{ color: "text.secondary", fontWeight: 600 }}>{years === 1 ? "yr" : "yrs"}</Typography>
         </Stack>
       </StatCard>,
@@ -163,7 +164,7 @@ const ParsedProfile = ({ profile }) => {
   if (languages.length > 0) {
     stats.push(
       <StatCard key="lang" icon={<TranslateOutlinedIcon sx={{ fontSize: 18, color: GREEN }} />} label="LANGUAGES">
-        <Typography sx={{ fontWeight: 700, fontSize: 17, color: "#1c2522" }}>{languages.join(", ")}</Typography>
+        <Typography sx={{ fontWeight: 700, fontSize: 11, color: "#1c2522" }}>{languages.join(", ")}</Typography>
       </StatCard>,
     );
   }
@@ -172,14 +173,14 @@ const ParsedProfile = ({ profile }) => {
   const hiddenCount = skills.length - visibleSkills.length;
 
   return (
-    <Stack spacing={3.5}>
+    <Stack spacing={2.5}>
       {stats.length > 0 && (
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>{stats}</Box>
       )}
 
       {skills.length > 0 && (
         <Box>
-          <Typography sx={{ fontWeight: 700, fontSize: 16, mb: 1.25 }}>Skills</Typography>
+          <Typography sx={{ fontWeight: 700, fontSize: 11, mb: 1.25 }}>Skills</Typography>
           <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
             {visibleSkills.map((s, i) => (
               <Chip key={`${s}-${i}`} label={s} sx={skillChipSx} />
@@ -215,7 +216,7 @@ const ParsedProfile = ({ profile }) => {
                   const year = obj ? obj.year : "";
                   return (
                     <InfoCard key={i}>
-                      <Typography sx={{ fontWeight: 700, fontSize: 16, color: "#1c2522" }}>{degree}</Typography>
+                      <Typography sx={{ fontWeight: 700, fontSize: 11, color: "#1c2522" }}>{degree}</Typography>
                       {(inst || year) && (
                         <Typography variant="body2" color="text.secondary">
                           {[inst, year].filter(Boolean).join(" · ")}
@@ -249,7 +250,7 @@ const ParsedProfile = ({ profile }) => {
                           }}
                         />
                         <Box sx={{ minWidth: 0 }}>
-                          <Typography sx={{ fontWeight: 700, fontSize: 16, color: "#1c2522" }}>
+                          <Typography sx={{ fontWeight: 700, fontSize: 11, color: "#1c2522" }}>
                             {w.title || w.role || "Role"}
                           </Typography>
                           {sub && (
@@ -467,7 +468,7 @@ const InterviewSection = ({ interview }) => {
 
 /** Static field caption sitting above each contact input (mock style). */
 const FieldLabel = ({ children, required }) => (
-  <Typography component="label" sx={{ display: "block", fontWeight: 600, fontSize: 15, color: "#1c2522", mb: 0.85 }}>
+  <Typography component="label" sx={{ display: "block", fontWeight: 600, fontSize: 11, color: "#1c2522", mb: 0.85 }}>
     {children}
     {required && (
       <Box component="span" sx={{ color: "#d24a39", ml: 0.5 }}>
@@ -486,7 +487,7 @@ const contactFieldSx = {
     "&:hover fieldset": { borderColor: "#d8d3c4" },
     "&.Mui-focused fieldset": { borderColor: GREEN, borderWidth: 1 },
   },
-  "& .MuiOutlinedInput-input": { py: 1.6 },
+  "& .MuiOutlinedInput-input": { py: 1.05 },
 };
 
 /**
@@ -558,7 +559,7 @@ const DetailsTab = ({ appId, candidate, editable }) => {
         </Alert>
       )}
 
-      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, columnGap: 3, rowGap: 2.5 }}>
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, columnGap: 3, rowGap: 0 }}>
         <Box>
           <FieldLabel required>Full Name</FieldLabel>
           <TextField
@@ -690,8 +691,9 @@ const pillTabsSx = {
   "& .MuiTab-root": {
     textTransform: "none",
     fontWeight: 600,
+    fontSize: "0.675rem",
     minHeight: 0,
-    py: 1,
+    py: 0.85,
     px: { xs: 1.5, sm: 2.5 },
     borderRadius: 1.5,
     color: "text.secondary",
@@ -849,7 +851,22 @@ const CandidateDialog = ({ appId, open, onClose, readOnly = false }) => {
         <CloseIcon />
       </IconButton>
 
-      <DialogContent sx={{ p: 0 }}>
+      <DialogContent
+        sx={{
+          p: 0,
+          // Uniform shrink of the dialog's secondary text + controls.
+          "& .MuiTypography-body2": { fontSize: "0.72rem" },
+          "& .MuiTypography-caption": { fontSize: "0.66rem" },
+          "& .MuiTypography-overline": { fontSize: "0.6rem" },
+          "& .MuiTypography-subtitle2": { fontSize: "0.75rem" },
+          "& .MuiButton-root": { fontSize: "0.72rem" },
+          "& .MuiChip-root": { fontSize: "0.66rem" },
+          "& .MuiOutlinedInput-input": { fontSize: "0.655rem" },
+          "& .MuiFormLabel-root": { fontSize: "0.655rem" },
+          "& .MuiFormHelperText-root": { fontSize: "0.64rem" },
+          "& .MuiAlert-message": { fontSize: "0.72rem" },
+        }}
+      >
         {isError ? (
           <Box sx={{ p: 3 }}>
             <ErrorAlert error={error} />
@@ -861,16 +878,16 @@ const CandidateDialog = ({ appId, open, onClose, readOnly = false }) => {
         ) : (
           <Box>
             {/* Header banner */}
-            <Box sx={{ bgcolor: GREEN, color: "#fff", px: { xs: 2.5, sm: 3.5 }, py: 3 }}>
-              <Stack direction="row" spacing={2} sx={{ alignItems: "center", pr: 4 }}>
-                <Avatar sx={{ width: 56, height: 56, bgcolor: COLORS.gold, color: "#fff", fontWeight: 700, fontSize: 20 }}>
+            <Box sx={{ bgcolor: GREEN, color: "#fff", px: { xs: 2, sm: 3 }, py: 2 }}>
+              <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", pr: 4 }}>
+                <Avatar sx={{ width: 42, height: 42, bgcolor: COLORS.gold, color: "#fff", fontWeight: 700, fontSize: 11 }}>
                   {initials(candidate?.full_name)}
                 </Avatar>
                 <Box sx={{ minWidth: 0 }}>
-                  <Typography variant="h6" sx={{ fontWeight: 700, color: "#fff" }}>
+                  <Typography sx={{ fontWeight: 700, color: "#fff", fontSize: "0.825rem" }}>
                     {candidate?.full_name || "Candidate"}
                   </Typography>
-                  <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.82)" }}>
+                  <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.82)" }}>
                     Applied {timeAgo(app.created_at)}
                   </Typography>
                 </Box>
@@ -878,14 +895,14 @@ const CandidateDialog = ({ appId, open, onClose, readOnly = false }) => {
             </Box>
 
             {/* Body */}
-            <Box sx={{ px: { xs: 2.5, sm: 3.5 }, py: 3 }}>
+            <Box sx={{ px: { xs: 2, sm: 3 }, py: 1.75 }}>
               {/* Eyebrow + email + actions */}
               <Stack
                 direction="row"
                 sx={{ justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 1.5 }}
               >
                 <Box sx={{ minWidth: 0 }}>
-                  <Typography sx={{ color: GREEN, fontWeight: 800, fontSize: 12, letterSpacing: 0.6 }}>
+                  <Typography sx={{ color: GREEN, fontWeight: 800, fontSize: 11, letterSpacing: 0.6 }}>
                     {eyebrow}
                   </Typography>
                   {candidate?.email && (
@@ -927,7 +944,7 @@ const CandidateDialog = ({ appId, open, onClose, readOnly = false }) => {
 
               {/* Tabs */}
               {showTabs && (
-                <Box sx={{ display: "flex", justifyContent: "center", mt: 3 }}>
+                <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
                   <Tabs value={tab} onChange={(_e, v) => setTab(v)} sx={pillTabsSx}>
                     <Tab label="Scoring" />
                     <Tab label="Contact Details" />
@@ -938,27 +955,27 @@ const CandidateDialog = ({ appId, open, onClose, readOnly = false }) => {
 
               {/* Content */}
               {readOnly ? (
-                <Stack spacing={3} sx={{ mt: 3 }} divider={<Divider flexItem />}>
+                <Stack spacing={2} sx={{ mt: 2 }} divider={<Divider flexItem />}>
                   <CvScoreCard scores={app.scores} />
                   {app.interview && <InterviewSection interview={app.interview} />}
-                  <Stack spacing={3.5}>
+                  <Stack spacing={2.5}>
                     <ParsedProfile profile={candidate?.parsed_profile} />
                     {app.cv_document?.blob_url && <OpenCvButton doc={app.cv_document} />}
                   </Stack>
                   <ProfileExtras audit={audit} />
                 </Stack>
               ) : tab === 0 ? (
-                <Stack spacing={3} sx={{ mt: 3 }} divider={<Divider flexItem />}>
+                <Stack spacing={2} sx={{ mt: 2 }} divider={<Divider flexItem />}>
                   <CvScoreCard scores={app.scores} />
                   {app.interview && <InterviewSection interview={app.interview} />}
                   {moveCandidate}
                 </Stack>
               ) : tab === 1 ? (
-                <Box sx={{ mt: 3 }}>
+                <Box sx={{ mt: 2 }}>
                   <DetailsTab key={appId} appId={appId} candidate={candidate} editable={contactEditable} />
                 </Box>
               ) : (
-                <Stack spacing={3.5} sx={{ mt: 3 }}>
+                <Stack spacing={2.5} sx={{ mt: 2 }}>
                   <ParsedProfile profile={candidate?.parsed_profile} />
                   {app.cv_document?.blob_url && <OpenCvButton doc={app.cv_document} />}
                   <Divider />

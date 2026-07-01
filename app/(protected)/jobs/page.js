@@ -28,11 +28,16 @@ const TABS = [
   { label: "Archived", status: "archived" },
 ];
 
-/** 3-up responsive grid (1 / 2 / 3 columns). */
+/** Responsive grid (1 / 2 / 3 / 4 columns). */
 const grid = {
   display: "grid",
   gap: 2.5,
-  gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", md: "repeat(3, 1fr)" },
+  gridTemplateColumns: {
+    xs: "1fr",
+    sm: "1fr 1fr",
+    md: "repeat(3, 1fr)",
+    lg: "repeat(4, 1fr)",
+  },
 };
 
 const JobsGridSkeleton = () => (
@@ -70,10 +75,20 @@ const JobsPageInner = () => {
         }}
       >
         <SearchField
-          placeholder="Search jobs…"
+          placeholder="Search Jobs…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          sx={{ flex: 1, width: { xs: "100%", sm: "auto" } }}
+          sx={{
+            width: { xs: "100%", sm: 300 },
+            "& .MuiOutlinedInput-root": {
+              borderRadius: 2.5,
+              bgcolor: "#f2efe8",
+              py: 0,
+              "& fieldset": { border: "none" },
+              "&:hover fieldset": { border: "none" },
+              "&.Mui-focused fieldset": { border: "none" },
+            },
+          }}
         />
         <Button
           component={Link}

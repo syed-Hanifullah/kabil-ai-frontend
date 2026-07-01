@@ -21,6 +21,35 @@ import {
   LANGUAGES,
 } from "@/lib/kabil/jobOptions";
 
+// Detached rounded-pill styling for the ToggleButtonGroups (languages,
+// employment type, work mode). Selected pill fills with the brand green.
+const PILL_GROUP_SX = {
+  flexWrap: "wrap",
+  gap: 1.5,
+  "& .MuiToggleButtonGroup-grouped": {
+    borderRadius: "999px",
+    border: "1px solid #e4ddcd",
+    px: 3,
+    py: 0.9,
+    textTransform: "none",
+    fontWeight: 600,
+    color: "#3f4a44",
+    "&:not(:first-of-type)": {
+      ml: 0,
+      borderLeft: "1px solid #e4ddcd",
+    },
+    "&:hover": {
+      bgcolor: "#f2efe8",
+    },
+    "&.Mui-selected": {
+      bgcolor: "#0F6E56",
+      color: "#fff",
+      borderColor: "#0F6E56",
+      "&:hover": { bgcolor: "#0c5c48", borderColor: "#0c5c48" },
+    },
+  },
+};
+
 /** Responsive grid: `cols` columns on md+, single column on xs. */
 const Grid = ({ cols = 2, children }) => (
   <Box
@@ -246,7 +275,7 @@ const StepRoleBasics = () => {
                   <ToggleButtonGroup
                     value={field.value}
                     onChange={(_, v) => field.onChange(v)}
-                    fullWidth
+                    sx={PILL_GROUP_SX}
                   >
                     {LANGUAGES.map((lang) => (
                       <ToggleButton key={lang} value={lang}>
@@ -271,7 +300,7 @@ const StepRoleBasics = () => {
                     exclusive
                     value={field.value}
                     onChange={(_, v) => v && field.onChange(v)}
-                    fullWidth
+                    sx={PILL_GROUP_SX}
                   >
                     <ToggleButton value="permanent">Permanent</ToggleButton>
                     <ToggleButton value="contract">Contract</ToggleButton>
@@ -290,7 +319,7 @@ const StepRoleBasics = () => {
                     exclusive
                     value={field.value}
                     onChange={(_, v) => v && field.onChange(v)}
-                    fullWidth
+                    sx={PILL_GROUP_SX}
                   >
                     <ToggleButton value="onsite">Onsite</ToggleButton>
                     <ToggleButton value="hybrid">Hybrid</ToggleButton>

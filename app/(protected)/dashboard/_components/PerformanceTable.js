@@ -6,7 +6,6 @@ import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Typography from "@mui/material/Typography";
 import Stack from "@mui/material/Stack";
-import Chip from "@mui/material/Chip";
 import Skeleton from "@mui/material/Skeleton";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
@@ -14,21 +13,17 @@ import TableCell from "@mui/material/TableCell";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
 import MenuItem from "@mui/material/MenuItem";
 import TextField from "@mui/material/TextField";
-import {
-  jobHealthChip,
-  jobStatusColor,
-  humanize,
-  PIPELINE_BUCKETS,
-} from "@/lib/kabil/constants";
+import { jobHealthChip, humanize, PIPELINE_BUCKETS } from "@/lib/kabil/constants";
 import { useCandidatePipeline } from "@/lib/kabil/queries";
 import DonutChart from "./DonutChart";
 
 /**
- * The Performance card. Toggles between:
- *  - a table — one row per open job from `GET /dashboard/performance`
+ * The Performance card body. The "Performance" heading and table/chart toggle
+ * live in the dashboard page's section header; this component just renders the
+ * body for the `view` it's handed:
+ *  - a table — one row per non-draft job from `GET /dashboard/performance`
  *    (at-risk-first); each row links to that job's pipeline board.
  *  - a pie (donut) chart — "All Jobs" shows the health mix across every job in
  *    the payload; picking a single job shows that job's candidate pipeline
@@ -46,12 +41,26 @@ const HEAD_CELLS = [
   { key: "health", label: "Health", align: "right" },
 ];
 
+// Status dot color, keyed by JobStatus. Live roles read green; paused/ended
+// roles read orange; anything else is a muted grey.
+const STATUS_DOT = {
+  open: "#0F6E56",
+  closed: "#EF9F27",
+  inactive: "#EF9F27",
+  archived: "#8a948b",
+  draft: "#8a948b",
+};
+
+// Health verdict → text color. Healthy and Shortlisted read green (all good),
+// At Risk reads red — matching the Performance table's colored health column.
+const healthColor = (health) => (health === "at_risk" ? "error.main" : "success.main");
+
 // Health categories for the "All Jobs" donut, in fixed legend order. Values are
-// the backend JobHealth enum (see `jobHealthChip`); colors echo the chart mock.
+// the backend JobHealth enum (see `jobHealthChip`); colors echo the brand.
 const HEALTH_SEGMENTS = [
-  { key: "healthy", label: "Healthy", color: "#1f9d57" },
-  { key: "at_risk", label: "At Risk", color: "#c9a23f" },
-  { key: "shortlisted", label: "Shortlisted", color: "#2f7fd1" },
+  { key: "healthy", label: "Healthy", color: "#0F6E56" },
+  { key: "at_risk", label: "At Risk", color: "#EF9F27" },
+  { key: "shortlisted", label: "Shortlisted", color: "#37a07d" },
 ];
 
 /** Donut segments for the workspace-wide health distribution. */
@@ -70,13 +79,11 @@ const bucketSegments = (byBucket) =>
     value: byBucket?.[b.bucket] ?? 0,
   }));
 
-const PerformanceTable = ({ data, loading }) => {
+const PerformanceTable = ({ data, loading, view = "table" }) => {
   const router = useRouter();
-  const [view, setView] = useState("table");
   const [selectedJob, setSelectedJob] = useState(""); // "" = All Jobs
 
   const allRows = data?.rows ?? [];
-  const tableRows = allRows.filter((r) => r.status === "open");
 
   // Per-job pipeline — only fetched in chart mode with a specific job picked.
   const { data: pipeline, isLoading: pipelineLoading } = useCandidatePipeline(
@@ -91,34 +98,19 @@ const PerformanceTable = ({ data, loading }) => {
     : healthSegments(allRows);
 
   return (
-    <Card sx={{ borderRadius: 2.5, height: "100%" }}>
-      <CardContent sx={{ p: 2.5 }}>
-        <Stack
-          direction="row"
-          sx={{ alignItems: "flex-start", justifyContent: "space-between", gap: 1.5 }}
-        >
-          <Box>
-            <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.25 }}>
-              Performance
-            </Typography>
-            {!isChart && (
-              <Typography variant="body2" color="text.secondary">
-                Open roles, with the ones needing attention first.
-              </Typography>
-            )}
-          </Box>
-          <Button
-            variant="text"
-            size="small"
-            onClick={() => setView(isChart ? "table" : "chart")}
-            sx={{ textTransform: "none", fontWeight: 600, color: "#1f7a52", flexShrink: 0 }}
-          >
-            {isChart ? "View Table" : "View Pie Chart"}
-          </Button>
-        </Stack>
-
+    <Card sx={{ borderRadius: 2.5, height: "100%", display: "flex", flexDirection: "column" }}>
+      <CardContent
+        sx={{
+          p: 2,
+          flex: 1,
+          minHeight: 0,
+          display: "flex",
+          flexDirection: "column",
+          "&:last-child": { pb: 2 },
+        }}
+      >
         {isChart ? (
-          <Box sx={{ mt: 1 }}>
+          <Box>
             <Stack direction="row" sx={{ justifyContent: "flex-end", mb: 1 }}>
               <TextField
                 select
@@ -147,29 +139,41 @@ const PerformanceTable = ({ data, loading }) => {
             )}
           </Box>
         ) : loading ? (
-          <Stack spacing={1.25} sx={{ mt: 2 }}>
+          <Stack spacing={1.25}>
             {Array.from({ length: 4 }).map((_, i) => (
               <Skeleton key={i} variant="rounded" height={40} />
             ))}
           </Stack>
-        ) : tableRows.length === 0 ? (
+        ) : allRows.length === 0 ? (
           <Typography
             variant="body2"
             color="text.secondary"
-            sx={{ py: 3, textAlign: "center", mt: 2 }}
+            sx={{ py: 3, textAlign: "center" }}
           >
-            No open jobs yet.
+            No jobs yet.
           </Typography>
         ) : (
-          <Box sx={{ overflowX: "auto", mt: 2 }}>
-            <Table size="small" sx={{ "& td, & th": { borderColor: "divider" } }}>
+          <Box sx={{ overflow: "auto", flex: 1, minHeight: 0 }}>
+            <Table
+              size="small"
+              stickyHeader
+              sx={{ "& td, & th": { borderColor: "divider" } }}
+            >
               <TableHead>
                 <TableRow>
                   {HEAD_CELLS.map((c) => (
                     <TableCell
                       key={c.key}
                       align={c.align}
-                      sx={{ fontWeight: 700, color: "text.secondary", whiteSpace: "nowrap" }}
+                      sx={{
+                        fontWeight: 700,
+                        color: "text.secondary",
+                        whiteSpace: "nowrap",
+                        textTransform: "uppercase",
+                        letterSpacing: 0.4,
+                        fontSize: "0.7rem",
+                        bgcolor: "background.paper",
+                      }}
                     >
                       {c.label}
                     </TableCell>
@@ -177,37 +181,45 @@ const PerformanceTable = ({ data, loading }) => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {tableRows.map((r) => {
-                  const health = jobHealthChip(r.health);
-                  return (
-                    <TableRow
-                      key={r.job_id}
-                      hover
-                      onClick={() => router.push(`/jobs/${r.job_id}/pipeline`)}
-                      sx={{ cursor: "pointer", "&:last-child td": { border: 0 } }}
-                    >
-                      <TableCell sx={{ fontWeight: 600, maxWidth: 220 }}>
-                        <Typography variant="body2" noWrap sx={{ fontWeight: 600 }}>
-                          {r.title}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          size="small"
-                          variant="outlined"
-                          label={humanize(r.status)}
-                          color={jobStatusColor(r.status)}
+                {allRows.map((r) => (
+                  <TableRow
+                    key={r.job_id}
+                    hover
+                    onClick={() => router.push(`/jobs/${r.job_id}/pipeline`)}
+                    sx={{ cursor: "pointer", "&:last-child td": { border: 0 } }}
+                  >
+                    <TableCell sx={{ maxWidth: 220 }}>
+                      <Typography variant="body2" noWrap sx={{ fontWeight: 600 }}>
+                        {r.title}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
+                        <Box
+                          sx={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: "50%",
+                            flexShrink: 0,
+                            bgcolor: STATUS_DOT[r.status] ?? "#8a948b",
+                          }}
                         />
-                      </TableCell>
-                      <TableCell align="right">{r.candidates}</TableCell>
-                      <TableCell align="right">{r.shortlisted}</TableCell>
-                      <TableCell align="right">{r.days_open}</TableCell>
-                      <TableCell align="right">
-                        <Chip size="small" label={health.label} color={health.color} />
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                        <Typography variant="body2">{humanize(r.status)}</Typography>
+                      </Stack>
+                    </TableCell>
+                    <TableCell align="right">{r.candidates}</TableCell>
+                    <TableCell align="right">{r.shortlisted}</TableCell>
+                    <TableCell align="right">{r.days_open}</TableCell>
+                    <TableCell align="right">
+                      <Typography
+                        variant="body2"
+                        sx={{ fontWeight: 700, color: healthColor(r.health) }}
+                      >
+                        {jobHealthChip(r.health).label}
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           </Box>

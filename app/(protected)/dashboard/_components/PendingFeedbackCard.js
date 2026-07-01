@@ -26,10 +26,10 @@ const PendingFeedbackCard = () => {
 
   return (
     <Card sx={{ borderRadius: 2.5, height: "100%" }}>
-      <CardContent sx={{ p: 2.5 }}>
-        <Stack direction="row" spacing={1} sx={{ alignItems: "center", mb: 2 }}>
+      <CardContent sx={{ p: 2 }}>
+        <Stack direction="row" spacing={0.75} sx={{ alignItems: "center", mb: 1.75 }}>
           <PendingActionsOutlinedIcon fontSize="small" color="primary" />
-          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+          <Typography sx={{ fontWeight: 700, fontSize: "0.95rem" }}>
             Pending Feedback
           </Typography>
         </Stack>
@@ -46,7 +46,7 @@ const PendingFeedbackCard = () => {
           </Typography>
         ) : (
           <Stack spacing={1.25}>
-            {items.map((it) => (
+            {items.map((it, idx) => (
               <Stack
                 key={it.application_id}
                 direction="row"
@@ -57,7 +57,9 @@ const PendingFeedbackCard = () => {
                   gap: 1,
                   p: 1.25,
                   borderRadius: 2,
-                  bgcolor: "rgba(196,69,69,0.06)",
+                  // Only the oldest (first) row is tinted, so the most overdue
+                  // item stands out; the rest stay plain until hovered.
+                  bgcolor: idx === 0 ? "rgba(196,69,69,0.08)" : "transparent",
                   cursor: "pointer",
                   transition: "background-color .15s ease",
                   "&:hover": { bgcolor: "rgba(196,69,69,0.12)" },

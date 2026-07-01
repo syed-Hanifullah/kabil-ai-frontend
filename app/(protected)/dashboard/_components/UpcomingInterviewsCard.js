@@ -26,11 +26,11 @@ const UpcomingInterviewsCard = () => {
   const total = data?.total ?? 0;
 
   return (
-    <Card sx={{ borderRadius: 2.5, height: "100%" }}>
-      <CardContent sx={{ p: 2.5 }}>
-        <Stack direction="row" spacing={1} sx={{ alignItems: "center", mb: 2 }}>
+    <Card sx={{ borderRadius: 2.5, height: "100%", border: "1px solid", borderColor: "primary.main" }}>
+      <CardContent sx={{ p: 2 }}>
+        <Stack direction="row" spacing={0.75} sx={{ alignItems: "center", mb: 1.75 }}>
           <EventOutlinedIcon fontSize="small" color="primary" />
-          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+          <Typography sx={{ fontWeight: 700, fontSize: "0.95rem" }}>
             Upcoming Interviews
           </Typography>
         </Stack>

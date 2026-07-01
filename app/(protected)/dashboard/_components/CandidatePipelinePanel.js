@@ -68,15 +68,22 @@ const CandidatePipelinePanel = () => {
   const conversion = data?.conversion_rate ?? 0;
 
   return (
-    <Card sx={{ borderRadius: 2.5, height: "100%" }}>
-      <CardContent sx={{ p: 2.5 }}>
+    <Card
+      sx={{
+        borderRadius: 2.5,
+        height: "100%",
+        borderTop: "3px solid",
+        borderTopColor: "primary.main",
+      }}
+    >
+      <CardContent sx={{ p: 2 }}>
         <Stack
           direction="row"
-          sx={{ alignItems: "center", justifyContent: "space-between", gap: 1.5, mb: 2.5 }}
+          sx={{ alignItems: "center", justifyContent: "space-between", gap: 1.5, mb: 2 }}
         >
-          <Stack direction="row" spacing={1} sx={{ alignItems: "center", minWidth: 0 }}>
+          <Stack direction="row" spacing={0.75} sx={{ alignItems: "center", minWidth: 0 }}>
             <TimelineOutlinedIcon fontSize="small" color="primary" />
-            <Typography variant="h6" sx={{ fontWeight: 600 }} noWrap>
+            <Typography sx={{ fontWeight: 700, fontSize: "0.95rem" }} noWrap>
               Candidate Pipeline
             </Typography>
           </Stack>
@@ -134,7 +141,7 @@ const CandidatePipelinePanel = () => {
             <Skeleton variant="text" width={80} sx={{ fontSize: "1.5rem" }} />
           ) : (
             <>
-              <Typography variant="h5" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
+              <Typography sx={{ fontWeight: 700, lineHeight: 1.2, fontSize: "1.15rem" }}>
                 {conversion}%
               </Typography>
               <Typography variant="caption" color="text.secondary">

@@ -5,14 +5,21 @@ import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Avatar from "@mui/material/Avatar";
+import Badge from "@mui/material/Badge";
+import IconButton from "@mui/material/IconButton";
 import InputBase from "@mui/material/InputBase";
 import InputAdornment from "@mui/material/InputAdornment";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
+import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
 import { COLORS } from "@/lib/theme";
-import { useAuth } from "@/lib/auth/AuthContext";
 
-const initials = (name = "") =>
-  name.split(" ").map((p) => p[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
+// Dummy workspace/company shown in the top bar (the product is a single shared
+// workspace, so there's no per-user org name to read). Swap for real workspace
+// metadata once the API exposes it.
+const COMPANY = { name: "Salt Recruitment Growth Plan", initials: "SR" };
+
+// Warm beige used for the notification button and the company pill.
+const BEIGE = "#f1ece1";
 
 /** Long-form date shown under the page title, e.g. "Thursday, 25 May 2026". */
 const todayLabel = () =>
@@ -45,7 +52,6 @@ const pageTitle = (pathname) => {
 };
 
 const TopBar = () => {
-  const { user } = useAuth();
   const pathname = usePathname();
   const title = pageTitle(pathname);
 
@@ -56,7 +62,7 @@ const TopBar = () => {
         bgcolor: "background.default",
         borderBottom: `1px solid ${COLORS.sidebarBorder}`,
         px: 4,
-        py: 2,
+        py: 1.5,
         display: "flex",
         alignItems: "center",
         gap: 3,
@@ -64,10 +70,10 @@ const TopBar = () => {
     >
       {/* Title + date */}
       <Box sx={{ minWidth: 0 }}>
-        <Typography variant="h6" noWrap sx={{ fontWeight: 700, lineHeight: 1.2 }}>
+        <Typography noWrap sx={{ fontWeight: 700, lineHeight: 1.2, fontSize: "0.95rem" }}>
           {title}
         </Typography>
-        <Typography variant="caption" noWrap sx={{ color: "text.secondary" }}>
+        <Typography noWrap sx={{ color: "text.secondary", fontSize: "0.72rem" }}>
           {todayLabel()}
         </Typography>
       </Box>
@@ -91,27 +97,71 @@ const TopBar = () => {
           }
           sx={{
             px: 1.75,
-            py: 0.75,
+            py: 0.6,
             borderRadius: 2,
             bgcolor: "rgba(0,0,0,0.035)",
-            fontSize: 14,
+            fontSize: 13,
             "& .MuiInputBase-input": { p: 0 },
           }}
         />
       </Box>
 
-      <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", ml: "auto" }}>
-        <Box sx={{ textAlign: "right", display: { xs: "none", sm: "block" } }}>
-          <Typography variant="body2" noWrap sx={{ fontWeight: 600 }}>
-            {user?.full_name || "—"}
+      <Stack direction="row" spacing={1.25} sx={{ alignItems: "center", ml: "auto" }}>
+        {/* Notifications — visual shell; the feed isn't wired yet. */}
+        <Badge
+          variant="dot"
+          overlap="circular"
+          anchorOrigin={{ vertical: "top", horizontal: "right" }}
+          sx={{
+            "& .MuiBadge-badge": {
+              bgcolor: "secondary.main",
+              minWidth: 9,
+              height: 9,
+              borderRadius: "50%",
+              border: "2px solid",
+              borderColor: "background.default",
+            },
+          }}
+        >
+          <IconButton
+            aria-label="Notifications"
+            sx={{
+              width: 40,
+              height: 40,
+              bgcolor: BEIGE,
+              color: "primary.main",
+              "&:hover": { bgcolor: "#e8e2d5" },
+            }}
+          >
+            <NotificationsNoneOutlinedIcon fontSize="small" />
+          </IconButton>
+        </Badge>
+
+        {/* Company pill */}
+        <Stack
+          direction="row"
+          spacing={1}
+          sx={{
+            alignItems: "center",
+            bgcolor: BEIGE,
+            borderRadius: 999,
+            pl: 0.5,
+            pr: 1.5,
+            py: 0.5,
+          }}
+        >
+          <Avatar
+            sx={{ width: 30, height: 30, bgcolor: "secondary.main", color: "#fff", fontSize: 12, fontWeight: 700 }}
+          >
+            {COMPANY.initials}
+          </Avatar>
+          <Typography
+            noWrap
+            sx={{ fontWeight: 600, fontSize: "0.85rem", display: { xs: "none", sm: "block" } }}
+          >
+            {COMPANY.name}
           </Typography>
-          <Typography variant="caption" sx={{ color: COLORS.gold, fontWeight: 600, textTransform: "capitalize" }}>
-            {user?.role || ""}
-          </Typography>
-        </Box>
-        <Avatar sx={{ width: 36, height: 36, bgcolor: "primary.main", fontSize: 14 }}>
-          {initials(user?.full_name) || "?"}
-        </Avatar>
+        </Stack>
       </Stack>
     </Box>
   );

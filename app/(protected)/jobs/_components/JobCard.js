@@ -60,7 +60,7 @@ const STATUS_ACTIONS = {
 
 /** Status → pill label + colour tokens (dot, text, background). */
 const STATUS_PILL = {
-  open: { label: "Active", dot: "#1f9d57", text: "#13402d", bg: "#e7f1ea" },
+  open: { label: "Active", dot: "#0F6E56", text: "#0F6E56", bg: "#e6f1ec" },
   draft: { label: "Draft", dot: "#c9a23f", text: "#7a611a", bg: "#faf3e0" },
   inactive: { label: "Inactive", dot: "#e0524f", text: "#a3322f", bg: "#fdeceb" },
   archived: { label: "Archived", dot: "#9aa39e", text: "#5d635f", bg: "#eef0ef" },
@@ -124,8 +124,9 @@ const JobCard = ({ job }) => {
       variant="outlined"
       sx={{
         position: "relative",
-        borderRadius: 4,
+        borderRadius: 2,
         height: "100%",
+        minHeight: 300,
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
@@ -134,7 +135,7 @@ const JobCard = ({ job }) => {
         "&:hover": {
           transform: "translateY(-4px)",
           borderColor: "transparent",
-          boxShadow: "0 12px 28px -10px rgba(19,64,45,.35)",
+          boxShadow: "0 12px 28px -10px rgba(15,110,86,.32)",
         },
       }}
     >
@@ -197,7 +198,7 @@ const JobCard = ({ job }) => {
           "& .MuiCardActionArea-focusHighlight": { opacity: 0 },
         }}
       >
-        <CardContent sx={{ p: 3, height: "100%", display: "flex", flexDirection: "column" }}>
+        <CardContent sx={{ p: 2.5, height: "100%", display: "flex", flexDirection: "column" }}>
           {/* Header: title + company, status pill */}
           <Stack
             direction="row"
@@ -206,10 +207,9 @@ const JobCard = ({ job }) => {
           >
             <Box sx={{ minWidth: 0 }}>
               <Typography
-                variant="h6"
                 noWrap
                 title={job.title}
-                sx={{ fontWeight: 800, color: "#13402d", lineHeight: 1.2 }}
+                sx={{ fontWeight: 800, color: "primary.main", lineHeight: 1.2, fontSize: "1rem" }}
               >
                 {job.title}
               </Typography>
@@ -237,7 +237,7 @@ const JobCard = ({ job }) => {
           </Stack>
 
           {/* Key facts */}
-          <Stack spacing={1.25} sx={{ mt: 2.5 }}>
+          <Stack spacing={1} sx={{ mt: 2 }}>
             <Row icon={PlaceOutlinedIcon} text={`${job.city}, ${job.country}`} />
             <Row icon={WorkOutlineOutlinedIcon} text={humanize(job.work_mode)} />
             {salary && <Row icon={AttachMoneyIcon} text={salary} />}
@@ -245,7 +245,7 @@ const JobCard = ({ job }) => {
 
           {/* Skills */}
           {skills.length > 0 && (
-            <Stack direction="row" spacing={1} sx={{ mt: 2.5, flexWrap: "wrap", gap: 1 }}>
+            <Stack direction="row" spacing={1} sx={{ mt: 2, flexWrap: "wrap", gap: 1 }}>
               {skills.slice(0, MAX_SKILLS).map((skill) => (
                 <Chip
                   key={skill}
@@ -277,11 +277,11 @@ const JobCard = ({ job }) => {
           )}
 
           {/* Footer: pipeline tallies + age */}
-          <Box sx={{ mt: "auto", pt: 2.5 }}>
+          <Box sx={{ mt: "auto", pt: 2 }}>
             <Divider sx={{ borderColor: "#edf0ee" }} />
             <Stack
               direction="row"
-              sx={{ mt: 2, alignItems: "baseline", justifyContent: "space-between" }}
+              sx={{ mt: 1.5, alignItems: "baseline", justifyContent: "space-between" }}
             >
               <Stat value={applied} label="Applied" />
               <Stat value={shortlisted} label="Shortlisted" />
@@ -302,16 +302,16 @@ const JobCard = ({ job }) => {
 
 const Row = ({ icon: Icon, text }) => (
   <Stack direction="row" spacing={1.25} sx={{ color: "text.secondary", alignItems: "center" }}>
-    <Icon sx={{ fontSize: 20, color: "#7d8a82" }} />
-    <Typography variant="body1" noWrap title={text} sx={{ color: "#4a5650" }}>
+    <Icon sx={{ fontSize: 18, color: "#7d8a82" }} />
+    <Typography variant="body2" noWrap title={text} sx={{ color: "#4a5650" }}>
       {text}
     </Typography>
   </Stack>
 );
 
 const Stat = ({ value, label }) => (
-  <Typography variant="body1" color="text.secondary">
-    <Box component="span" sx={{ fontWeight: 800, color: "#13402d", mr: 0.75 }}>
+  <Typography variant="body2" color="text.secondary">
+    <Box component="span" sx={{ fontWeight: 800, color: "primary.main", mr: 0.75 }}>
       {value}
     </Box>
     {label}
@@ -320,8 +320,8 @@ const Stat = ({ value, label }) => (
 
 /** Loading placeholder that mirrors the JobCard layout. */
 export const JobCardSkeleton = () => (
-  <Card variant="outlined" sx={{ borderRadius: 4, height: "100%", borderColor: "#e7eae8" }}>
-    <CardContent sx={{ p: 3 }}>
+  <Card variant="outlined" sx={{ borderRadius: "1px", height: "100%", minHeight: 350, borderColor: "#e7eae8" }}>
+    <CardContent sx={{ p: 2 }}>
       <Stack direction="row" spacing={1} sx={{ justifyContent: "space-between" }}>
         <Box sx={{ flexGrow: 1, minWidth: 0 }}>
           <Skeleton variant="text" width="70%" height={30} />

@@ -14,15 +14,19 @@ import InputAdornment from "@mui/material/InputAdornment";
 import Skeleton from "@mui/material/Skeleton";
 import Breadcrumbs from "@mui/material/Breadcrumbs";
 import MuiLink from "@mui/material/Link";
-import Tabs from "@mui/material/Tabs";
-import Tab from "@mui/material/Tab";
 import Snackbar from "@mui/material/Snackbar";
 import Alert from "@mui/material/Alert";
 import SearchIcon from "@mui/icons-material/Search";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import ArrowRightAltIcon from "@mui/icons-material/ArrowRightAlt";
 import CircleIcon from "@mui/icons-material/Circle";
-import IosShareOutlinedIcon from "@mui/icons-material/IosShareOutlined";
+import PlaceOutlinedIcon from "@mui/icons-material/PlaceOutlined";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
+import HighlightOffIcon from "@mui/icons-material/HighlightOff";
+import ShareOutlinedIcon from "@mui/icons-material/ShareOutlined";
+import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
+import LinkedInIcon from "@mui/icons-material/LinkedIn";
+import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 import EmptyState from "@/components/EmptyState";
 import ErrorAlert from "@/components/ErrorAlert";
 import {
@@ -31,7 +35,7 @@ import {
   useMoveStage,
   useSetStatus,
 } from "@/lib/kabil/queries";
-import { PIPELINE_COLUMNS, humanize, stageLabel } from "@/lib/kabil/constants";
+import { PIPELINE_COLUMNS, humanize, stageLabel, toScore } from "@/lib/kabil/constants";
 import { countryLabel } from "@/lib/kabil/jobOptions";
 import PipelineBoard from "./_components/PipelineBoard";
 import RejectedList from "./_components/RejectedList";
@@ -39,15 +43,95 @@ import CandidateDialog from "./_components/CandidateDialog";
 
 const pctOf = (n, total) => (total ? Math.round((n / total) * 100) : 0);
 
-/** Compact styling for the header Share button. */
-const smallActionSx = {
-  py: 0.125,
-  px: 0.85,
-  minHeight: 26,
-  fontSize: "0.6875rem",
-  lineHeight: 1.4,
-  "& .MuiButton-startIcon": { mr: 0.4 },
+/** Shared compact styling for the header action buttons (Share/TP/LinkedIn/Export). */
+const PILL_BTN_SX = {
+  textTransform: "none",
+  fontWeight: 600,
+  fontSize: "0.78rem",
+  borderRadius: 999,
+  px: 1.5,
+  minHeight: 34,
+  boxShadow: "none",
+  whiteSpace: "nowrap",
+  "& .MuiButton-startIcon": { mr: 0.5 },
+  "& .MuiButton-startIcon > *:first-of-type": { fontSize: 16 },
 };
+const BEIGE_BTN_SX = {
+  ...PILL_BTN_SX,
+  bgcolor: "#f1ece1",
+  color: "#4a4a4a",
+  "&:hover": { bgcolor: "#e8e1d2", boxShadow: "none" },
+  "&.Mui-disabled": { bgcolor: "#f3f1ec", color: "#b7b2a6" },
+};
+const GREEN_BTN_SX = {
+  ...PILL_BTN_SX,
+  bgcolor: "#fff",
+  color: "#0F6E56",
+  border: "1px solid #0F6E56",
+  "&:hover": { bgcolor: "#e6f1ec", border: "1px solid #0F6E56" },
+};
+const LINKEDIN_BTN_SX = {
+  ...PILL_BTN_SX,
+  bgcolor: "#fff",
+  color: "#2f6fb0",
+  border: "1px solid #9db8d6",
+  "&:hover": { bgcolor: "#eef4fb", border: "1px solid #2f6fb0" },
+};
+
+/** Accepted / Rejected filter pill in the header. */
+const TabPill = ({ selected, label, count, icon: Icon, onSelect }) => (
+  <Box
+    role="button"
+    tabIndex={0}
+    onClick={onSelect}
+    onKeyDown={(e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        onSelect();
+      }
+    }}
+    sx={{
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 0.5,
+      px: 1.25,
+      py: 0.5,
+      borderRadius: 999,
+      cursor: "pointer",
+      userSelect: "none",
+      fontWeight: 600,
+      fontSize: "0.8rem",
+      border: "1px solid",
+      borderColor: selected ? "transparent" : "#e4ddcd",
+      bgcolor: selected ? "#e6f1ec" : "#faf8f3",
+      color: selected ? "#0F6E56" : "#5f6b66",
+      transition: "background-color .15s ease, color .15s ease, border-color .15s ease",
+      "&:hover": { bgcolor: selected ? "#e6f1ec" : "#f2efe8" },
+      "&:focus-visible": { outline: "2px solid #0F6E56", outlineOffset: 2 },
+    }}
+  >
+    <Icon sx={{ fontSize: 15 }} />
+    {label}
+    <Box
+      component="span"
+      sx={{
+        minWidth: 20,
+        height: 20,
+        px: 0.5,
+        borderRadius: 999,
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: "0.7rem",
+        fontWeight: 700,
+        bgcolor: selected ? "#0F6E56" : "#eceae3",
+        color: selected ? "#fff" : "#5f6b66",
+      }}
+    >
+      {count}
+    </Box>
+  </Box>
+);
 
 /** Compact pipeline funnel above the board. */
 const SummaryStrip = ({ counts, applied }) => (
@@ -177,6 +261,45 @@ const PipelinePage = ({ params }) => {
     }
   };
 
+  // Open LinkedIn's share composer pre-filled with the public apply link.
+  const shareLinkedIn = () => {
+    if (!applyUrl) {
+      setToast({ severity: "error", msg: "No public link available for this job yet." });
+      return;
+    }
+    window.open(
+      `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(applyUrl)}`,
+      "_blank",
+      "noopener,noreferrer",
+    );
+  };
+
+  // Client-side CSV of the currently-loaded applicants (no backend round-trip).
+  const exportCsv = () => {
+    if (!items.length) {
+      setToast({ severity: "error", msg: "No applicants to export yet." });
+      return;
+    }
+    const headers = ["Name", "Email", "Stage", "Status", "Score", "Applied"];
+    const esc = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const rows = items.map((a) => [
+      a.candidate_full_name,
+      a.candidate_email,
+      stageLabel(a.stage),
+      humanize(a.status),
+      toScore(a.hard_filter_score) ?? toScore(a.similarity_score) ?? "",
+      a.created_at,
+    ]);
+    const csv = [headers, ...rows].map((r) => r.map(esc).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${(job?.title || "applicants").replace(/\s+/g, "-").toLowerCase()}-pipeline.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleMove = (app, stage) => {
     moveStage.mutate(
       { appId: app.id, stage },
@@ -242,115 +365,148 @@ const PipelinePage = ({ params }) => {
           {jobLoading ? (
             <Skeleton variant="text" width="50%" height={32} />
           ) : (
-            <Stack spacing={2}>
-              {/* Title + actions pinned to the far right */}
+            <Stack spacing={1.5}>
+              {/* Left: title + status + location + Accepted/Rejected.  Right: search + actions. */}
               <Stack
-                direction="row"
+                direction={{ xs: "column", md: "row" }}
                 spacing={2}
-                sx={{ justifyContent: "space-between", alignItems: "flex-start" }}
+                sx={{ justifyContent: "space-between", alignItems: { xs: "stretch", md: "flex-start" } }}
               >
                 <Box sx={{ minWidth: 0, flexGrow: 1 }}>
                   <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }}>
-                    <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                    <Typography sx={{ fontWeight: 700, fontSize: "1.15rem", color: "#1c2522" }}>
                       {job?.title ?? "Pipeline"}
                     </Typography>
                     {job && (
-                      <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
+                      <Stack
+                        direction="row"
+                        spacing={0.5}
+                        sx={{
+                          alignItems: "center",
+                          px: 0.9,
+                          py: 0.2,
+                          borderRadius: 999,
+                          bgcolor: job.status === "open" ? "#e6f1ec" : "#eef0ef",
+                        }}
+                      >
                         <CircleIcon
                           sx={{
-                            fontSize: 10,
-                            color: job.status === "open" ? "success.main" : "text.disabled",
+                            fontSize: 8,
+                            color: job.status === "open" ? "#0F6E56" : "text.disabled",
                           }}
                         />
-                        <Typography variant="body2" color="text.secondary">
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            fontWeight: 700,
+                            color: job.status === "open" ? "#0F6E56" : "text.secondary",
+                          }}
+                        >
                           {humanize(job.status)}
                         </Typography>
                       </Stack>
                     )}
                   </Stack>
                   {job && (
-                    <Typography color="text.secondary" sx={{ mt: 0.5 }}>
-                      {job.hiring_company} · {job.city}, {countryLabel(job.country)} · {total}{" "}
-                      applicant{total === 1 ? "" : "s"}
-                    </Typography>
+                    <Stack
+                      direction="row"
+                      spacing={0.5}
+                      sx={{ alignItems: "center", mt: 0.25, color: "text.secondary" }}
+                    >
+                      <PlaceOutlinedIcon sx={{ fontSize: 15 }} />
+                      <Typography variant="caption" sx={{ fontSize: "0.78rem" }}>
+                        {job.hiring_company} · {job.city}, {countryLabel(job.country)} · {total}{" "}
+                        applicant{total === 1 ? "" : "s"}
+                      </Typography>
+                    </Stack>
+                  )}
+                  {ready && (
+                    <Stack direction="row" spacing={1} sx={{ mt: 1.25, flexWrap: "wrap", gap: 1 }}>
+                      <TabPill
+                        selected={tab === "accepted"}
+                        label="Accepted"
+                        count={acceptedItems.length}
+                        icon={CheckCircleOutlineIcon}
+                        onSelect={() => setTab("accepted")}
+                      />
+                      <TabPill
+                        selected={tab === "rejected"}
+                        label="Rejected"
+                        count={rejectedItems.length}
+                        icon={HighlightOffIcon}
+                        onSelect={() => setTab("rejected")}
+                      />
+                    </Stack>
                   )}
                 </Box>
 
-                <Stack direction="row" spacing={0.75} sx={{ flexShrink: 0 }}>
-                  <Button
+                {/* Search + actions */}
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  sx={{ flexShrink: 0, flexWrap: "wrap", gap: 1, alignItems: "center" }}
+                >
+                  <TextField
                     size="small"
-                    variant="contained"
-                    startIcon={<IosShareOutlinedIcon sx={{ fontSize: 14 }} />}
+                    placeholder="Search by name, job…"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    sx={{
+                      width: { xs: "100%", sm: 220 },
+                      "& .MuiOutlinedInput-root": { borderRadius: 999 },
+                    }}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <SearchIcon fontSize="small" />
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                  <Button
+                    variant="text"
+                    startIcon={<ShareOutlinedIcon />}
                     onClick={share}
                     disabled={!job?.public_slug}
-                    sx={smallActionSx}
+                    sx={BEIGE_BTN_SX}
                   >
                     Share
+                  </Button>
+                  <Button
+                    component={Link}
+                    href="/talent-pool"
+                    variant="outlined"
+                    startIcon={<PeopleAltOutlinedIcon />}
+                    sx={GREEN_BTN_SX}
+                  >
+                    TP Matches
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    startIcon={<LinkedInIcon />}
+                    onClick={shareLinkedIn}
+                    disabled={!job?.public_slug}
+                    sx={LINKEDIN_BTN_SX}
+                  >
+                    LinkedIn
+                  </Button>
+                  <Button
+                    variant="text"
+                    startIcon={<FileDownloadOutlinedIcon />}
+                    onClick={exportCsv}
+                    disabled={!total}
+                    sx={BEIGE_BTN_SX}
+                  >
+                    Export
                   </Button>
                 </Stack>
               </Stack>
 
-              {/* Search + pipeline funnel */}
-              <Stack
-                direction={{ xs: "column", md: "row" }}
-                spacing={1.5}
-                sx={{ alignItems: { xs: "stretch", md: "center" } }}
-              >
-                <TextField
-                  size="small"
-                  placeholder="Search by name or email…"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  sx={{ width: { xs: "100%", sm: 260 } }}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon fontSize="small" />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-                {ready && <SummaryStrip counts={counts} applied={acceptedItems.length} />}
-              </Stack>
+              {ready && <SummaryStrip counts={counts} applied={acceptedItems.length} />}
             </Stack>
           )}
         </CardContent>
       </Card>
-
-      {/* Accepted / Rejected tabs */}
-      {ready && (
-        <Tabs
-          value={tab}
-          onChange={(_e, v) => setTab(v)}
-          sx={{ borderBottom: "1px solid", borderColor: "divider", minHeight: 0 }}
-        >
-          <Tab
-            value="accepted"
-            sx={{ textTransform: "none", minHeight: 44 }}
-            label={
-              <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-                <span>Accepted</span>
-                <Chip size="small" label={acceptedItems.length} sx={{ height: 20, fontWeight: 700 }} />
-              </Stack>
-            }
-          />
-          <Tab
-            value="rejected"
-            sx={{ textTransform: "none", minHeight: 44 }}
-            label={
-              <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-                <span>Rejected</span>
-                <Chip
-                  size="small"
-                  color={rejectedItems.length ? "error" : "default"}
-                  label={rejectedItems.length}
-                  sx={{ height: 20, fontWeight: 700 }}
-                />
-              </Stack>
-            }
-          />
-        </Tabs>
-      )}
 
       {/* Body */}
       {isError ? (
