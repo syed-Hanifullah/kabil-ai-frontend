@@ -13,125 +13,77 @@ import IconButton from "@mui/material/IconButton";
 import CircularProgress from "@mui/material/CircularProgress";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
-import BoltOutlinedIcon from "@mui/icons-material/BoltOutlined";
-import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
-import InsightsOutlinedIcon from "@mui/icons-material/InsightsOutlined";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { COLORS } from "@/lib/theme";
 import ErrorAlert from "@/components/ErrorAlert";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const HIGHLIGHTS = [
-  {
-    icon: <GroupsOutlinedIcon fontSize="small" />,
-    title: "One pipeline for every role",
-    body: "Track candidates from CV to offer in a single shared view.",
-  },
-  {
-    icon: <BoltOutlinedIcon fontSize="small" />,
-    title: "AI-assisted screening",
-    body: "Score and shortlist applicants the moment they apply.",
-  },
-  {
-    icon: <InsightsOutlinedIcon fontSize="small" />,
-    title: "Hiring insights at a glance",
-    body: "See where every job stands without chasing spreadsheets.",
-  },
-];
-
-/** Forest-green brand panel shown alongside the form on larger screens. */
-const BrandPanel = () => (
+/**
+ * Diamond hero image wrapped in a soft gold radiance.
+ * Radiance spec (from design): #EF9F27 @ 50% opacity, layer blur 100.
+ */
+const HeroPanel = () => (
   <Box
     sx={{
       position: "relative",
-      overflow: "hidden",
       display: { xs: "none", md: "flex" },
-      flexDirection: "column",
-      justifyContent: "space-between",
+      alignItems: "center",
+      justifyContent: "center",
       flex: 1,
-      p: 6,
-      color: "#eef2ef",
-      background: `linear-gradient(165deg, ${COLORS.sidebarBg} 0%, #0d2b1f 100%)`,
+      minWidth: 0,
+      px: 6,
     }}
   >
-    {/* Decorative gold glow */}
+    {/* Gold radiance behind the diamond */}
     <Box
       aria-hidden
       sx={{
         position: "absolute",
-        top: -120,
-        right: -120,
-        width: 360,
-        height: 360,
-        borderRadius: "50%",
-        background: `radial-gradient(circle, ${COLORS.gold}33 0%, transparent 70%)`,
+        width: { md: 360, lg: 440 },
+        height: { md: 360, lg: 440 },
+        transform: "rotate(45deg)",
+        borderRadius: 8,
+        bgcolor: `${COLORS.gold}80`,
+        filter: "blur(100px)",
         pointerEvents: "none",
       }}
     />
 
     <Box
+      component="img"
+      src="/LoginImage.png"
+      alt="Qabil"
       sx={{
-        alignSelf: "flex-start",
-        bgcolor: "#fff",
-        borderRadius: 2,
-        px: 2.5,
-        py: 1.5,
+        position: "relative",
+        width: "100%",
+        maxWidth: { md: 380, lg: 460 },
+        height: "auto",
+        display: "block",
       }}
-    >
-      <Box
-        component="img"
-        src="/Qabil_logo.svg"
-        alt="Qabil"
-        sx={{ height: 44, width: "auto", display: "block" }}
-      />
-    </Box>
-
-    <Box sx={{ maxWidth: 420 }}>
-      <Typography
-        variant="h4"
-        sx={{ lineHeight: 1.25, mb: 1.5, fontWeight: 700 }}
-      >
-        Hire with clarity, from first CV to final offer.
-      </Typography>
-      <Typography variant="body1" sx={{ color: "#b9c7bf", mb: 4 }}>
-        The HR console that keeps your whole team aligned on every candidate.
-      </Typography>
-
-      <Stack spacing={2.5}>
-        {HIGHLIGHTS.map((item) => (
-          <Stack key={item.title} direction="row" spacing={2}>
-            <Box
-              sx={{
-                mt: 0.25,
-                width: 34,
-                height: 34,
-                flexShrink: 0,
-                borderRadius: 1.5,
-                display: "grid",
-                placeItems: "center",
-                bgcolor: "#ffffff14",
-                color: COLORS.goldSoft,
-              }}
-            >
-              {item.icon}
-            </Box>
-            <Box>
-              <Typography sx={{ fontWeight: 600 }}>{item.title}</Typography>
-              <Typography variant="body2" sx={{ color: "#9fb1a7" }}>
-                {item.body}
-              </Typography>
-            </Box>
-          </Stack>
-        ))}
-      </Stack>
-    </Box>
-
-    <Typography variant="caption" sx={{ color: "#7d9088" }}>
-      © {new Date().getFullYear()} Qabil.ai — All rights reserved.
-    </Typography>
+    />
   </Box>
 );
+
+/** Labelled outlined field matching the design (label above the input). */
+const Field = ({ label, children }) => (
+  <Box>
+    <Typography
+      component="label"
+      sx={{ display: "block", mb: 1, fontWeight: 600, fontSize: 13 }}
+    >
+      {label}
+    </Typography>
+    {children}
+  </Box>
+);
+
+const FIELD_SX = {
+  "& .MuiOutlinedInput-root": {
+    borderRadius: 2.5,
+    bgcolor: "#fff",
+  },
+};
 
 const LoginForm = () => {
   const router = useRouter();
@@ -167,14 +119,15 @@ const LoginForm = () => {
       sx={{
         display: "flex",
         flex: 1,
+        minWidth: 0,
         alignItems: "center",
         justifyContent: "center",
-        p: { xs: 3, sm: 6 },
-        bgcolor: "background.default",
+        px: { xs: 3, sm: 6, md: 8 },
+        py: 6,
       }}
     >
-      <Box sx={{ width: "100%", maxWidth: 380 }}>
-        {/* Compact brand mark — only visible when the side panel is hidden */}
+      <Box sx={{ width: "100%", maxWidth: 440 }}>
+        {/* Compact brand mark — only visible when the hero panel is hidden */}
         <Box sx={{ display: { md: "none" }, mb: 4 }}>
           <Box
             component="img"
@@ -184,68 +137,74 @@ const LoginForm = () => {
           />
         </Box>
 
-        <Typography variant="h5" sx={{ mb: 0.5, fontWeight: 700 }}>
+        <Typography
+          variant="h4"
+          sx={{ mb: 4, fontWeight: 500, textAlign: "center" }}
+        >
           Welcome back
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          Sign in to the HR console to continue.
         </Typography>
 
         <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate>
           <Stack spacing={2.5}>
             <ErrorAlert error={serverError} />
 
-            <TextField
-              label="Email"
-              type="email"
-              autoComplete="email"
-              autoFocus
-              fullWidth
-              disabled={isSubmitting}
-              error={!!errors.email}
-              helperText={errors.email?.message}
-              {...register("email", {
-                required: "Email is required",
-                pattern: {
-                  value: EMAIL_PATTERN,
-                  message: "Enter a valid email address",
-                },
-              })}
-            />
+            <Field label="Work email">
+              <TextField
+                type="email"
+                autoComplete="email"
+                autoFocus
+                fullWidth
+                placeholder="you@company.com"
+                disabled={isSubmitting}
+                error={!!errors.email}
+                helperText={errors.email?.message}
+                sx={FIELD_SX}
+                {...register("email", {
+                  required: "Email is required",
+                  pattern: {
+                    value: EMAIL_PATTERN,
+                    message: "Enter a valid email address",
+                  },
+                })}
+              />
+            </Field>
 
-            <TextField
-              label="Password"
-              type={showPassword ? "text" : "password"}
-              autoComplete="current-password"
-              fullWidth
-              disabled={isSubmitting}
-              error={!!errors.password}
-              helperText={errors.password?.message}
-              slotProps={{
-                input: {
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton
-                        aria-label={
-                          showPassword ? "Hide password" : "Show password"
-                        }
-                        onClick={() => setShowPassword((v) => !v)}
-                        edge="end"
-                      >
-                        {showPassword ? <VisibilityOff /> : <Visibility />}
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                },
-              }}
-              {...register("password", {
-                required: "Password is required",
-                minLength: {
-                  value: 8,
-                  message: "Password must be at least 8 characters",
-                },
-              })}
-            />
+            <Field label="Password">
+              <TextField
+                type={showPassword ? "text" : "password"}
+                autoComplete="current-password"
+                fullWidth
+                placeholder="At least 8 characters"
+                disabled={isSubmitting}
+                error={!!errors.password}
+                helperText={errors.password?.message}
+                sx={FIELD_SX}
+                slotProps={{
+                  input: {
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          aria-label={
+                            showPassword ? "Hide password" : "Show password"
+                          }
+                          onClick={() => setShowPassword((v) => !v)}
+                          edge="end"
+                        >
+                          {showPassword ? <VisibilityOff /> : <Visibility />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  },
+                }}
+                {...register("password", {
+                  required: "Password is required",
+                  minLength: {
+                    value: 8,
+                    message: "Password must be at least 8 characters",
+                  },
+                })}
+              />
+            </Field>
 
             <Button
               type="submit"
@@ -253,7 +212,7 @@ const LoginForm = () => {
               size="large"
               disabled={isSubmitting}
               fullWidth
-              sx={{ py: 1.25 }}
+              sx={{ py: 1.5, borderRadius: 2.5, mt: 1 }}
               startIcon={
                 isSubmitting ? (
                   <CircularProgress size={18} color="inherit" />
@@ -270,8 +229,51 @@ const LoginForm = () => {
 };
 
 const LoginPage = () => (
-  <Box sx={{ display: "flex", minHeight: "100dvh" }}>
-    <BrandPanel />
+  <Box
+    sx={{
+      position: "relative",
+      display: "flex",
+      minHeight: "100dvh",
+      bgcolor: "#fff",
+      overflow: "hidden",
+    }}
+  >
+    {/* Faint brand watermark behind the form */}
+    <Box
+      aria-hidden
+      component="img"
+      src="/Qabil_logo.svg"
+      alt=""
+      sx={{
+        position: "absolute",
+        top: "50%",
+        right: "-4%",
+        transform: "translateY(-50%)",
+        width: 480,
+        maxWidth: "45%",
+        opacity: 0.04,
+        pointerEvents: "none",
+        display: { xs: "none", md: "block" },
+      }}
+    />
+
+    {/* Logo — top-left */}
+    <Box
+      component="img"
+      src="/Qabil_logo.svg"
+      alt="Qabil"
+      sx={{
+        position: "absolute",
+        top: 32,
+        left: 40,
+        height: 40,
+        width: "auto",
+        zIndex: 2,
+        display: { xs: "none", md: "block" },
+      }}
+    />
+
+    <HeroPanel />
     <Suspense>
       <LoginForm />
     </Suspense>
