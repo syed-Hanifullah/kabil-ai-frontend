@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import Stack from "@mui/material/Stack";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
@@ -14,6 +15,7 @@ import IconButton from "@mui/material/IconButton";
 import CircularProgress from "@mui/material/CircularProgress";
 import MenuItem from "@mui/material/MenuItem";
 import TextField from "@mui/material/TextField";
+import Tooltip from "@mui/material/Tooltip";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
@@ -23,10 +25,10 @@ import CloseIcon from "@mui/icons-material/Close";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import CloudUploadOutlinedIcon from "@mui/icons-material/CloudUploadOutlined";
 import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
-import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
+import BoltOutlinedIcon from "@mui/icons-material/BoltOutlined";
 import TrendingUpOutlinedIcon from "@mui/icons-material/TrendingUpOutlined";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
-import FilterAltOffOutlinedIcon from "@mui/icons-material/FilterAltOffOutlined";
+import FilterAltOutlinedIcon from "@mui/icons-material/FilterAltOutlined";
 import EmptyState from "@/components/EmptyState";
 import ErrorAlert from "@/components/ErrorAlert";
 import SearchField from "@/components/SearchField";
@@ -52,28 +54,29 @@ const SEARCH_DEBOUNCE_MS = 350;
 
 const HEAD_CELLS = ["Candidate", "Role", "AI Score", "Source", "Status", ""];
 
-const STAT_TILE = (accent) => ({
-  width: 40,
-  height: 40,
-  borderRadius: 2,
+// Uniform soft-cream circle for every stat icon, matching the reference.
+const STAT_TILE = {
+  width: 44,
+  height: 44,
+  borderRadius: "50%",
   flexShrink: 0,
   display: "grid",
   placeItems: "center",
-  bgcolor: `${accent}1A`,
-  color: accent,
-});
+  bgcolor: "#fbecd4",
+  color: "#EF9F27",
+};
 
-const PoolStat = ({ icon: Icon, accent, value, label, loading }) => (
-  <Card sx={{ borderRadius: 2 }}>
+const PoolStat = ({ icon: Icon, value, label, loading }) => (
+  <Card sx={{ borderRadius: 2.5 }}>
     <CardContent sx={{ p: 2, display: "flex", gap: 1.5, alignItems: "center", "&:last-child": { pb: 2 } }}>
-      <Box sx={STAT_TILE(accent)}>
+      <Box sx={STAT_TILE}>
         <Icon fontSize="small" />
       </Box>
       <Box sx={{ minWidth: 0 }}>
         {loading ? (
           <Skeleton variant="text" width={32} sx={{ fontSize: "1.4rem" }} />
         ) : (
-          <Typography variant="h6" sx={{ fontWeight: 800, lineHeight: 1.1 }}>
+          <Typography sx={{ fontWeight: 800, lineHeight: 1.1, fontSize: "1.4rem" }}>
             {value}
           </Typography>
         )}
@@ -184,100 +187,134 @@ const TalentPoolPage = () => {
         sx={{ justifyContent: "space-between", alignItems: { xs: "flex-start", sm: "center" } }}
       >
         <Box>
-          <Typography variant="h5" sx={{ fontWeight: 700 }}>
+          <Typography sx={{ fontWeight: 700, fontSize: "1.4rem", color: "primary.main" }}>
             Talent Pool
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-            Ready to match against your open jobs.
+            Ready to match against your open jobs
           </Typography>
         </Box>
         <Button
-          variant="contained"
+          component={Link}
+          href="/cv-inbox"
+          variant="outlined"
           startIcon={<CloudUploadOutlinedIcon />}
-          onClick={() => setUploadOpen(true)}
+          sx={{
+            borderColor: "primary.main",
+            color: "primary.main",
+            fontWeight: 700,
+            bgcolor: "#fff",
+            "&:hover": { borderColor: "primary.dark", bgcolor: "#f4f8f6" },
+          }}
         >
-          Upload CV
+          Upload CVs → CV Inbox
         </Button>
       </Stack>
 
-      {/* Toolbar: search + Sources (jobs) + Scores */}
-      <Stack
-        direction={{ xs: "column", md: "row" }}
-        spacing={1.5}
-        sx={{ alignItems: { xs: "stretch", md: "center" } }}
-      >
-        <SearchField
-          placeholder="Search by skills, role, experience…"
-          value={rawQuery}
-          onChange={(e) => setRawQuery(e.target.value.slice(0, TALENT_POOL_SEARCH_MAX_LENGTH))}
-          disabled={byJob}
-          sx={{ flexGrow: 1 }}
-          slotProps={{
-            input: {
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchOutlinedIcon fontSize="small" sx={{ color: "text.secondary" }} />
-                </InputAdornment>
-              ),
-              endAdornment: (
-                <InputAdornment position="end">
-                  {spinner ? (
-                    <CircularProgress size={16} />
-                  ) : rawQuery ? (
-                    <IconButton size="small" aria-label="Clear search" onClick={() => setRawQuery("")}>
-                      <CloseIcon fontSize="small" />
-                    </IconButton>
-                  ) : null}
-                </InputAdornment>
-              ),
-            },
-          }}
-        />
-        <TextField
-          select
-          size="small"
-          label="Source"
-          value={selectedJob}
-          onChange={(e) => {
-            setSelectedJob(e.target.value);
-            setScoreFilter("");
-          }}
-          sx={{ minWidth: 180 }}
-        >
-          <MenuItem value="">All sources</MenuItem>
-          {jobs.map((j) => (
-            <MenuItem key={j.id} value={j.id}>
-              {j.title}
-            </MenuItem>
-          ))}
-        </TextField>
-        <TextField
-          select
-          size="small"
-          label="Score"
-          value={scoreFilter}
-          onChange={(e) => setScoreFilter(e.target.value)}
-          // AI scores only exist for job (semantic) search; text search is lexical.
-          disabled={!byJob}
-          sx={{ minWidth: 150 }}
-        >
-          {POOL_SCORE_FILTERS.map((o) => (
-            <MenuItem key={o.value} value={o.value}>
-              {o.label}
-            </MenuItem>
-          ))}
-        </TextField>
-        <Button
-          variant="text"
-          color="inherit"
-          startIcon={<FilterAltOffOutlinedIcon />}
-          onClick={clearFilters}
-          disabled={!anyFilter}
-          sx={{ textTransform: "none", flexShrink: 0, color: "text.secondary" }}
-        >
-          Clear filters
-        </Button>
-      </Stack>
+      {/* Toolbar: search + Sources (jobs) + Scores, inside a card */}
+      <Card sx={{ borderRadius: 2.5 }}>
+        <CardContent sx={{ p: 1.5, "&:last-child": { pb: 1.5 } }}>
+          <Stack
+            direction={{ xs: "column", md: "row" }}
+            spacing={1.25}
+            sx={{ alignItems: { xs: "stretch", md: "center" } }}
+          >
+            <SearchField
+              placeholder="Search…"
+              value={rawQuery}
+              onChange={(e) => setRawQuery(e.target.value.slice(0, TALENT_POOL_SEARCH_MAX_LENGTH))}
+              disabled={byJob}
+              sx={{
+                flexGrow: 1,
+                "& .MuiOutlinedInput-root": {
+                  bgcolor: "#f2efe7",
+                  borderRadius: 2,
+                  "& fieldset": { borderColor: "transparent" },
+                  "&:hover fieldset": { borderColor: "transparent" },
+                  "&.Mui-focused fieldset": { borderColor: "primary.main" },
+                },
+              }}
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchOutlinedIcon fontSize="small" sx={{ color: "text.secondary" }} />
+                    </InputAdornment>
+                  ),
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      {spinner ? (
+                        <CircularProgress size={16} />
+                      ) : rawQuery ? (
+                        <IconButton size="small" aria-label="Clear search" onClick={() => setRawQuery("")}>
+                          <CloseIcon fontSize="small" />
+                        </IconButton>
+                      ) : null}
+                    </InputAdornment>
+                  ),
+                },
+              }}
+            />
+            <TextField
+              select
+              size="small"
+              value={selectedJob}
+              onChange={(e) => {
+                setSelectedJob(e.target.value);
+                setScoreFilter("");
+              }}
+              slotProps={{ select: { displayEmpty: true } }}
+              sx={{ minWidth: 170 }}
+            >
+              <MenuItem value="">All sources</MenuItem>
+              {jobs.map((j) => (
+                <MenuItem key={j.id} value={j.id}>
+                  {j.title}
+                </MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              select
+              size="small"
+              value={scoreFilter}
+              onChange={(e) => setScoreFilter(e.target.value)}
+              // AI scores only exist for job (semantic) search; text search is lexical.
+              disabled={!byJob}
+              slotProps={{ select: { displayEmpty: true } }}
+              sx={{ minWidth: 150 }}
+            >
+              {POOL_SCORE_FILTERS.map((o) => (
+                <MenuItem key={o.value} value={o.value}>
+                  {o.label}
+                </MenuItem>
+              ))}
+            </TextField>
+            <Tooltip title={anyFilter ? "Clear filters" : "No active filters"}>
+              <span>
+                <Button
+                  variant="text"
+                  color="inherit"
+                  startIcon={<FilterAltOutlinedIcon />}
+                  onClick={clearFilters}
+                  disabled={!anyFilter}
+                  sx={{
+                    textTransform: "none",
+                    flexShrink: 0,
+                    fontWeight: 600,
+                    color: "text.secondary",
+                    bgcolor: "#f2efe7",
+                    borderRadius: 2,
+                    px: 2,
+                    "&:hover": { bgcolor: "#e9e5da" },
+                  }}
+                >
+                  Filters
+                </Button>
+              </span>
+            </Tooltip>
+          </Stack>
+        </CardContent>
+      </Card>
 
       {/* Stat cards — recompute as filters change */}
       <Box
@@ -289,28 +326,24 @@ const TalentPoolPage = () => {
       >
         <PoolStat
           icon={GroupsOutlinedIcon}
-          accent="#13402d"
           value={totalInPool}
           label="Total in Pool"
           loading={active.isLoading}
         />
         <PoolStat
-          icon={AutoAwesomeOutlinedIcon}
-          accent="#c9a23f"
+          icon={BoltOutlinedIcon}
           value={stats.matched}
           label="AI Matched"
           loading={active.isLoading}
         />
         <PoolStat
           icon={TrendingUpOutlinedIcon}
-          accent="#2f7fd1"
           value={stats.high}
           label={`High Score (${POOL_HIGH_SCORE}+)`}
           loading={active.isLoading}
         />
         <PoolStat
           icon={CheckCircleOutlineIcon}
-          accent="#1f9d57"
           value={stats.ready}
           label="Ready to Match"
           loading={active.isLoading}
@@ -348,17 +381,18 @@ const TalentPoolPage = () => {
         </Card>
       ) : (
         <Stack spacing={2}>
-          <Typography variant="body2" color="text.secondary">
-            {searching
-              ? byJob
+          {/* Search context — hidden in the default browse view (matches the design) */}
+          {searching && (
+            <Typography variant="body2" color="text.secondary">
+              {byJob
                 ? `${visibleItems.length} of ${total} match${total === 1 ? "" : "es"} for “${
                     jobs.find((j) => j.id === selectedJob)?.title ?? "job"
                   }”, best match first`
-                : `${total} match${total === 1 ? "" : "es"} for “${query}” by role, skills or name`
-              : `${total} candidate${total === 1 ? "" : "s"} in the pool`}
-          </Typography>
+                : `${total} match${total === 1 ? "" : "es"} for “${query}” by role, skills or name`}
+            </Typography>
+          )}
 
-          <Card sx={{ borderRadius: 2 }}>
+          <Card sx={{ borderRadius: 2.5 }}>
             <Box sx={{ overflowX: "auto" }}>
               <Table sx={{ "& td, & th": { borderColor: "#eef1ef" } }}>
                 <TableHead>
@@ -367,7 +401,14 @@ const TalentPoolPage = () => {
                       <TableCell
                         key={c || `actions-${i}`}
                         align={i === HEAD_CELLS.length - 1 ? "right" : "left"}
-                        sx={{ fontWeight: 700, color: "text.secondary", whiteSpace: "nowrap" }}
+                        sx={{
+                          fontWeight: 700,
+                          color: "text.secondary",
+                          whiteSpace: "nowrap",
+                          textTransform: "uppercase",
+                          letterSpacing: "0.05em",
+                          fontSize: "0.7rem",
+                        }}
                       >
                         {c}
                       </TableCell>

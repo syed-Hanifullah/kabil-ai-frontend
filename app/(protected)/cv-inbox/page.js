@@ -10,15 +10,13 @@ import CardContent from "@mui/material/CardContent";
 import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
 import Button from "@mui/material/Button";
-import Chip from "@mui/material/Chip";
 import Checkbox from "@mui/material/Checkbox";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Alert from "@mui/material/Alert";
 import AlertTitle from "@mui/material/AlertTitle";
 import Skeleton from "@mui/material/Skeleton";
 import CircularProgress from "@mui/material/CircularProgress";
-import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
-import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
+import AddIcon from "@mui/icons-material/Add";
 import ArrowRightAltIcon from "@mui/icons-material/ArrowRightAlt";
 import ErrorAlert from "@/components/ErrorAlert";
 import UploadDropzone from "./_components/UploadDropzone";
@@ -33,52 +31,93 @@ import {
   PDPL_CONSENT_LABEL,
   PDPL_CONSENT_TEXT,
 } from "@/lib/kabil/constants";
-import { COLORS } from "@/lib/theme";
 
 const isPdf = (file) =>
   file.type === "application/pdf" || /\.pdf$/i.test(file.name);
 
-/** Coloured pill used in the flow banner. */
-const StepChip = ({ step }) => (
-  <Chip
-    size="small"
-    label={`${step.n} ${step.label}`}
-    sx={{
-      fontWeight: 700,
-      color: step.tone === "gold" ? "#11352a" : "#fff",
-      bgcolor: step.tone === "gold" ? COLORS.gold : "primary.main",
-    }}
-  />
+/** Flat beige-filled look for the Source / Match-against-job selects. */
+const BEIGE_FIELD_SX = {
+  "& .MuiOutlinedInput-root": {
+    bgcolor: "#efe9dc",
+    borderRadius: 1.5,
+    fontSize: "0.8rem",
+    "& fieldset": { borderColor: "transparent" },
+    "&:hover fieldset": { borderColor: "transparent" },
+    "&.Mui-focused fieldset": { borderColor: "primary.main" },
+  },
+  "& .MuiFormHelperText-root": { fontSize: "0.7rem" },
+};
+
+/** A numbered circle + label pill for one stage in the flow banner. */
+const StepBadge = ({ step }) => (
+  <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
+    <Box
+      sx={{
+        width: 24,
+        height: 24,
+        flexShrink: 0,
+        borderRadius: "50%",
+        display: "grid",
+        placeItems: "center",
+        fontSize: "0.72rem",
+        fontWeight: 700,
+        color: "#fff",
+        bgcolor: step.color,
+      }}
+    >
+      {step.n}
+    </Box>
+    <Box
+      sx={{
+        px: 1.5,
+        py: 0.6,
+        borderRadius: 1.5,
+        fontSize: "0.72rem",
+        fontWeight: 700,
+        color: "#fff",
+        bgcolor: step.color,
+      }}
+    >
+      {step.label}
+    </Box>
+  </Stack>
 );
 
 const FlowBanner = () => (
   <Box
     sx={{
-      bgcolor: "rgba(19,64,45,0.06)",
-      border: "1px solid rgba(19,64,45,0.12)",
-      borderRadius: 2,
-      px: 2,
-      py: 1.5,
+      bgcolor: "#e9f2ed",
+      border: "1px solid",
+      borderColor: "rgba(15,110,86,0.35)",
+      borderRadius: 2.5,
+      px: 2.5,
+      py: 2,
     }}
   >
-    <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap", rowGap: 1 }}>
+    <Stack
+      direction="row"
+      spacing={1.25}
+      sx={{ alignItems: "center", justifyContent: "center", flexWrap: "wrap", rowGap: 1.25 }}
+    >
       {CV_INBOX_STEPS.map((step, i) => (
         <Fragment key={step.n}>
-          <StepChip step={step} />
+          <StepBadge step={step} />
           {i < CV_INBOX_STEPS.length - 1 && (
             <ArrowRightAltIcon sx={{ color: "text.disabled" }} />
           )}
         </Fragment>
       ))}
-      <Typography variant="body2" color="text.secondary" sx={{ ml: 1 }}>
-        {CV_INBOX_HINT}
-      </Typography>
     </Stack>
+    <Typography
+      sx={{ mt: 1.5, textAlign: "center", color: "primary.main", fontSize: "0.75rem" }}
+    >
+      {CV_INBOX_HINT}
+    </Typography>
   </Box>
 );
 
 const FieldLabel = ({ children, required }) => (
-  <Typography variant="body2" sx={{ mb: 0.75, fontWeight: 600 }}>
+  <Typography sx={{ mb: 0.75, fontWeight: 600, fontSize: "0.78rem" }}>
     {children}
     {required && (
       <Box component="span" sx={{ color: "error.main" }}>
@@ -234,15 +273,9 @@ const CvInboxPage = () => {
 
   return (
     <Stack spacing={2.5} sx={{ maxWidth: 960, mx: "auto" }}>
-      <Box>
-        <Typography variant="h5" sx={{ fontWeight: 700 }}>
-          CV Inbox
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-          Upload CVs from any source. AI parses each one and routes them to the
-          matched job pipeline.
-        </Typography>
-      </Box>
+      <Typography sx={{ fontWeight: 700, fontSize: "1.15rem" }}>
+        CV Inbox
+      </Typography>
 
       <FlowBanner />
 
@@ -253,7 +286,7 @@ const CvInboxPage = () => {
       ) : (
         <Card>
           <CardContent sx={{ p: { xs: 2.5, sm: 3 } }}>
-            <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
+            <Typography sx={{ fontWeight: 700, mb: 2, fontSize: "0.95rem" }}>
               Upload CVs
             </Typography>
 
@@ -297,6 +330,7 @@ const CvInboxPage = () => {
                     value={source}
                     onChange={(e) => setSource(e.target.value)}
                     disabled={upload.isPending}
+                    sx={BEIGE_FIELD_SX}
                   >
                     {CV_SOURCES.map((s) => (
                       <MenuItem key={s.value} value={s.value}>
@@ -314,6 +348,7 @@ const CvInboxPage = () => {
                     value={jobId}
                     onChange={(e) => setJobId(e.target.value)}
                     disabled={upload.isPending || jobs.length === 0}
+                    sx={BEIGE_FIELD_SX}
                     helperText={
                       jobs.length === 0 ? (
                         <Box component="span">
@@ -359,7 +394,7 @@ const CvInboxPage = () => {
                     />
                   }
                   label={
-                    <Typography variant="body2">
+                    <Typography sx={{ fontSize: "0.78rem" }}>
                       <Box component="span" sx={{ fontWeight: 700, color: "primary.main" }}>
                         {PDPL_CONSENT_LABEL}
                       </Box>{" "}
@@ -379,25 +414,24 @@ const CvInboxPage = () => {
                 />
               )}
 
-              <Button
-                variant="contained"
-                size="large"
-                fullWidth
-                disabled={!canUpload}
-                onClick={handleUpload}
-                startIcon={
-                  upload.isPending ? (
-                    <CircularProgress size={18} color="inherit" />
-                  ) : (
-                    <AutoAwesomeIcon />
-                  )
-                }
-                endIcon={!upload.isPending && <ArrowForwardIcon />}
-              >
-                {upload.isPending
-                  ? "Uploading…"
-                  : `Upload and Parse CV${files.length === 1 ? "" : "s"}`}
-              </Button>
+              <Box sx={{ textAlign: "center" }}>
+                <Button
+                  variant="contained"
+                  size="large"
+                  disabled={!canUpload}
+                  onClick={handleUpload}
+                  startIcon={
+                    upload.isPending ? (
+                      <CircularProgress size={18} color="inherit" />
+                    ) : (
+                      <AddIcon />
+                    )
+                  }
+                  sx={{ px: 5, borderRadius: 1.5, fontSize: "0.8rem" }}
+                >
+                  {upload.isPending ? "Uploading…" : "Upload CVs"}
+                </Button>
+              </Box>
             </Stack>
           </CardContent>
         </Card>

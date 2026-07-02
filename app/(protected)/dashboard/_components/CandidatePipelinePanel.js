@@ -95,6 +95,13 @@ const CandidatePipelinePanel = () => {
               setTouched(true);
               setPicked(e.target.value);
             }}
+            slotProps={{
+              select: {
+                displayEmpty: true,
+                renderValue: (value) =>
+                  value ? (jobs.find((j) => j.id === value)?.title ?? "All Jobs") : "All Jobs",
+              },
+            }}
             sx={{ minWidth: 140, maxWidth: 200 }}
           >
             <MenuItem value="">All Jobs</MenuItem>

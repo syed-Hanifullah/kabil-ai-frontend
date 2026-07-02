@@ -8,7 +8,7 @@ import IconButton from "@mui/material/IconButton";
 import Button from "@mui/material/Button";
 import CloseIcon from "@mui/icons-material/Close";
 import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
-import CloudUploadOutlinedIcon from "@mui/icons-material/CloudUploadOutlined";
+import FileUploadOutlinedIcon from "@mui/icons-material/FileUploadOutlined";
 import { CV_ACCEPT, BULK_MAX_FILES } from "@/lib/kabil/constants";
 
 const formatBytes = (n) => {
@@ -72,12 +72,12 @@ const UploadDropzone = ({ files, onAdd, onRemove, onClear, disabled }) => {
             e.target.value = "";
           }}
         />
-        <CloudUploadOutlinedIcon sx={{ fontSize: 36, color: "text.secondary", mb: 1 }} />
-        <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+        <FileUploadOutlinedIcon sx={{ fontSize: 34, color: "text.secondary", mb: 1 }} />
+        <Typography sx={{ fontWeight: 700, fontSize: "0.9rem" }}>
           Drag and drop CVs here
         </Typography>
-        <Typography variant="body2" color="text.secondary">
-          PDF — up to {BULK_MAX_FILES} files at once
+        <Typography color="text.secondary" sx={{ fontSize: "0.75rem" }}>
+          PDF or Word — up to {BULK_MAX_FILES} files at once
         </Typography>
       </Box>
 

@@ -13,7 +13,7 @@ import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import BusinessCenterOutlinedIcon from "@mui/icons-material/BusinessCenterOutlined";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
-import PauseCircleOutlineIcon from "@mui/icons-material/PauseCircleOutlined";
+import FilterAltIcon from "@mui/icons-material/FilterAlt";
 import ErrorAlert from "@/components/ErrorAlert";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { useDashboard, usePerformance } from "@/lib/kabil/queries";
@@ -55,7 +55,7 @@ const STAT_CARDS = [
   },
   {
     label: "Paused / Canceled",
-    icon: PauseCircleOutlineIcon,
+    icon: FilterAltIcon,
     value: (d) => d.jobs.by_status.inactive,
     sub: () => "Temporarily paused",
   },

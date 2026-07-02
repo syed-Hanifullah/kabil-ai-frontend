@@ -118,7 +118,7 @@ const ViewCandidateDialog = ({ entry, open, onClose }) => {
                     ? "No open or draft jobs to open this candidate against."
                     : "Open and draft jobs are valid targets."
               }
-              slotProps={{ select: { displayEmpty: true } }}
+              slotProps={{ select: { displayEmpty: true }, inputLabel: { shrink: true } }}
             >
               <MenuItem value="" disabled>
                 Select a job…
