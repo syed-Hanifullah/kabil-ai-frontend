@@ -700,6 +700,8 @@ const TrustBreakdown = ({ breakdown }) => {
  * the score + reason defensively, and render any remaining structure generically
  * so nothing is ever silently dropped. Meta leaves (model/version/…) are skipped. */
 const RUBRIC_META_KEYS = new Set(["computed_by", "model", "model_used", "version", "id"]);
+/** Rubric leaf keys deliberately hidden from the CV Score breakdown UI. */
+const RUBRIC_HIDDEN_KEYS = new Set(["gap", "gaps", "evidence"]);
 const SCORE_KEYS = ["score", "points", "points_awarded", "awarded", "rating", "mark", "value"];
 const WEIGHT_KEYS = ["weight", "max", "max_points", "out_of"];
 const REASON_KEYS = [
@@ -852,7 +854,9 @@ const RubricRow = ({ label, value }) => {
   let leftover = null;
   if (isObj(value)) {
     const used = consumedKeys(value);
-    const rest = Object.fromEntries(Object.entries(value).filter(([k]) => !used.has(k)));
+    const rest = Object.fromEntries(
+      Object.entries(value).filter(([k]) => !used.has(k) && !RUBRIC_HIDDEN_KEYS.has(k.toLowerCase())),
+    );
     if (Object.keys(rest).length) leftover = rest;
   } else if (Array.isArray(value) && !text) {
     leftover = value;
