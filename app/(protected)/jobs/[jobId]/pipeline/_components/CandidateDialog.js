@@ -738,23 +738,24 @@ const DialogSkeleton = () => (
 /** Pill-style tab strip matching the mock (rounded track, filled-green active). */
 const pillTabsSx = {
   minHeight: 0,
-  bgcolor: "#f0f1ec",
-  borderRadius: 2,
+  bgcolor: "#F4F0E84D",
+  borderRadius: "5px",
   p: 0.5,
   "& .MuiTabs-indicator": { display: "none" },
   "& .MuiTabs-flexContainer": { gap: 0.5 },
   "& .MuiTab-root": {
+    fontFamily: "var(--font-jakarta), system-ui, sans-serif",
     textTransform: "none",
     fontWeight: 600,
-    fontSize: "0.675rem",
+    fontSize: "14px",
     minHeight: 0,
-    py: 0.85,
-    px: { xs: 1.5, sm: 2.5 },
-    borderRadius: 1.5,
+    py: 1,
+    px: { xs: 1.5, sm: 3 },
+    borderRadius: "5px",
     color: "text.secondary",
     transition: "background-color .15s, color .15s",
   },
-  "& .MuiTab-root.Mui-selected": { bgcolor: GREEN, color: "#fff" },
+  "& .MuiTab-root.Mui-selected": { bgcolor: "#0F6E56", color: "#fff" },
 };
 
 /**
@@ -958,10 +959,29 @@ const CandidateDialog = ({ appId, open, onClose, readOnly = false }) => {
                   {initials(candidate?.full_name)}
                 </Avatar>
                 <Box sx={{ minWidth: 0 }}>
-                  <Typography sx={{ fontWeight: 700, color: "#fff", fontSize: "0.825rem" }}>
+                  <Typography
+                    sx={{
+                      fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+                      fontWeight: 700,
+                      fontSize: "18px",
+                      lineHeight: "22.5px",
+                      letterSpacing: 0,
+                      color: "#FFFFFF",
+                    }}
+                  >
                     {candidate?.full_name || "Candidate"}
                   </Typography>
-                  <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.82)" }}>
+                  <Typography
+                    sx={{
+                      fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+                      fontWeight: 400,
+                      fontSize: "10px",
+                      lineHeight: "15px",
+                      letterSpacing: "1px",
+                      textTransform: "capitalize",
+                      color: "#FFFFFF",
+                    }}
+                  >
                     Applied {timeAgo(app.created_at)}
                   </Typography>
                 </Box>
@@ -976,7 +996,17 @@ const CandidateDialog = ({ appId, open, onClose, readOnly = false }) => {
                 sx={{ justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 1.5 }}
               >
                 <Box sx={{ minWidth: 0 }}>
-                  <Typography sx={{ color: GREEN, fontWeight: 800, fontSize: 11, letterSpacing: 0.6 }}>
+                  <Typography
+                    sx={{
+                      fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+                      fontWeight: 700,
+                      fontSize: "12px",
+                      lineHeight: "15px",
+                      letterSpacing: "1px",
+                      textTransform: "uppercase",
+                      color: "#0F6E56",
+                    }}
+                  >
                     {eyebrow}
                   </Typography>
                   {candidate?.email && (
@@ -1003,11 +1033,24 @@ const CandidateDialog = ({ appId, open, onClose, readOnly = false }) => {
                     )}
                     <Button
                       variant="contained"
-                      size="small"
-                      startIcon={<PersonAddAltOutlinedIcon />}
+                      disableElevation
+                      endIcon={<PersonAddAltOutlinedIcon />}
                       onClick={moveToPoolNow}
                       disabled={moveToPool.isPending || !appId}
-                      sx={{ bgcolor: GREEN, "&:hover": { bgcolor: GREEN_DARK } }}
+                      sx={{
+                        bgcolor: "#0F6E56",
+                        color: "#fff",
+                        textTransform: "none",
+                        fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+                        fontWeight: 700,
+                        fontSize: "18px",
+                        lineHeight: 1.2,
+                        borderRadius: "12px",
+                        px: 3,
+                        py: 1.25,
+                        "& .MuiButton-endIcon": { ml: 1.25 },
+                        "&:hover": { bgcolor: GREEN_DARK },
+                      }}
                     >
                       {moveToPool.isPending ? "Moving…" : "Move to Talent Pool"}
                     </Button>

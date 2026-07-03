@@ -124,17 +124,20 @@ const JobCard = ({ job }) => {
       variant="outlined"
       sx={{
         position: "relative",
-        borderRadius: 2,
-        height: "100%",
-        minHeight: 300,
+        width: 300,
+        height: 426,
+        maxWidth: "100%",
+        opacity: 1,
+        borderRadius: "16px",
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
+        borderWidth: "1px",
         borderColor: "#e7eae8",
+        borderTop: "1px solid #F2EBD9",
         transition: "transform .2s ease, box-shadow .2s ease, border-color .2s ease",
         "&:hover": {
           transform: "translateY(-4px)",
-          borderColor: "transparent",
           boxShadow: "0 12px 28px -10px rgba(15,110,86,.32)",
         },
       }}
@@ -198,7 +201,7 @@ const JobCard = ({ job }) => {
           "& .MuiCardActionArea-focusHighlight": { opacity: 0 },
         }}
       >
-        <CardContent sx={{ p: 2.5, height: "100%", display: "flex", flexDirection: "column" }}>
+        <CardContent sx={{ p: "24px", height: "100%", display: "flex", flexDirection: "column" }}>
           {/* Header: title + company, status pill */}
           <Stack
             direction="row"

@@ -73,7 +73,7 @@ const TIME_RANGES = [
 
 const grid = {
   display: "grid",
-  gap: 2,
+  gap: 1,
   gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", lg: "repeat(4, 1fr)" },
 };
 
@@ -89,7 +89,9 @@ const StatCard = ({ label, icon: Icon, value, sub, loading }) => (
   <Card
     sx={{
       position: "relative",
-      borderRadius: 2.5,
+      maxWidth: 274,
+      borderRadius: "8px",
+      boxShadow: "0px 4px 2px 0px #0000001A",
       overflow: "hidden",
       transition: "transform .2s ease, box-shadow .2s ease, border-color .2s ease",
       "&::before": {
@@ -129,18 +131,47 @@ const StatCard = ({ label, icon: Icon, value, sub, loading }) => (
         {loading ? (
           <Skeleton variant="text" width={40} sx={{ fontSize: "1.5rem" }} />
         ) : (
-          <Typography sx={{ fontWeight: 800, lineHeight: 1, fontSize: "1.5rem", color: ACCENT }}>
+          <Typography
+            sx={{
+              fontFamily: "var(--font-sans), system-ui, Arial, sans-serif",
+              fontWeight: 700,
+              fontSize: "40px",
+              lineHeight: "30px",
+              letterSpacing: 0,
+              color: ACCENT,
+            }}
+          >
             {value}
           </Typography>
         )}
       </Stack>
-      <Typography sx={{ mt: 1, fontWeight: 700, color: "primary.main", fontSize: "0.85rem" }}>
+      <Typography
+        sx={{
+          mt: 1,
+          fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+          fontWeight: 600,
+          fontSize: "18px",
+          lineHeight: "21.6px",
+          letterSpacing: 0,
+          color: "primary.main",
+        }}
+      >
         {label}
       </Typography>
       {loading ? (
         <Skeleton variant="text" width={90} />
       ) : (
-        <Typography variant="caption" color="text.secondary" noWrap sx={{ fontSize: "0.72rem" }}>
+        <Typography
+          noWrap
+          sx={{
+            fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+            fontWeight: 400,
+            fontSize: "14px",
+            lineHeight: "18px",
+            letterSpacing: 0,
+            color: "#000000CC",
+          }}
+        >
           {sub}
         </Typography>
       )}
@@ -165,11 +196,29 @@ const DashboardPage = () => {
         sx={{ justifyContent: "space-between", alignItems: "flex-start", gap: 2, flexWrap: "wrap" }}
       >
         <Box>
-          <Typography sx={{ fontWeight: 700, color: "primary.main", fontSize: "1.15rem" }}>
+          <Typography
+            sx={{
+              fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+              fontWeight: 500,
+              fontSize: "20px",
+              lineHeight: "32px",
+              letterSpacing: 0,
+              color: "#1C4A3E",
+            }}
+          >
             {partOfDay(new Date().getHours())} {firstName}!
           </Typography>
-          <Typography color="text.secondary" sx={{ mt: 0.25, fontSize: "0.8rem" }}>
-            Here&apos;s your recruitment performance overview.
+          <Typography
+            sx={{
+              fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+              fontWeight: 400,
+              fontSize: "12px",
+              lineHeight: "16px",
+              letterSpacing: 0,
+              color: "#6B7280",
+            }}
+          >
+            Salt Recruitment — performance overview
           </Typography>
         </Box>
         <ToggleButtonGroup
@@ -178,9 +227,23 @@ const DashboardPage = () => {
           value={range}
           onChange={(_, v) => v && setRange(v)}
           sx={{
-            bgcolor: "background.paper",
-            borderRadius: 2,
-            "& .MuiToggleButton-root": { px: 1.5, py: 0.5, border: 0, fontSize: "0.75rem" },
+            bgcolor: "#F4F0E84D",
+            borderRadius: "5px",
+            p: 0.5,
+            gap: 0.5,
+            "& .MuiToggleButton-root": {
+              px: 1.75,
+              py: 0.6,
+              border: 0,
+              borderRadius: "5px !important",
+              fontSize: "0.75rem",
+              fontWeight: 600,
+              color: "text.secondary",
+              "&.Mui-selected, &.Mui-selected:hover": {
+                bgcolor: "#0F6E56",
+                color: "#fff",
+              },
+            },
           }}
         >
           {TIME_RANGES.map((r) => (
@@ -196,7 +259,17 @@ const DashboardPage = () => {
 
       {/* Overview */}
       <Box>
-        <Typography sx={{ fontWeight: 700, color: "primary.main", mb: 1.5, fontSize: "1.05rem" }}>
+        <Typography
+          sx={{
+            fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+            fontWeight: 700,
+            fontSize: "22px",
+            lineHeight: "32px",
+            letterSpacing: 0,
+            color: "#1C4A3E",
+            mb: 1.5,
+          }}
+        >
           Overview
         </Typography>
         <Box sx={grid}>

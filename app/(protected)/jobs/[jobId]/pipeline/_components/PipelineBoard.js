@@ -30,7 +30,11 @@ const StageColumn = ({ column, apps, jobTitle, onOpen, dragApp, onDragStart, onD
         if (isValidTarget) onDrop(dragApp, column.stage);
       }}
       sx={{
-        width: { xs: 250, sm: 280, md: 300 },
+        // Fixed width (with horizontal scroll) on small screens; on md+ each
+        // column flexes to share the row so all stages fit without scrolling.
+        width: { xs: 250, sm: 260, md: "auto" },
+        flex: { md: 1 },
+        minWidth: { md: 0 },
         flexShrink: 0,
         display: "flex",
         flexDirection: "column",
@@ -43,10 +47,19 @@ const StageColumn = ({ column, apps, jobTitle, onOpen, dragApp, onDragStart, onD
           direction="row"
           sx={{ alignItems: "center", justifyContent: "space-between", mb: 1 }}
         >
-          <Typography sx={{ fontWeight: 700, fontSize: "0.9rem", color: "#2c3a34" }}>
+          <Typography
+            sx={{
+              fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+              fontWeight: 600,
+              fontSize: "10.71px",
+              lineHeight: "16.07px",
+              letterSpacing: 0,
+              color: "#1C4A3E",
+            }}
+          >
             {column.label}
           </Typography>
-          {/* Final "Shortlist" column gets a dark badge; earlier stages orange. */}
+          {/* Final "Shortlist" column gets a dark-green badge; earlier stages orange. */}
           <Box
             sx={{
               minWidth: 24,
@@ -56,10 +69,13 @@ const StageColumn = ({ column, apps, jobTitle, onOpen, dragApp, onDragStart, onD
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
-              fontSize: "0.72rem",
+              fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+              fontSize: "9.06px",
+              lineHeight: "13.6px",
+              letterSpacing: 0,
               fontWeight: 700,
               color: "#fff",
-              bgcolor: column.stage === "done" ? "#1c2522" : "#EF9F27",
+              bgcolor: column.stage === "done" ? "#1C4A3E" : "#EF9F27",
             }}
           >
             {String(apps.length).padStart(2, "0")}
@@ -70,7 +86,7 @@ const StageColumn = ({ column, apps, jobTitle, onOpen, dragApp, onDragStart, onD
             height: 3,
             borderRadius: 2,
             background:
-              "linear-gradient(90deg, #EF9F27 0%, rgba(239,159,39,0.18) 55%, rgba(239,159,39,0) 100%)",
+              "linear-gradient(90deg, #EF9F27 0%, rgba(239,159,39,0.35) 100%)",
           }}
         />
       </Box>
@@ -143,8 +159,8 @@ const PipelineBoard = ({ byStage, jobTitle, onOpen, onMove }) => {
   return (
     <Stack
       direction="row"
-      spacing={2.5}
-      sx={{ overflowX: "auto", pb: 1, alignItems: "flex-start" }}
+      spacing={{ xs: 2.5, md: 1.5 }}
+      sx={{ overflowX: { xs: "auto", md: "visible" }, pb: 1, alignItems: "flex-start" }}
     >
       {PIPELINE_COLUMNS.map((column) => (
         <StageColumn

@@ -33,6 +33,19 @@ const INTERVIEW_SCORE_MAX = 100;
 const asArray = (v) => (Array.isArray(v) ? v : []);
 const findScore = (scores, type) => asArray(scores).find((s) => s?.score_type === type);
 
+/** The authenticity `breakdown` is now the full aggregator dump:
+ *  `{ score, band, breakdown: { <signal>: … }, top_concerns, rationale }`.
+ *  Older rows stored the signal map at the top level. Return the signal map
+ *  either way so callers can index it by SignalKey. */
+const pickSignals = (bd) =>
+  (bd && typeof bd.breakdown === "object" && bd.breakdown !== null && !Array.isArray(bd.breakdown)
+    ? bd.breakdown
+    : bd) || null;
+
+/** One signal's recruiter-facing sentence — the LLM `finding`, falling back to
+ *  the legacy `reasons` list. */
+const signalText = (sig) => sig?.finding || asArray(sig?.reasons)[0] || "";
+
 /** 0–100 → "65" or "37.8" (one decimal only when it isn't whole). */
 const fmtPct = (v) => (v == null ? "—" : Number.isInteger(v) ? `${v}` : v.toFixed(1));
 
@@ -49,7 +62,7 @@ const bandHex = (band) =>
   ({ success: "#1f9d57", warning: COLORS.gold, error: "#d24a39" })[band] || "#9aa3a0";
 
 const cardSx = {
-  bgcolor: CARD_BG,
+  bgcolor: "#F4F0E84D",
   border: `1px solid ${CARD_BORDER}`,
   borderRadius: 2.5,
   overflow: "hidden",
@@ -82,6 +95,11 @@ const TRUST_SIGNALS = [
     key: "structural_templating",
     label: "AI Formatting Check",
     tip: "Do the bullets / punctuation show AI-generated templating?",
+  },
+  {
+    key: "jd_keyword_mirroring",
+    label: "Template Match",
+    tip: "Does the CV mirror a generic role template rather than real, specific experience?",
   },
 ];
 
@@ -199,41 +217,43 @@ const MeterRow = ({ label, value, computedAt, showFooter = true, children }) => 
   );
 };
 
-/** CV Authenticity verdict row: title + coloured band label + concern summary,
- *  with an expandable breakdown drawer (signals + key flags). */
-const AuthenticityRow = ({ value, summary, breakdown, flags }) => {
-  const [open, setOpen] = useState(false);
+/** CV Authenticity verdict row: title + coloured band label + concern summary. */
+const AuthenticityRow = ({ value, summary }) => {
   const badge = trustBadge(value);
   const labelColor = bandHex(badge.color);
-  const hasFlags = asArray(flags).length > 0;
-  const hasBreakdown = (breakdown && Object.keys(breakdown).length > 0) || hasFlags;
   return (
     <RowShell>
       <Stack direction="row" spacing={2} sx={{ justifyContent: "space-between", alignItems: "flex-start" }}>
-        <Typography sx={{ fontWeight: 700, fontSize: "0.775rem" }}>CV Authenticity</Typography>
+        <Typography
+          sx={{
+            fontFamily: "var(--font-sans), system-ui, Arial, sans-serif",
+            fontWeight: 600,
+            fontSize: "14px",
+            lineHeight: "21px",
+            letterSpacing: 0,
+            color: "#2C2C2A",
+          }}
+        >
+          CV Authenticity
+        </Typography>
         <Typography sx={{ fontWeight: 700, color: labelColor, flexShrink: 0, whiteSpace: "nowrap" }}>
           {badge.label}
         </Typography>
       </Stack>
       {summary && (
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 1, lineHeight: 1.6 }}>
+        <Typography
+          sx={{
+            mt: 1,
+            fontFamily: "var(--font-sans), system-ui, Arial, sans-serif",
+            fontWeight: 400,
+            fontSize: "12px",
+            lineHeight: "18px",
+            letterSpacing: 0,
+            color: "#9CA3AF",
+          }}
+        >
           {summary}
         </Typography>
-      )}
-      {hasBreakdown && (
-        <>
-          <Stack direction="row" sx={{ justifyContent: "flex-end", mt: 0.5 }}>
-            <BreakdownToggle open={open} onClick={() => setOpen((o) => !o)} />
-          </Stack>
-          <Collapse in={open} timeout="auto" unmountOnExit>
-            <Box sx={{ pt: 1 }}>
-              <Stack spacing={2}>
-                <TrustBreakdown breakdown={breakdown} />
-                {hasFlags && <KeyFlags flags={flags} />}
-              </Stack>
-            </Box>
-          </Collapse>
-        </>
       )}
     </RowShell>
   );
@@ -479,97 +499,150 @@ const ChipRow = ({ lead, items, color, leadingIcon, max }) => {
   );
 };
 
+/* ── Profile Match breakdown visual tokens (per the mock) ─────────────────── */
+const PM_GREEN = "#0F6E56";
+const PM_ORANGE = "#D85A30";
+const PM_HEAD_SX = {
+  fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+  fontWeight: 600,
+  fontSize: "14px",
+  lineHeight: "20px",
+  letterSpacing: 0,
+  color: "#1C4A3E",
+};
+const PM_SUB_SX = {
+  fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+  fontWeight: 400,
+  fontSize: "14px",
+  lineHeight: 1.4,
+  color: "#6B7280",
+  mt: 0.5,
+};
+
+/** Cream pill chips for the Profile Match breakdown. */
+const PmChips = ({ items }) => {
+  const list = asArray(items);
+  if (!list.length) return null;
+  return (
+    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75, mt: 1 }}>
+      {list.map((s, i) => (
+        <Box
+          key={`${s}-${i}`}
+          sx={{
+            border: "1px solid #E2DDCE",
+            bgcolor: "#F4F0E8",
+            color: "#1C4A3E",
+            borderRadius: "999px",
+            px: 1.25,
+            py: 0.4,
+            fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+            fontWeight: 500,
+            fontSize: "11px",
+            lineHeight: 1.4,
+          }}
+        >
+          {String(s)}
+        </Box>
+      ))}
+    </Box>
+  );
+};
+
+/** One "• heading … value" line inside the Profile Match breakdown. */
+const PmRow = ({ label, value, valueColor = PM_GREEN, children }) => (
+  <Box>
+    <Stack direction="row" spacing={2} sx={{ justifyContent: "space-between", alignItems: "flex-start" }}>
+      <Stack direction="row" spacing={1.25} sx={{ alignItems: "center", minWidth: 0 }}>
+        <Box sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: "#1C4A3E", flexShrink: 0 }} />
+        <Typography sx={PM_HEAD_SX}>{label}</Typography>
+      </Stack>
+      {value != null && (
+        <Typography
+          sx={{
+            fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+            fontWeight: 600,
+            fontSize: "14px",
+            lineHeight: "21px",
+            letterSpacing: 0,
+            textAlign: "center",
+            color: valueColor,
+            flexShrink: 0,
+            whiteSpace: "nowrap",
+          }}
+        >
+          {value}
+        </Typography>
+      )}
+    </Stack>
+    {children}
+  </Box>
+);
+
+/** Verdict word for the "Skills Match" ratio (matched / total). */
+const skillsMatchVerdict = (ratio) =>
+  ratio >= 1 ? "Strong" : ratio >= 0.6 ? "Okay" : ratio > 0 ? "Weak" : "None";
+
 const JdBreakdown = ({ b }) => {
   const total = b?.required_skills_total ?? 0;
   const matched = b?.required_skills_matched ?? 0;
+  const gaps = Math.max(0, total - matched);
   const prefTotal = b?.preferred_skills_total ?? 0;
   const threshold = b?.threshold_similarity;
   const passes = b?.passes_threshold;
+  const ratio = total ? matched / total : 0;
   return (
     <>
-      <Box>
-        <Stack direction="row" sx={{ justifyContent: "space-between", mb: 0.25 }}>
-          <Typography variant="caption" sx={{ fontWeight: 700 }}>
-            Skills found on CV
-          </Typography>
-          <Typography variant="caption" sx={{ fontWeight: 700, color: "success.main" }}>
-            {matched} of {total}
-          </Typography>
-        </Stack>
-        <ChipRow items={b?.matched_required_skills} color="success" leadingIcon={<CheckIcon />} />
+      <PmRow label="Skills found on CV" value={`${matched} of ${total}`}>
+        <PmChips items={b?.matched_required_skills} />
         {matched === 0 && (
-          <Typography variant="caption" color="text.disabled">
-            None of the required skills were found on the CV.
-          </Typography>
+          <Typography sx={PM_SUB_SX}>None of the required skills were found on the CV.</Typography>
         )}
-      </Box>
+      </PmRow>
       <Divider />
-      <Box>
-        <Stack direction="row" sx={{ justifyContent: "space-between", mb: 0.25 }}>
-          <Typography variant="caption" sx={{ fontWeight: 700 }}>
-            Skills gaps
-          </Typography>
-          <Typography variant="caption" sx={{ fontWeight: 700, color: "error.main" }}>
-            {Math.max(0, total - matched)} missing
-          </Typography>
-        </Stack>
-        <ChipRow items={b?.missing_required_skills} color="error" />
-        {total - matched <= 0 && (
-          <Typography variant="caption" color="text.disabled">
-            No gaps — every required skill is present.
-          </Typography>
-        )}
-      </Box>
+      <PmRow label="Skills gaps" value={`${gaps} Missing`} valueColor={PM_ORANGE}>
+        <PmChips items={b?.missing_required_skills} />
+        {gaps <= 0 && <Typography sx={PM_SUB_SX}>No gaps — every required skill is present.</Typography>}
+      </PmRow>
       <Divider />
-      <Box>
-        <Stack direction="row" sx={{ justifyContent: "space-between", mb: 0.25 }}>
-          <Typography variant="caption" sx={{ fontWeight: 700 }}>
-            Bonus skills required
-          </Typography>
-          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
-            {prefTotal}
-          </Typography>
-        </Stack>
+      <PmRow label="Bonus skills required" value={String(prefTotal)}>
         {prefTotal > 0 ? (
-          <>
-            <ChipRow lead="Matched:" items={b?.matched_preferred_skills} color="success" leadingIcon={<CheckIcon />} />
-            <ChipRow lead="Missing:" items={b?.missing_preferred_skills} color="warning" />
-          </>
+          <PmChips items={b?.missing_preferred_skills} />
         ) : (
-          <Typography variant="caption" color="text.disabled">
-            No preferred skills configured for this role.
-          </Typography>
+          <Typography sx={PM_SUB_SX}>No preferred skills configured for this role.</Typography>
         )}
-      </Box>
+      </PmRow>
       {passes != null && (
         <>
           <Divider />
-          <Box>
-            <Stack direction="row" sx={{ justifyContent: "space-between", mb: 0.25 }}>
-              <Typography variant="caption" sx={{ fontWeight: 700 }}>
-                Meets minimum
-              </Typography>
-              <Typography variant="caption" sx={{ fontWeight: 700, color: passes ? "success.main" : "error.main" }}>
-                {passes ? "Yes" : "No"}
-              </Typography>
-            </Stack>
+          <PmRow
+            label="Meets Minimum"
+            value={passes ? "Yes" : "No"}
+            valueColor={passes ? PM_GREEN : PM_ORANGE}
+          >
             {threshold != null && (
-              <Typography variant="caption" color="text.disabled">
+              <Typography sx={PM_SUB_SX}>
                 {passes ? "Passes" : "Below"} the minimum threshold of {fmtPct(toScore(threshold))}.
               </Typography>
             )}
-          </Box>
+          </PmRow>
         </>
       )}
+      <Divider />
+      <PmRow label="Skills Match" value={skillsMatchVerdict(ratio)}>
+        <Typography sx={PM_SUB_SX}>
+          {matched}/{total}
+        </Typography>
+      </PmRow>
     </>
   );
 };
 
-const TrustBreakdown = ({ breakdown }) =>
-  TRUST_SIGNALS.map(({ key, label, tip }) => {
-    const sig = breakdown?.[key];
+const TrustBreakdown = ({ breakdown }) => {
+  const signals = pickSignals(breakdown);
+  return TRUST_SIGNALS.map(({ key, label, tip }) => {
+    const sig = signals?.[key];
     if (!sig) return null;
-    const desc = asArray(sig.reasons).join(" ");
+    const desc = signalText(sig);
     const details = sig.details || {};
     return (
       <SignalBar key={key} label={label} tip={tip}>
@@ -578,7 +651,9 @@ const TrustBreakdown = ({ breakdown }) =>
             {desc}
           </Typography>
         )}
-        {key === "timeline_coherence" && (
+        {/* Legacy deterministic diagnostics (kept for old rows; new LLM rows
+            carry the evidence inside `finding` above). */}
+        {key === "timeline_coherence" && details.unmatched && (
           <ChipRow lead="Can't trace:" items={details.unmatched} color="error" max={7} />
         )}
         {key === "linguistic_genericity" && details.top_markers && (
@@ -587,6 +662,7 @@ const TrustBreakdown = ({ breakdown }) =>
       </SignalBar>
     );
   });
+};
 
 /* The hard-filter (CV Score) rubric: an open-ended `{ criterion: … }` map where
  * each criterion typically carries a numeric `score` (a percent string per the
@@ -836,9 +912,25 @@ const FlagRow = ({ icon, color, label, tag }) => (
   </Stack>
 );
 
+/** Trim a long LLM `finding` down to a glanceable one-liner for the flag rows. */
+const clip = (s, n = 150) => (s && s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s);
+
+/** Per-signal icon + fallback copy for the "key flags at a glance" rows, in the
+ *  order a recruiter reads them. Concern flags are generated for any signal that
+ *  falls below the "solid" bar (score < 75). */
+const CONCERN_FLAG_META = [
+  ["consistency", AccessTimeOutlinedIcon, "Experience claims may exceed documented history"],
+  ["specificity", FactCheckOutlinedIcon, "Accomplishments lack concrete metrics or named systems"],
+  ["timeline_coherence", ManageSearchOutlinedIcon, "Listed skills can't be traced to the work history"],
+  ["linguistic_genericity", SmartToyOutlinedIcon, "Language reads generic / AI-typical"],
+  ["structural_templating", SmartToyOutlinedIcon, "Formatting matches AI-template patterns"],
+  ["jd_keyword_mirroring", WorkOutlineIcon, "CV mirrors a generic role template"],
+];
+
 /** Build the "key flags at a glance" rows from both breakdowns. */
 const buildFlags = (jd, trust) => {
   const flags = [];
+  const signals = pickSignals(trust);
 
   const total = jd?.required_skills_total;
   const matched = jd?.required_skills_matched;
@@ -855,47 +947,27 @@ const buildFlags = (jd, trust) => {
     }
   }
 
-  const consistency = toScore(trust?.consistency?.score);
-  if (consistency != null && consistency < 75) {
+  // One flag per authenticity signal that dipped below the "solid" bar, using
+  // the LLM's own evidence (`finding`) as the label.
+  for (const [key, Icon, fallback] of CONCERN_FLAG_META) {
+    const sig = signals?.[key];
+    const score = toScore(sig?.score);
+    if (score == null || score >= 75) continue;
     flags.push({
-      icon: <AccessTimeOutlinedIcon fontSize="small" />,
-      color: consistency < 50 ? "error" : "warning",
-      label: asArray(trust?.consistency?.reasons)[0] || "Experience claims may exceed documented history",
-      tag: consistency < 50 ? "Critical" : "Warning",
+      icon: <Icon fontSize="small" />,
+      color: score < 50 ? "error" : "warning",
+      label: clip(signalText(sig)) || fallback,
+      tag: score < 50 ? "Critical" : "Warning",
     });
   }
 
-  const markers = trust?.linguistic_genericity?.details?.top_markers;
-  const markerCount = trust?.linguistic_genericity?.details?.marker_count;
-  if (markerCount > 0 && markers) {
-    const terms = Object.keys(markers);
-    flags.push({
-      icon: <SmartToyOutlinedIcon fontSize="small" />,
-      color: "warning",
-      label: `${markerCount} AI buzzword${markerCount === 1 ? "" : "s"} detected: ${terms.slice(0, 4).map((t) => `"${t}"`).join(", ")}`,
-      tag: "Warning",
-    });
-  }
-
-  const tc = trust?.timeline_coherence?.details;
-  if (tc && tc.total > 0) {
-    const untraced = tc.total - tc.matched;
-    if (untraced > 0) {
-      flags.push({
-        icon: <ManageSearchOutlinedIcon fontSize="small" />,
-        color: "warning",
-        label: `${untraced} of ${tc.total} listed skills can't be traced to a job role`,
-        tag: "Warning",
-      });
-    }
-  }
-
-  const specificity = toScore(trust?.specificity?.score);
-  if (specificity != null && specificity >= 50) {
+  // A positive note when the CV is genuinely specific.
+  const specificity = toScore(signals?.specificity?.score);
+  if (specificity != null && specificity >= 75) {
     flags.push({
       icon: <CheckCircleOutlineIcon fontSize="small" />,
       color: "success",
-      label: asArray(trust?.specificity?.reasons)[0] || "Names specific clients, projects and outcomes",
+      label: clip(signalText(signals?.specificity)) || "Names specific clients, projects and outcomes",
       tag: "Good",
     });
   }
@@ -954,11 +1026,17 @@ const SummaryRow = ({ icon, label, value, tagColor: tc, tag }) => (
 );
 
 const ScreeningSummary = ({ jd, trust }) => {
+  const signals = pickSignals(trust);
   const total = jd?.required_skills_total;
   const matched = jd?.required_skills_matched;
-  const consistency = toScore(trust?.consistency?.score);
-  const markerCount = trust?.linguistic_genericity?.details?.marker_count;
-  const specificity = toScore(trust?.specificity?.score);
+  const consistency = toScore(signals?.consistency?.score);
+  // "AI-generated content" now reads the LLM language + formatting signals
+  // (lower score = more AI-like) rather than the retired marker-word count.
+  const linguistic = toScore(signals?.linguistic_genericity?.score);
+  const structural = toScore(signals?.structural_templating?.score);
+  const aiScore = [linguistic, structural].filter((n) => n != null);
+  const aiMin = aiScore.length ? Math.min(...aiScore) : null;
+  const specificity = toScore(signals?.specificity?.score);
   const passes = jd?.passes_threshold;
   return (
     <Box sx={{ border: `1px solid ${CARD_BORDER}`, borderRadius: 2, p: 2, bgcolor: CARD_BG }}>
@@ -983,13 +1061,13 @@ const ScreeningSummary = ({ jd, trust }) => {
           tagColor={consistency < 75 ? "warning" : "success"}
         />
       )}
-      {markerCount != null && (
+      {aiMin != null && (
         <SummaryRow
           icon={<SmartToyOutlinedIcon fontSize="small" />}
           label="AI-generated content"
-          value={markerCount > 0 ? "Likely" : "Not detected"}
-          tag={markerCount > 0 ? "Flagged" : "Clear"}
-          tagColor={markerCount > 0 ? "warning" : "success"}
+          value={aiMin < 75 ? "Likely" : "Not detected"}
+          tag={aiMin < 75 ? "Flagged" : "Clear"}
+          tagColor={aiMin < 75 ? "warning" : "success"}
         />
       )}
       {specificity != null && (
@@ -1016,30 +1094,35 @@ const ScreeningSummary = ({ jd, trust }) => {
 
 /* ── Data → view-model helpers ─────────────────────────────────────────────── */
 
-const trustSummary = (breakdown) => {
-  const weak = TRUST_SIGNALS.map((s) => ({ label: s.label, score: toScore(breakdown?.[s.key]?.score) }))
+const trustSummary = (trustBreak) => {
+  const signals = pickSignals(trustBreak);
+  const weak = TRUST_SIGNALS.map((s) => ({ label: s.label, score: toScore(signals?.[s.key]?.score) }))
     .filter((s) => s.score != null && s.score < 75)
     .sort((a, b) => a.score - b.score)
     .slice(0, 2);
-  if (!weak.length) return "All authenticity checks look solid.";
+  if (!weak.length) {
+    // No weak signals: prefer the judge's own positive synthesis, else a
+    // generic all-clear line.
+    return trustBreak?.rationale || "All authenticity checks look solid.";
+  }
   return `${weak.map((w) => w.label).join(" and ")} flagged for review.`;
 };
 
 /** A recruiter-facing concern summary for the CV Authenticity card face: the
- *  actual reason sentences from the weakest sub-signals, falling back to a
- *  generic "which checks are flagged" line. */
-const authenticitySummary = (breakdown) => {
-  const reasons = TRUST_SIGNALS.map((s) => ({
-    score: toScore(breakdown?.[s.key]?.score),
-    reasons: asArray(breakdown?.[s.key]?.reasons),
+ *  actual `finding` sentences from the weakest sub-signals, falling back to the
+ *  judge's rationale / a generic "which checks are flagged" line. */
+const authenticitySummary = (trustBreak) => {
+  const signals = pickSignals(trustBreak);
+  const findings = TRUST_SIGNALS.map((s) => ({
+    score: toScore(signals?.[s.key]?.score),
+    text: signalText(signals?.[s.key]),
   }))
-    .filter((s) => s.score != null && s.score < 75 && s.reasons.length)
+    .filter((s) => s.score != null && s.score < 75 && s.text)
     .sort((a, b) => a.score - b.score)
-    .flatMap((s) => s.reasons)
-    .map((r) => String(r).trim().replace(/\.$/, ""))
+    .map((s) => String(s.text).trim().replace(/\.$/, ""))
     .slice(0, 2);
-  if (reasons.length) return `Some concerns: ${reasons.join("; ")}.`;
-  return trustSummary(breakdown);
+  if (findings.length) return `Some concerns: ${findings.join("; ")}.`;
+  return trustSummary(trustBreak);
 };
 
 /**
@@ -1075,7 +1158,6 @@ const CvScoreCard = ({
   const jdBreak = jd?.breakdown || null;
   const trustValue = trust ? toScore(trust.value) : null;
   const jdValue = jd ? toScore(jd.value) : null;
-  const flags = buildFlags(jdBreak, trustBreak);
 
   const stageIdx = APPLICATION_STAGES.indexOf(stage);
   const reachedHardFilter = stageIdx >= APPLICATION_STAGES.indexOf("hard_filter");
@@ -1102,14 +1184,11 @@ const CvScoreCard = ({
 
   return (
     <Box>
-      <Eyebrow>Credibility Check</Eyebrow>
       <Box sx={cardSx}>
         {trust && trustValue != null ? (
           <AuthenticityRow
             value={trustValue}
             summary={authenticitySummary(trustBreak)}
-            breakdown={trustBreak}
-            flags={flags}
           />
         ) : (
           <PendingRow label="CV Authenticity" />

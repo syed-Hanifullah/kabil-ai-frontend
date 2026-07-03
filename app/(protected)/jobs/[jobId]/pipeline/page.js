@@ -5,20 +5,14 @@ import Link from "next/link";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Card from "@mui/material/Card";
-import CardContent from "@mui/material/CardContent";
 import Typography from "@mui/material/Typography";
-import Chip from "@mui/material/Chip";
 import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
 import InputAdornment from "@mui/material/InputAdornment";
 import Skeleton from "@mui/material/Skeleton";
-import Breadcrumbs from "@mui/material/Breadcrumbs";
-import MuiLink from "@mui/material/Link";
 import Snackbar from "@mui/material/Snackbar";
 import Alert from "@mui/material/Alert";
 import SearchIcon from "@mui/icons-material/Search";
-import NavigateNextIcon from "@mui/icons-material/NavigateNext";
-import ArrowRightAltIcon from "@mui/icons-material/ArrowRightAlt";
 import CircleIcon from "@mui/icons-material/Circle";
 import PlaceOutlinedIcon from "@mui/icons-material/PlaceOutlined";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
@@ -36,19 +30,16 @@ import {
   useSetStatus,
 } from "@/lib/kabil/queries";
 import { PIPELINE_COLUMNS, humanize, stageLabel, toScore } from "@/lib/kabil/constants";
-import { countryLabel } from "@/lib/kabil/jobOptions";
 import PipelineBoard from "./_components/PipelineBoard";
 import RejectedList from "./_components/RejectedList";
 import CandidateDialog from "./_components/CandidateDialog";
-
-const pctOf = (n, total) => (total ? Math.round((n / total) * 100) : 0);
 
 /** Shared compact styling for the header action buttons (Share/TP/LinkedIn/Export). */
 const PILL_BTN_SX = {
   textTransform: "none",
   fontWeight: 600,
   fontSize: "0.78rem",
-  borderRadius: 999,
+  borderRadius: "5px",
   px: 1.5,
   minHeight: 34,
   boxShadow: "none",
@@ -58,21 +49,21 @@ const PILL_BTN_SX = {
 };
 const BEIGE_BTN_SX = {
   ...PILL_BTN_SX,
-  bgcolor: "#f1ece1",
+  bgcolor: "#F4F0E8",
   color: "#4a4a4a",
-  "&:hover": { bgcolor: "#e8e1d2", boxShadow: "none" },
+  "&:hover": { bgcolor: "#F4F0E8", boxShadow: "none" },
   "&.Mui-disabled": { bgcolor: "#f3f1ec", color: "#b7b2a6" },
 };
 const GREEN_BTN_SX = {
   ...PILL_BTN_SX,
-  bgcolor: "#fff",
+  bgcolor: "#e6f1ec",
   color: "#0F6E56",
   border: "1px solid #0F6E56",
   "&:hover": { bgcolor: "#e6f1ec", border: "1px solid #0F6E56" },
 };
 const LINKEDIN_BTN_SX = {
   ...PILL_BTN_SX,
-  bgcolor: "#fff",
+  bgcolor: "#eef4fb",
   color: "#2f6fb0",
   border: "1px solid #9db8d6",
   "&:hover": { bgcolor: "#eef4fb", border: "1px solid #2f6fb0" },
@@ -96,7 +87,7 @@ const TabPill = ({ selected, label, count, icon: Icon, onSelect }) => (
       gap: 0.5,
       px: 1.25,
       py: 0.5,
-      borderRadius: 999,
+      borderRadius: "5px",
       cursor: "pointer",
       userSelect: "none",
       fontWeight: 600,
@@ -130,47 +121,6 @@ const TabPill = ({ selected, label, count, icon: Icon, onSelect }) => (
     >
       {count}
     </Box>
-  </Box>
-);
-
-/** Compact pipeline funnel above the board. */
-const SummaryStrip = ({ counts, applied }) => (
-  <Box
-    sx={{
-      display: "flex",
-      flexWrap: "wrap",
-      alignItems: "center",
-      gap: 0.5,
-    }}
-  >
-    {PIPELINE_COLUMNS.map((col, i) => (
-      <Stack key={col.stage} direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
-        {i > 0 && (
-          <Stack direction="row" sx={{ alignItems: "center", color: "text.disabled" }}>
-            <ArrowRightAltIcon sx={{ fontSize: 18 }} />
-            <Typography variant="caption">{pctOf(counts[col.stage], applied)}%</Typography>
-          </Stack>
-        )}
-        <Chip
-          size="small"
-          label={`${counts[col.stage]} ${col.short}`}
-          sx={{
-            height: 24,
-            fontWeight: 600,
-            bgcolor: "transparent",
-            border: "1px solid",
-            borderColor: col.accent,
-            color: col.accent,
-          }}
-        />
-      </Stack>
-    ))}
-    <Chip
-      size="small"
-      label={`CONV ${pctOf(counts.done, applied)}%`}
-      color="primary"
-      sx={{ height: 24, fontWeight: 700, ml: 0.5 }}
-    />
   </Box>
 );
 
@@ -223,12 +173,6 @@ const PipelinePage = ({ params }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [rejectedItems, search],
   );
-
-  const counts = useMemo(() => {
-    const c = Object.fromEntries(PIPELINE_COLUMNS.map((col) => [col.stage, 0]));
-    for (const app of acceptedItems) if (c[app.stage] != null) c[app.stage] += 1;
-    return c;
-  }, [acceptedItems]);
 
   const total = appsData?.total ?? 0;
 
@@ -335,48 +279,34 @@ const PipelinePage = ({ params }) => {
   const ready = !appsLoading && !isError && total > 0;
 
   return (
-    <Stack spacing={2.5}>
-      {/* Breadcrumb */}
-      <Breadcrumbs
-        separator={<NavigateNextIcon sx={{ fontSize: 16 }} />}
-        sx={{ fontSize: "0.8125rem", "& .MuiBreadcrumbs-li": { display: "flex" } }}
-      >
-        <MuiLink component={Link} href="/jobs" underline="hover" color="inherit" variant="body2">
-          Jobs
-        </MuiLink>
-        <MuiLink
-          component={Link}
-          href={`/jobs/${jobId}`}
-          underline="hover"
-          color="inherit"
-          variant="body2"
-          sx={{ maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-        >
-          {job?.title ?? "Job"}
-        </MuiLink>
-        <Typography variant="body2" color="text.primary" sx={{ fontWeight: 600 }}>
-          Pipeline
-        </Typography>
-      </Breadcrumbs>
-
-      {/* Header */}
-      <Card sx={{ borderRadius: 2 }}>
-        <CardContent sx={{ p: { xs: 2, sm: 2.5 } }}>
-          {jobLoading ? (
-            <Skeleton variant="text" width="50%" height={32} />
-          ) : (
-            <Stack spacing={1.5}>
-              {/* Left: title + status + location + Accepted/Rejected.  Right: search + actions. */}
-              <Stack
-                direction={{ xs: "column", md: "row" }}
-                spacing={2}
-                sx={{ justifyContent: "space-between", alignItems: { xs: "stretch", md: "flex-start" } }}
-              >
-                <Box sx={{ minWidth: 0, flexGrow: 1 }}>
-                  <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }}>
-                    <Typography sx={{ fontWeight: 700, fontSize: "1.15rem", color: "#1c2522" }}>
-                      {job?.title ?? "Pipeline"}
-                    </Typography>
+    <Box sx={{ bgcolor: "#F9F7F3", borderRadius: 2.5, p: 0 }}>
+      <Stack spacing={1}>
+        {/* Header — white panel */}
+        <Box sx={{ bgcolor: "#fff", borderRadius: "5px", p: { xs: 1.25, sm: 1.5 } }}>
+        {jobLoading ? (
+          <Skeleton variant="text" width="50%" height={32} />
+        ) : (
+          <Stack spacing={1.5}>
+            {/* Left: title + status + location + Accepted/Rejected.  Right: search + actions. */}
+            <Stack
+              direction={{ xs: "column", md: "row" }}
+              spacing={2}
+              sx={{ justifyContent: "space-between", alignItems: { xs: "stretch", md: "flex-start" } }}
+            >
+              <Box sx={{ minWidth: 0, flexGrow: 1 }}>
+                <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }}>
+                  <Typography
+                    sx={{
+                      fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+                      fontWeight: 700,
+                      fontSize: "17px",
+                      lineHeight: "25.5px",
+                      letterSpacing: 0,
+                      color: "#1C4A3E",
+                    }}
+                  >
+                    {job?.title ?? "Pipeline"}
+                  </Typography>
                     {job && (
                       <Stack
                         direction="row"
@@ -407,19 +337,27 @@ const PipelinePage = ({ params }) => {
                       </Stack>
                     )}
                   </Stack>
-                  {job && (
-                    <Stack
-                      direction="row"
-                      spacing={0.5}
-                      sx={{ alignItems: "center", mt: 0.25, color: "text.secondary" }}
+                {job && (
+                  <Stack
+                    direction="row"
+                    spacing={0.5}
+                    sx={{ alignItems: "center", mt: 0.25, color: "#6B7280" }}
+                  >
+                    <PlaceOutlinedIcon sx={{ fontSize: 15 }} />
+                    <Typography
+                      sx={{
+                        fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+                        fontWeight: 400,
+                        fontSize: "12.5px",
+                        lineHeight: "18.75px",
+                        letterSpacing: 0,
+                        color: "#6B7280",
+                      }}
                     >
-                      <PlaceOutlinedIcon sx={{ fontSize: 15 }} />
-                      <Typography variant="caption" sx={{ fontSize: "0.78rem" }}>
-                        {job.hiring_company} · {job.city}, {countryLabel(job.country)} · {total}{" "}
-                        applicant{total === 1 ? "" : "s"}
-                      </Typography>
-                    </Stack>
-                  )}
+                      {job.hiring_company} · {job.city}
+                    </Typography>
+                  </Stack>
+                )}
                   {ready && (
                     <Stack direction="row" spacing={1} sx={{ mt: 1.25, flexWrap: "wrap", gap: 1 }}>
                       <TabPill
@@ -453,7 +391,7 @@ const PipelinePage = ({ params }) => {
                     onChange={(e) => setSearch(e.target.value)}
                     sx={{
                       width: { xs: "100%", sm: 220 },
-                      "& .MuiOutlinedInput-root": { borderRadius: 999 },
+                      "& .MuiOutlinedInput-root": { borderRadius: "5px" },
                     }}
                     InputProps={{
                       startAdornment: (
@@ -502,13 +440,11 @@ const PipelinePage = ({ params }) => {
                 </Stack>
               </Stack>
 
-              {ready && <SummaryStrip counts={counts} applied={acceptedItems.length} />}
-            </Stack>
-          )}
-        </CardContent>
-      </Card>
+          </Stack>
+        )}
+        </Box>
 
-      {/* Body */}
+        {/* Body */}
       {isError ? (
         <ErrorAlert error={error} />
       ) : appsLoading ? (
@@ -530,12 +466,14 @@ const PipelinePage = ({ params }) => {
           />
         </Card>
       ) : tab === "accepted" ? (
-        <PipelineBoard
-          byStage={byStage}
-          jobTitle={job?.title}
-          onOpen={setSelectedId}
-          onMove={handleMove}
-        />
+        <Box sx={{ p: 0, mt: 2 }}>
+          <PipelineBoard
+            byStage={byStage}
+            jobTitle={job?.title}
+            onOpen={setSelectedId}
+            onMove={handleMove}
+          />
+        </Box>
       ) : filteredRejected.length === 0 ? (
         <Card sx={{ borderRadius: 2 }}>
           <EmptyState
@@ -572,7 +510,8 @@ const PipelinePage = ({ params }) => {
           </Alert>
         ) : undefined}
       </Snackbar>
-    </Stack>
+      </Stack>
+    </Box>
   );
 };
 

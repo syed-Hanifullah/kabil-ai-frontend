@@ -81,7 +81,7 @@ const JobsPageInner = () => {
           sx={{
             width: { xs: "100%", sm: 300 },
             "& .MuiOutlinedInput-root": {
-              borderRadius: 2.5,
+              borderRadius: "5px",
               bgcolor: "#f2efe8",
               py: 0,
               "& fieldset": { border: "none" },
@@ -95,7 +95,7 @@ const JobsPageInner = () => {
           href="/jobs/new"
           variant="contained"
           startIcon={<AddIcon />}
-          sx={{ flexShrink: 0, borderRadius: 2, px: 2.5 }}
+          sx={{ flexShrink: 0, borderRadius: "5px", px: 2.5 }}
         >
           Post New Job
         </Button>

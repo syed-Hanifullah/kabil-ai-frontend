@@ -70,10 +70,20 @@ const TopBar = () => {
     >
       {/* Title + date */}
       <Box sx={{ minWidth: 0 }}>
-        <Typography noWrap sx={{ fontWeight: 700, lineHeight: 1.2, fontSize: "0.95rem" }}>
+        <Typography
+          noWrap
+          sx={{
+            fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+            fontWeight: 700,
+            fontSize: "18px",
+            lineHeight: "22.5px",
+            letterSpacing: 0,
+            color: "#0F6E56",
+          }}
+        >
           {title}
         </Typography>
-        <Typography noWrap sx={{ color: "text.secondary", fontSize: "0.72rem" }}>
+        <Typography noWrap sx={{ color: "#6B7280", fontSize: "12px" }}>
           {todayLabel()}
         </Typography>
       </Box>
@@ -81,8 +91,7 @@ const TopBar = () => {
       {/* Center search — visual shell; global search isn't wired yet. */}
       <Box
         sx={{
-          flex: 1,
-          maxWidth: 520,
+          width: 300,
           mx: "auto",
           display: { xs: "none", md: "block" },
         }}
@@ -98,8 +107,8 @@ const TopBar = () => {
           sx={{
             px: 1.75,
             py: 0.6,
-            borderRadius: 2,
-            bgcolor: "rgba(0,0,0,0.035)",
+            borderRadius: "5px",
+            bgcolor: "#F4F0E8",
             fontSize: 13,
             "& .MuiInputBase-input": { p: 0 },
           }}

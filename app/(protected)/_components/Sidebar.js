@@ -47,6 +47,12 @@ const Sidebar = () => {
         height: "100dvh",
         position: "sticky",
         top: 0,
+        maxWidth: 220,
+        fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+        fontSize: 14,
+        "& .MuiTypography-root, & .MuiListItemText-primary": {
+          fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+        },
         bgcolor: COLORS.sidebarLight,
         borderRight: `1px solid ${COLORS.sidebarBorder}`,
         color: COLORS.sidebarText,
@@ -75,7 +81,7 @@ const Sidebar = () => {
               href={href}
               selected={active}
               sx={{
-                borderRadius: 2,
+                borderRadius: "5px",
                 mb: 0.5,
                 color: COLORS.sidebarText,
                 "& .MuiListItemIcon-root": {

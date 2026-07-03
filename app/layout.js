@@ -1,9 +1,14 @@
-import { Inter, Geist_Mono } from "next/font/google";
+import { Inter, Plus_Jakarta_Sans, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Providers from "./providers";
 
 const inter = Inter({
   variable: "--font-sans",
+  subsets: ["latin"],
+  display: "swap",
+});
+const jakarta = Plus_Jakarta_Sans({
+  variable: "--font-jakarta",
   subsets: ["latin"],
   display: "swap",
 });
@@ -15,7 +20,7 @@ export const metadata = {
 };
 
 const RootLayout = ({ children }) => (
-  <html lang="en" className={`${inter.variable} ${geistMono.variable}`}>
+  <html lang="en" className={`${inter.variable} ${jakarta.variable} ${geistMono.variable}`}>
     <body>
       <Providers>{children}</Providers>
     </body>

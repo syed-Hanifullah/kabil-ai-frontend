@@ -59,8 +59,8 @@ const healthColor = (health) => (health === "at_risk" ? "error.main" : "success.
 // the backend JobHealth enum (see `jobHealthChip`); colors echo the brand.
 const HEALTH_SEGMENTS = [
   { key: "healthy", label: "Healthy", color: "#0F6E56" },
-  { key: "at_risk", label: "At Risk", color: "#EF9F27" },
-  { key: "shortlisted", label: "Shortlisted", color: "#37a07d" },
+  { key: "at_risk", label: "At Risk", color: "#D85A30" },
+  { key: "shortlisted", label: "Shortlisted", color: "#EF9F27" },
 ];
 
 /** Donut segments for the workspace-wide health distribution. */
