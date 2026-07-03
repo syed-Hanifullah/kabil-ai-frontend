@@ -30,11 +30,10 @@ const StageColumn = ({ column, apps, jobTitle, onOpen, dragApp, onDragStart, onD
         if (isValidTarget) onDrop(dragApp, column.stage);
       }}
       sx={{
-        // Fixed width (with horizontal scroll) on small screens; on md+ each
-        // column flexes to share the row so all stages fit without scrolling.
-        width: { xs: 250, sm: 260, md: "auto" },
-        flex: { md: 1 },
-        minWidth: { md: 0 },
+        // Cards are a fixed 215px wide, so every column holds that width and the
+        // board scrolls horizontally when the columns don't all fit — flexing the
+        // columns narrower than the card made cards overflow into their neighbours.
+        width: 231,
         flexShrink: 0,
         display: "flex",
         flexDirection: "column",
@@ -159,8 +158,8 @@ const PipelineBoard = ({ byStage, jobTitle, onOpen, onMove }) => {
   return (
     <Stack
       direction="row"
-      spacing={{ xs: 2.5, md: 1.5 }}
-      sx={{ overflowX: { xs: "auto", md: "visible" }, pb: 1, alignItems: "flex-start" }}
+      spacing={1.5}
+      sx={{ overflowX: "auto", pb: 1, alignItems: "flex-start" }}
     >
       {PIPELINE_COLUMNS.map((column) => (
         <StageColumn

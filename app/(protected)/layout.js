@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -18,6 +18,7 @@ const ProtectedLayout = ({ children }) => {
   const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -45,10 +46,10 @@ const ProtectedLayout = ({ children }) => {
   return (
     <RealtimeProvider>
       <Box sx={{ display: "flex", minHeight: "100dvh", bgcolor: "background.default" }}>
-        <Sidebar />
+        <Sidebar mobileOpen={mobileNavOpen} onClose={() => setMobileNavOpen(false)} />
         <Box sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
-          <TopBar />
-          <Box component="main" sx={{ flex: 1, p: 4 }}>
+          <TopBar onMenuClick={() => setMobileNavOpen(true)} />
+          <Box component="main" sx={{ flex: 1, p: { xs: 2, sm: 3, md: 4 } }}>
             {children}
           </Box>
         </Box>

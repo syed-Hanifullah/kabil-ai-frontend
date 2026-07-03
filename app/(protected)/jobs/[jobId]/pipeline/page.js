@@ -7,12 +7,16 @@ import Stack from "@mui/material/Stack";
 import Card from "@mui/material/Card";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
+import Menu from "@mui/material/Menu";
+import MenuItem from "@mui/material/MenuItem";
+import ListItemIcon from "@mui/material/ListItemIcon";
 import TextField from "@mui/material/TextField";
 import InputAdornment from "@mui/material/InputAdornment";
 import Skeleton from "@mui/material/Skeleton";
 import Snackbar from "@mui/material/Snackbar";
 import Alert from "@mui/material/Alert";
 import SearchIcon from "@mui/icons-material/Search";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import CircleIcon from "@mui/icons-material/Circle";
 import PlaceOutlinedIcon from "@mui/icons-material/PlaceOutlined";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
@@ -139,6 +143,8 @@ const PipelinePage = ({ params }) => {
   const [selectedId, setSelectedId] = useState(null);
   const [pendingId, setPendingId] = useState(null);
   const [toast, setToast] = useState(null);
+  const [actionsAnchor, setActionsAnchor] = useState(null);
+  const closeActions = () => setActionsAnchor(null);
 
   const moveStage = useMoveStage();
   const setStatus = useSetStatus();
@@ -289,9 +295,9 @@ const PipelinePage = ({ params }) => {
           <Stack spacing={1.5}>
             {/* Left: title + status + location + Accepted/Rejected.  Right: search + actions. */}
             <Stack
-              direction={{ xs: "column", md: "row" }}
+              direction={{ xs: "column", lg: "row" }}
               spacing={2}
-              sx={{ justifyContent: "space-between", alignItems: { xs: "stretch", md: "flex-start" } }}
+              sx={{ justifyContent: "space-between", alignItems: { xs: "stretch", lg: "flex-start" } }}
             >
               <Box sx={{ minWidth: 0, flexGrow: 1 }}>
                 <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }}>
@@ -401,42 +407,90 @@ const PipelinePage = ({ params }) => {
                       ),
                     }}
                   />
-                  <Button
-                    variant="text"
-                    startIcon={<ShareOutlinedIcon />}
-                    onClick={share}
-                    disabled={!job?.public_slug}
-                    sx={BEIGE_BTN_SX}
-                  >
-                    Share
-                  </Button>
-                  <Button
-                    component={Link}
-                    href="/talent-pool"
-                    variant="outlined"
-                    startIcon={<PeopleAltOutlinedIcon />}
-                    sx={GREEN_BTN_SX}
-                  >
-                    TP Matches
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    startIcon={<LinkedInIcon />}
-                    onClick={shareLinkedIn}
-                    disabled={!job?.public_slug}
-                    sx={LINKEDIN_BTN_SX}
-                  >
-                    LinkedIn
-                  </Button>
-                  <Button
-                    variant="text"
-                    startIcon={<FileDownloadOutlinedIcon />}
-                    onClick={exportCsv}
-                    disabled={!total}
-                    sx={BEIGE_BTN_SX}
-                  >
-                    Export
-                  </Button>
+                  {/* Desktop: individual action buttons */}
+                  <Box sx={{ display: { xs: "none", md: "flex" }, flexWrap: "wrap", gap: 1, alignItems: "center" }}>
+                    <Button
+                      variant="text"
+                      startIcon={<ShareOutlinedIcon />}
+                      onClick={share}
+                      disabled={!job?.public_slug}
+                      sx={BEIGE_BTN_SX}
+                    >
+                      Share
+                    </Button>
+                    <Button
+                      component={Link}
+                      href="/talent-pool"
+                      variant="outlined"
+                      startIcon={<PeopleAltOutlinedIcon />}
+                      sx={GREEN_BTN_SX}
+                    >
+                      TP Matches
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      startIcon={<LinkedInIcon />}
+                      onClick={shareLinkedIn}
+                      disabled={!job?.public_slug}
+                      sx={LINKEDIN_BTN_SX}
+                    >
+                      LinkedIn
+                    </Button>
+                    <Button
+                      variant="text"
+                      startIcon={<FileDownloadOutlinedIcon />}
+                      onClick={exportCsv}
+                      disabled={!total}
+                      sx={BEIGE_BTN_SX}
+                    >
+                      Export
+                    </Button>
+                  </Box>
+
+                  {/* Mobile: the four actions folded into one dropdown */}
+                  <Box sx={{ display: { xs: "flex", md: "none" } }}>
+                    <Button
+                      variant="text"
+                      endIcon={<KeyboardArrowDownIcon />}
+                      onClick={(e) => setActionsAnchor(e.currentTarget)}
+                      sx={GREEN_BTN_SX}
+                    >
+                      Actions
+                    </Button>
+                    <Menu
+                      anchorEl={actionsAnchor}
+                      open={Boolean(actionsAnchor)}
+                      onClose={closeActions}
+                      anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+                      transformOrigin={{ vertical: "top", horizontal: "right" }}
+                    >
+                      <MenuItem
+                        onClick={() => { closeActions(); share(); }}
+                        disabled={!job?.public_slug}
+                      >
+                        <ListItemIcon><ShareOutlinedIcon fontSize="small" /></ListItemIcon>
+                        Share
+                      </MenuItem>
+                      <MenuItem component={Link} href="/talent-pool" onClick={closeActions}>
+                        <ListItemIcon><PeopleAltOutlinedIcon fontSize="small" /></ListItemIcon>
+                        TP Matches
+                      </MenuItem>
+                      <MenuItem
+                        onClick={() => { closeActions(); shareLinkedIn(); }}
+                        disabled={!job?.public_slug}
+                      >
+                        <ListItemIcon><LinkedInIcon fontSize="small" /></ListItemIcon>
+                        LinkedIn
+                      </MenuItem>
+                      <MenuItem
+                        onClick={() => { closeActions(); exportCsv(); }}
+                        disabled={!total}
+                      >
+                        <ListItemIcon><FileDownloadOutlinedIcon fontSize="small" /></ListItemIcon>
+                        Export
+                      </MenuItem>
+                    </Menu>
+                  </Box>
                 </Stack>
               </Stack>
 

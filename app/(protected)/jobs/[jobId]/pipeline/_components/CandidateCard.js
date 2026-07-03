@@ -8,11 +8,11 @@ import Chip from "@mui/material/Chip";
 import Avatar from "@mui/material/Avatar";
 import Typography from "@mui/material/Typography";
 import LinearProgress from "@mui/material/LinearProgress";
-import IconButton from "@mui/material/IconButton";
+import Skeleton from "@mui/material/Skeleton";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
-import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import CircleIcon from "@mui/icons-material/Circle";
-import { humanize, statusColor, scoreBand, toScore, timeAgo } from "@/lib/kabil/constants";
+import { scoreBand, toScore, timeAgo } from "@/lib/kabil/constants";
+import { useWhatsAppConversation } from "@/lib/kabil/queries";
 
 const initials = (name) =>
   (name || "?")
@@ -26,6 +26,26 @@ const initials = (name) =>
 const bestScore = (app) => {
   const hard = toScore(app.hard_filter_score);
   return hard != null ? hard : toScore(app.similarity_score);
+};
+
+/** Background Validation (0–100) derived from the WhatsApp screening answers'
+ *  relevance scores — the same mean-then-scale the candidate dialog uses. Null
+ *  until at least one answer has been AI-scored. */
+const bgValidationScore = (convo) => {
+  const answers = Array.isArray(convo?.answers) ? convo.answers : [];
+  const scored = answers.filter((a) => a?.relevance_score != null);
+  return scored.length
+    ? Math.round((scored.reduce((s, a) => s + a.relevance_score, 0) / scored.length) * 10)
+    : null;
+};
+
+/** The score-bar caption per pipeline stage (what the number measures). The
+ *  final "done" stage shows a Shortlisted verdict instead of a bar. */
+const SCORE_TITLE = {
+  vector_screen: "Profile Match",
+  hard_filter: "CV Score",
+  whatsapp: "Background Validation",
+  interview: "Interview Scoring",
 };
 
 /** Solid + soft tint per MUI palette tone, for inline chip/badge styling. */
@@ -67,8 +87,38 @@ const DotChip = ({ label, toneKey }) => {
  * stage column.
  */
 const CandidateCard = ({ app, jobTitle, onOpen, draggable = false, onDragStart, onDragEnd, dragging = false }) => {
-  const score = bestScore(app);
-  const band = scoreBand(score);
+  const isDone = app.stage === "done";
+  const isAssessment = app.stage === "whatsapp";
+
+  // Assessment cards derive Background Validation from the WhatsApp screening
+  // conversation (it isn't denormalized onto the list item); we only fetch it
+  // for cards actually sitting in that stage.
+  const convo = useWhatsAppConversation(app.id, { enabled: isAssessment });
+
+  // The score that belongs to this candidate's current stage, plus whether it's
+  // still being fetched/computed — while pending we skeleton the bar until it
+  // lands (a card that just moved to a new stage waits on that stage's score).
+  let stageScore = null;
+  let pending = false;
+  switch (app.stage) {
+    case "vector_screen":
+      stageScore = toScore(app.similarity_score);
+      pending = stageScore == null;
+      break;
+    case "hard_filter":
+      stageScore = toScore(app.hard_filter_score);
+      pending = stageScore == null;
+      break;
+    case "whatsapp":
+      stageScore = bgValidationScore(convo.data);
+      pending = convo.isLoading || stageScore == null;
+      break;
+    default:
+      // Interviewed (HR enters the mark) / anything else: best available score.
+      stageScore = bestScore(app);
+  }
+
+  const band = scoreBand(stageScore);
   const accent = tone(band.color);
 
   return (
@@ -94,8 +144,11 @@ const CandidateCard = ({ app, jobTitle, onOpen, draggable = false, onDragStart, 
         },
       }}
     >
-      {/* component="div" keeps the ⋯ IconButton from nesting a button in a button */}
-      <CardActionArea component="div" onClick={() => onOpen(app.id)} sx={{ p: 1.75 }}>
+      <CardActionArea
+        component="div"
+        onClick={() => onOpen(app.id)}
+        sx={{ p: 1.75, height: "100%", display: "flex", flexDirection: "column", alignItems: "stretch" }}
+      >
         <Stack direction="row" spacing={1.25} sx={{ alignItems: "flex-start" }}>
           <Avatar sx={{ width: 38, height: 38, bgcolor: "primary.main", fontSize: 13, fontWeight: 700 }}>
             {initials(app.candidate_full_name)}
@@ -123,48 +176,86 @@ const CandidateCard = ({ app, jobTitle, onOpen, draggable = false, onDragStart, 
               {jobTitle}
             </Typography>
           </Box>
-          <IconButton
-            size="small"
-            aria-label="Candidate actions"
-            onClick={(e) => {
-              e.stopPropagation();
-              onOpen(app.id);
-            }}
-            sx={{ mt: -0.75, mr: -0.75, color: "text.disabled" }}
-          >
-            <MoreHorizIcon fontSize="small" />
-          </IconButton>
         </Stack>
 
-        {score != null && (
-          <Stack direction="row" spacing={1.25} sx={{ alignItems: "center", mt: 1.5 }}>
-            <LinearProgress
-              variant="determinate"
-              value={Math.min(100, Math.max(0, score))}
-              sx={{
-                flexGrow: 1,
-                height: 5,
-                borderRadius: 3,
-                bgcolor: "rgba(0,0,0,0.06)",
-                "& .MuiLinearProgress-bar": { bgcolor: accent.solid, borderRadius: 3 },
-              }}
-            />
+        {isDone ? (
+          <Stack
+            direction="row"
+            spacing={1}
+            sx={{ alignItems: "center", justifyContent: "space-between", mt: 1.5 }}
+          >
             <Typography
-              variant="subtitle2"
-              sx={{ fontWeight: 800, color: accent.solid, minWidth: 22, textAlign: "right" }}
+              sx={{
+                fontFamily: "var(--font-sans), system-ui, Arial, sans-serif",
+                fontWeight: 600,
+                fontSize: "10px",
+                lineHeight: "21px",
+                letterSpacing: 0,
+                color: "#2C2C2A",
+              }}
             >
-              {Math.round(score)}
+              Shortlist
+            </Typography>
+            <Typography
+              sx={{
+                fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+                fontWeight: 700,
+                fontSize: "9.89px",
+                lineHeight: "14.83px",
+                letterSpacing: 0,
+                color: "#0F6E56",
+              }}
+            >
+              Shortlisted
             </Typography>
           </Stack>
-        )}
-
-        {app.status !== "active" && (
-          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75, mt: 1.5, alignItems: "center" }}>
-            <DotChip label={humanize(app.status)} toneKey={statusColor(app.status)} />
+        ) : (pending || stageScore != null) ? (
+          <Box sx={{ mt: 1.5 }}>
+            <Typography
+              sx={{
+                fontFamily: "var(--font-sans), system-ui, Arial, sans-serif",
+                fontWeight: 600,
+                fontSize: "10px",
+                lineHeight: "21px",
+                letterSpacing: 0,
+                color: "#2C2C2A",
+                mb: 0,
+              }}
+            >
+              {SCORE_TITLE[app.stage] ?? "Score"}
+            </Typography>
+            {pending ? (
+              // Score for this stage hasn't landed yet — skeleton just the bar.
+              <Stack direction="row" spacing={1.25} sx={{ alignItems: "center" }}>
+                <Skeleton variant="rounded" height={5} sx={{ flexGrow: 1, borderRadius: 3 }} />
+                <Skeleton variant="text" width={18} sx={{ minWidth: 22 }} />
+              </Stack>
+            ) : (
+              <Stack direction="row" spacing={1.25} sx={{ alignItems: "center" }}>
+                <LinearProgress
+                  variant="determinate"
+                  value={Math.min(100, Math.max(0, stageScore))}
+                  sx={{
+                    flexGrow: 1,
+                    height: 5,
+                    borderRadius: 3,
+                    bgcolor: "rgba(0,0,0,0.06)",
+                    "& .MuiLinearProgress-bar": { bgcolor: "#EF9F27", borderRadius: 3 },
+                  }}
+                />
+                <Typography
+                  variant="subtitle2"
+                  sx={{ fontWeight: 800, color: accent.solid, minWidth: 22, textAlign: "right" }}
+                >
+                  {Math.round(stageScore)}
+                </Typography>
+              </Stack>
+            )}
           </Box>
-        )}
+        ) : null}
 
-        <Stack direction="row" spacing={0.5} sx={{ alignItems: "center", mt: 1.5, color: "text.secondary" }}>
+
+        <Stack direction="row" spacing={0.5} sx={{ alignItems: "center", mt: "auto", pt: 1.5, color: "text.secondary" }}>
           <AccessTimeIcon sx={{ fontSize: 14 }} />
           <Typography variant="caption">{timeAgo(app.created_at)}</Typography>
         </Stack>

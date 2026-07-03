@@ -11,12 +11,13 @@ import InputBase from "@mui/material/InputBase";
 import InputAdornment from "@mui/material/InputAdornment";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
+import MenuIcon from "@mui/icons-material/Menu";
 import { COLORS } from "@/lib/theme";
 
 // Dummy workspace/company shown in the top bar (the product is a single shared
 // workspace, so there's no per-user org name to read). Swap for real workspace
 // metadata once the API exposes it.
-const COMPANY = { name: "Salt Recruitment Growth Plan", initials: "SR" };
+const COMPANY = { name: "Digycorp Pvt Ltd", initials: "DP" };
 
 // Warm beige used for the notification button and the company pill.
 const BEIGE = "#f1ece1";
@@ -51,7 +52,7 @@ const pageTitle = (pathname) => {
   return SEGMENT_LABELS[last] || (segments[segments.length - 2] === "jobs" ? "Job" : humanize(last));
 };
 
-const TopBar = () => {
+const TopBar = ({ onMenuClick }) => {
   const pathname = usePathname();
   const title = pageTitle(pathname);
 
@@ -61,13 +62,26 @@ const TopBar = () => {
       sx={{
         bgcolor: "background.default",
         borderBottom: `1px solid ${COLORS.sidebarBorder}`,
-        px: 4,
+        px: { xs: 2, md: 4 },
         py: 1.5,
         display: "flex",
         alignItems: "center",
-        gap: 3,
+        gap: { xs: 1.5, md: 3 },
       }}
     >
+      {/* Menu toggle — opens the sidebar drawer on small screens */}
+      <IconButton
+        aria-label="Open navigation menu"
+        onClick={onMenuClick}
+        sx={{
+          display: { xs: "inline-flex", md: "none" },
+          color: "primary.main",
+          ml: -1,
+        }}
+      >
+        <MenuIcon />
+      </IconButton>
+
       {/* Title + date */}
       <Box sx={{ minWidth: 0 }}>
         <Typography
@@ -92,7 +106,7 @@ const TopBar = () => {
       <Box
         sx={{
           width: 300,
-          mx: "auto",
+          ml: "auto",
           display: { xs: "none", md: "block" },
         }}
       >
@@ -115,7 +129,7 @@ const TopBar = () => {
         />
       </Box>
 
-      <Stack direction="row" spacing={1.25} sx={{ alignItems: "center", ml: "auto" }}>
+      <Stack direction="row" spacing={1.25} sx={{ alignItems: "center" }}>
         {/* Notifications — visual shell; the feed isn't wired yet. */}
         <Badge
           variant="dot"
@@ -153,7 +167,7 @@ const TopBar = () => {
           sx={{
             alignItems: "center",
             bgcolor: BEIGE,
-            borderRadius: 999,
+            borderRadius: "5px",
             pl: 0.5,
             pr: 1.5,
             py: 0.5,

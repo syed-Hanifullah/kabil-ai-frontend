@@ -13,6 +13,7 @@ import Avatar from "@mui/material/Avatar";
 import Chip from "@mui/material/Chip";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
+import Drawer from "@mui/material/Drawer";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import { SIDEBAR_WIDTH, COLORS } from "@/lib/theme";
@@ -28,33 +29,29 @@ const initials = (name = "") =>
     .join("")
     .toUpperCase();
 
-const Sidebar = () => {
+/** The sidebar body — shared by the permanent (desktop) aside and the mobile
+ *  drawer. `onNavigate` (drawer only) closes the drawer after a nav tap. */
+const SidebarInner = ({ onNavigate }) => {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuth();
 
   const onLogout = async () => {
+    onNavigate?.();
     await logout();
     router.replace("/login");
   };
 
   return (
     <Box
-      component="aside"
       sx={{
-        width: SIDEBAR_WIDTH,
-        flexShrink: 0,
-        height: "100dvh",
-        position: "sticky",
-        top: 0,
-        maxWidth: 220,
+        height: "100%",
         fontFamily: "var(--font-jakarta), system-ui, sans-serif",
         fontSize: 14,
         "& .MuiTypography-root, & .MuiListItemText-primary": {
           fontFamily: "var(--font-jakarta), system-ui, sans-serif",
         },
         bgcolor: COLORS.sidebarLight,
-        borderRight: `1px solid ${COLORS.sidebarBorder}`,
         color: COLORS.sidebarText,
         display: "flex",
         flexDirection: "column",
@@ -80,6 +77,7 @@ const Sidebar = () => {
               component={Link}
               href={href}
               selected={active}
+              onClick={onNavigate}
               sx={{
                 borderRadius: "5px",
                 mb: 0.5,
@@ -208,5 +206,51 @@ const Sidebar = () => {
     </Box>
   );
 };
+
+/**
+ * App-shell sidebar. On md+ it's a permanent sticky column; below md it collapses
+ * into a temporary drawer toggled from the TopBar menu button (`mobileOpen` /
+ * `onClose` are owned by the layout).
+ */
+const Sidebar = ({ mobileOpen = false, onClose }) => (
+  <>
+    {/* Permanent sidebar (md and up) */}
+    <Box
+      component="aside"
+      sx={{
+        display: { xs: "none", md: "flex" },
+        flexDirection: "column",
+        width: SIDEBAR_WIDTH,
+        maxWidth: 220,
+        flexShrink: 0,
+        height: "100dvh",
+        position: "sticky",
+        top: 0,
+        borderRight: `1px solid ${COLORS.sidebarBorder}`,
+      }}
+    >
+      <SidebarInner />
+    </Box>
+
+    {/* Mobile drawer (below md) */}
+    <Drawer
+      variant="temporary"
+      open={mobileOpen}
+      onClose={onClose}
+      ModalProps={{ keepMounted: true }}
+      sx={{
+        display: { xs: "block", md: "none" },
+        "& .MuiDrawer-paper": {
+          width: SIDEBAR_WIDTH,
+          maxWidth: 220,
+          boxSizing: "border-box",
+          border: 0,
+        },
+      }}
+    >
+      <SidebarInner onNavigate={onClose} />
+    </Drawer>
+  </>
+);
 
 export default Sidebar;

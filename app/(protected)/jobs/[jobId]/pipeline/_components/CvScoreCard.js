@@ -11,6 +11,7 @@ import Collapse from "@mui/material/Collapse";
 import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
 import LinearProgress from "@mui/material/LinearProgress";
+import Skeleton from "@mui/material/Skeleton";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import CheckIcon from "@mui/icons-material/Check";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
@@ -276,7 +277,7 @@ const EligibilityRow = ({ items, computedAt }) => {
               sx={{
                 alignItems: "center",
                 justifyContent: "space-between",
-                py: 1,
+                py: 1.75,
                 borderBottom: "1px solid",
                 borderColor: "action.hover",
                 "&:last-of-type": { border: 0 },
@@ -284,13 +285,28 @@ const EligibilityRow = ({ items, computedAt }) => {
             >
               <Stack direction="row" spacing={1.25} sx={{ alignItems: "center", minWidth: 0 }}>
                 <Box sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: GREEN, flexShrink: 0 }} />
-                <Typography sx={{ fontWeight: 700, fontSize: "0.75rem" }}>{it.label}</Typography>
+                <Typography
+                  sx={{
+                    fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+                    fontWeight: 600,
+                    fontSize: "14px",
+                    lineHeight: "20px",
+                    letterSpacing: 0,
+                    color: "#1C4A3E",
+                  }}
+                >
+                  {it.label}
+                </Typography>
               </Stack>
               <Typography
                 sx={{
-                  fontWeight: 700,
-                  color: it.value ? GREEN : "text.disabled",
-                  textAlign: "right",
+                  fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+                  fontWeight: 600,
+                  fontSize: "11px",
+                  lineHeight: "16.5px",
+                  letterSpacing: 0,
+                  textAlign: "center",
+                  color: it.value ? "#0F6E56" : "text.disabled",
                   wordBreak: "break-word",
                 }}
               >
@@ -317,6 +333,20 @@ const PendingRow = ({ label }) => (
     <Typography variant="caption" color="text.secondary">
       Not computed yet.
     </Typography>
+  </RowShell>
+);
+
+/** A score row whose value for the current stage is still being fetched: the
+ *  title stays, but the bar + score disc are skeletons until the score lands. */
+const MeterSkeletonRow = ({ label }) => (
+  <RowShell>
+    <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Typography sx={{ fontWeight: 700, fontSize: "0.775rem", mb: 1 }}>{label}</Typography>
+        <Skeleton variant="rounded" height={8} sx={{ borderRadius: 4 }} />
+      </Box>
+      <Skeleton variant="circular" width={44} height={44} sx={{ flexShrink: 0 }} />
+    </Stack>
   </RowShell>
 );
 
@@ -1165,7 +1195,8 @@ const CvScoreCard = ({
   const reachedInterview = stageIdx >= APPLICATION_STAGES.indexOf("interview");
   const reachedDone = stageIdx >= APPLICATION_STAGES.indexOf("done");
   // Profile Match only ever leads at the initial vector-screen level (L1).
-  const showProfileMatch = !!jd && !reachedHardFilter;
+  const atVectorScreen = !reachedHardFilter;
+  const atWhatsApp = stage === "whatsapp";
 
   const bgValidation = screening?.bgValidation ?? null;
   const eligibility = asArray(screening?.eligibility);
@@ -1205,20 +1236,27 @@ const CvScoreCard = ({
           </MeterRow>
         ))}
 
-        {/* Reached hard filter but the CV Score hasn't landed yet — show it as
-            pending rather than leaving a gap (Profile Match is already gone). */}
-        {reachedHardFilter && !hasHardFilter && <PendingRow label="CV Score" />}
+        {/* Reached hard filter but the CV Score hasn't landed yet — skeleton the
+            bar until the async score arrives (Profile Match is already gone). */}
+        {reachedHardFilter && !hasHardFilter && <MeterSkeletonRow label="CV Score" />}
 
-        {showProfileMatch && (
-          <MeterRow label="Profile Match" value={jdValue} computedAt={jd.computed_at}>
-            {jdBreak && <JdBreakdown b={jdBreak} />}
-            <ScreeningSummary jd={jdBreak} trust={trustBreak} />
-          </MeterRow>
-        )}
+        {atVectorScreen &&
+          (jd && jdValue != null ? (
+            <MeterRow label="Profile Match" value={jdValue} computedAt={jd.computed_at}>
+              {jdBreak && <JdBreakdown b={jdBreak} />}
+              <ScreeningSummary jd={jdBreak} trust={trustBreak} />
+            </MeterRow>
+          ) : (
+            // At L1 but the similarity score is still computing — skeleton the bar.
+            <MeterSkeletonRow label="Profile Match" />
+          ))}
 
-        {/* Derived client-side from the AI-scored answers; hidden until any exist. */}
-        {bgValidation != null && (
+        {/* Derived client-side from the AI-scored answers. While the candidate is
+            in screening but no answer is scored yet, skeleton the bar. */}
+        {bgValidation != null ? (
           <MeterRow label="Background Validation" value={bgValidation} showFooter={false} />
+        ) : (
+          atWhatsApp && <MeterSkeletonRow label="Background Validation" />
         )}
 
         {reachedWhatsApp && eligibility.length > 0 && (

@@ -47,7 +47,14 @@ import {
   useWhatsAppConversation,
   useWhatsAppQuestions,
 } from "@/lib/kabil/queries";
-import { APPLICATION_STAGES, NEXT_STAGE, humanize, timeAgo } from "@/lib/kabil/constants";
+import {
+  APPLICATION_STAGES,
+  NEXT_STAGE,
+  commitmentVerdict,
+  formatNoticePeriod,
+  humanize,
+  timeAgo,
+} from "@/lib/kabil/constants";
 import { COLORS } from "@/lib/theme";
 
 /** Requested brand green for the candidate dialog chrome. */
@@ -78,12 +85,44 @@ const ELIGIBILITY_FIELDS = [
   { key: "work_mode", label: "Work Mode" },
 ];
 
+/** Format one fixed answer's backend `extracted` payload into the recruiter-
+ *  facing display string for its Eligibility Questions row, per source_field.
+ *  Returns null when the value wasn't extracted (row shows "—"). */
+const formatEligibility = (key, extracted, state) => {
+  // Commitment is not extracted from text — it's a verdict on how far the
+  // candidate engaged with screening, derived from the conversation state.
+  if (key === "commitment") return commitmentVerdict(state);
+  if (!extracted || typeof extracted !== "object") return null;
+  switch (key) {
+    case "salary": {
+      const { amount, currency } = extracted;
+      if (amount == null) return null;
+      return `${amount.toLocaleString()}${currency ? ` ${currency}` : ""}`;
+    }
+    case "notice_period":
+      return formatNoticePeriod(extracted.days);
+    case "visa":
+      return extracted.valid == null ? null : extracted.valid ? "Yes" : "No";
+    case "employment_type":
+    case "work_mode": {
+      // Shown as the job's own setting once accepted; flagged if declined.
+      if (extracted.accepted == null) return null;
+      return extracted.accepted ? humanize(extracted.value) || "Yes" : "Not open";
+    }
+    default:
+      return null;
+  }
+};
+
 /**
  * Fold the WhatsApp screening conversation + the job's question list into the
  * view-model the score card needs:
- *  - `eligibility`: the candidate's verbatim answer to each fixed question,
- *    recovered by joining `answers[].question_id` back to the question's
- *    `source_field` (the answer copy carries no source_field of its own).
+ *  - `eligibility`: each fixed question normalized to a glanceable value
+ *    ("15,800 AED", "3 Weeks", "Yes", "Remote", "Most Likely"), joining
+ *    `answers[].question_id` back to the question's `source_field` (the answer
+ *    copy carries no source_field of its own). The salary / notice / visa /
+ *    employment / work-mode values come from the backend's per-answer
+ *    `extracted` payload; Commitment is derived from the conversation state.
  *  - `bgValidation`: a 0–100 "background validation" score derived from the
  *    AI-scored answers' relevance (0–10, only the AI questions are scored) —
  *    the backend computes no such aggregate, so we mean-then-scale here. Null
@@ -93,16 +132,16 @@ const deriveScreening = (convo, questions) => {
   const answers = asArray(convo?.answers);
   const sourceById = new Map(asArray(questions).map((q) => [q.id, q.source_field]));
 
-  const answerBySource = new Map();
+  const extractedBySource = new Map();
   for (const a of answers) {
     const sf = sourceById.get(a?.question_id);
-    if (!sf || answerBySource.has(sf)) continue;
-    const val = typeof a.answer === "string" ? a.answer.trim() : a.answer;
-    if (val) answerBySource.set(sf, val);
+    if (!sf || extractedBySource.has(sf)) continue;
+    extractedBySource.set(sf, a?.extracted ?? null);
   }
+  const state = convo?.state ?? null;
   const eligibility = ELIGIBILITY_FIELDS.map((f) => ({
     label: f.label,
-    value: answerBySource.get(f.key) ?? null,
+    value: formatEligibility(f.key, extractedBySource.get(f.key), state),
   }));
 
   const scored = answers.filter((a) => a?.relevance_score != null);
