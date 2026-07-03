@@ -9,7 +9,6 @@ import Avatar from "@mui/material/Avatar";
 import Typography from "@mui/material/Typography";
 import LinearProgress from "@mui/material/LinearProgress";
 import IconButton from "@mui/material/IconButton";
-import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import CircleIcon from "@mui/icons-material/Circle";
@@ -38,27 +37,6 @@ const TONE = {
   default: { solid: "#5f6b66", soft: "rgba(0,0,0,0.06)" },
 };
 const tone = (key) => TONE[key] ?? TONE.default;
-
-/** Soft-filled tag with an optional leading icon (e.g. the AI band chip). */
-const SoftChip = ({ icon, label, toneKey }) => {
-  const t = tone(toneKey);
-  return (
-    <Chip
-      size="small"
-      icon={icon}
-      label={label}
-      sx={{
-        height: 24,
-        fontWeight: 600,
-        borderRadius: 1.5,
-        bgcolor: t.soft,
-        color: t.solid,
-        "& .MuiChip-label": { px: 0.75 },
-        "& .MuiChip-icon": { color: t.solid, fontSize: 14, ml: 0.75, mr: -0.25 },
-      }}
-    />
-  );
-};
 
 /** Outlined tag with a leading status dot (e.g. "● Review"). */
 const DotChip = ({ label, toneKey }) => {
@@ -100,7 +78,10 @@ const CandidateCard = ({ app, jobTitle, onOpen, draggable = false, onDragStart, 
       onDragStart={draggable ? (e) => onDragStart?.(e, app) : undefined}
       onDragEnd={draggable ? onDragEnd : undefined}
       sx={{
-        borderRadius: 2.5,
+        width: 215,
+        height: 168,
+        borderRadius: "13.19px",
+        borderWidth: "0.82px",
         borderColor: "#e7eae8",
         cursor: draggable ? "grab" : "default",
         opacity: dragging ? 0.4 : 1,
@@ -177,12 +158,11 @@ const CandidateCard = ({ app, jobTitle, onOpen, draggable = false, onDragStart, 
           </Stack>
         )}
 
-        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75, mt: 1.5, alignItems: "center" }}>
-          <SoftChip icon={<AutoAwesomeIcon />} label={`AI: ${band.label}`} toneKey={band.color} />
-          {app.status !== "active" && (
+        {app.status !== "active" && (
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75, mt: 1.5, alignItems: "center" }}>
             <DotChip label={humanize(app.status)} toneKey={statusColor(app.status)} />
-          )}
-        </Box>
+          </Box>
+        )}
 
         <Stack direction="row" spacing={0.5} sx={{ alignItems: "center", mt: 1.5, color: "text.secondary" }}>
           <AccessTimeIcon sx={{ fontSize: 14 }} />
