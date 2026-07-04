@@ -28,15 +28,17 @@ const TABS = [
   { label: "Archived", status: "archived" },
 ];
 
-/** Responsive grid (1 / 2 / 3 / 4 columns). */
+/** Responsive grid (1 / 2 / 3 / 4 columns). `minmax(0, 1fr)` (not the bare
+ *  `1fr`, which is `minmax(auto, 1fr)`) lets each track shrink below its card's
+ *  intrinsic width so the columns always fit the row instead of overflowing. */
 const grid = {
   display: "grid",
   gap: 2.5,
   gridTemplateColumns: {
     xs: "1fr",
-    sm: "1fr 1fr",
-    md: "repeat(3, 1fr)",
-    lg: "repeat(4, 1fr)",
+    sm: "repeat(2, minmax(0, 1fr))",
+    md: "repeat(3, minmax(0, 1fr))",
+    lg: "repeat(4, minmax(0, 1fr))",
   },
 };
 

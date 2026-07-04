@@ -955,7 +955,7 @@ const CandidateDialog = ({ appId, open, onClose, readOnly = false }) => {
       fullWidth
       maxWidth="md"
       scroll="paper"
-      slotProps={{ paper: { sx: { borderRadius: 3 } } }}
+      slotProps={{ paper: { sx: { borderRadius: "5px" } } }}
     >
       <IconButton
         onClick={onClose}
