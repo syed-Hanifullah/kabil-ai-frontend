@@ -45,17 +45,13 @@ const FunnelRow = ({ label, accent, count, max }) => (
  * footer shows the Applied→Offer conversion from the same payload.
  */
 const CandidatePipelinePanel = () => {
-  // Default to the first job; `touched` flips once the user picks any scope
-  // (including "All Jobs", value ""), after which we respect their choice.
-  const [touched, setTouched] = useState(false);
-  const [picked, setPicked] = useState("");
+  // Default to "All Jobs" (value "") — the workspace-wide aggregate.
+  const [jobId, setJobId] = useState("");
   const { data: jobsData } = useJobs({ pageSize: 50 });
   const jobs = jobsData?.items ?? [];
 
-  const jobId = touched ? picked : (jobs[0]?.id ?? "");
   const { data, isLoading } = useCandidatePipeline(jobId || null, {
-    // Hold the pipeline query until the job list resolves so we fetch the
-    // first job straight away rather than flashing the All-Jobs aggregate.
+    // Hold the pipeline query until the job list resolves.
     enabled: jobsData !== undefined,
   });
   const loading = isLoading || jobsData === undefined;
@@ -91,10 +87,7 @@ const CandidatePipelinePanel = () => {
             select
             size="small"
             value={jobId}
-            onChange={(e) => {
-              setTouched(true);
-              setPicked(e.target.value);
-            }}
+            onChange={(e) => setJobId(e.target.value)}
             slotProps={{
               select: {
                 displayEmpty: true,
