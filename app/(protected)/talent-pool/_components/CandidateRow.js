@@ -40,6 +40,15 @@ const avatarColor = (name) => {
 
 const SKILLS_SHOWN = 2;
 
+// Shared Plus Jakarta Sans body style for the Candidate / Role / Source cells.
+const CELL_TEXT = {
+  fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+  fontWeight: 400,
+  fontSize: "13px",
+  lineHeight: "19.5px",
+  letterSpacing: 0,
+};
+
 const skillChipSx = {
   bgcolor: "#f0f1f0",
   color: "#5c665f",
@@ -93,7 +102,7 @@ const CandidateRow = ({ entry, onOpen, onSource, onHistory }) => {
   };
 
   return (
-    <TableRow hover onClick={() => onOpen(entry)} sx={{ cursor: "pointer" }}>
+    <TableRow hover>
       {/* Candidate */}
       <TableCell>
         <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", minWidth: 0 }}>
@@ -103,7 +112,7 @@ const CandidateRow = ({ entry, onOpen, onSource, onHistory }) => {
             {initials(c.full_name)}
           </Avatar>
           <Box sx={{ minWidth: 0 }}>
-            <Typography noWrap sx={{ fontWeight: 700, fontSize: "0.85rem" }}>
+            <Typography noWrap sx={{ ...CELL_TEXT, color: "#0D0D0D" }}>
               {c.full_name || "Unnamed candidate"}
             </Typography>
             <Stack direction="row" spacing={0.5} sx={{ alignItems: "center", color: "text.secondary" }}>
@@ -121,7 +130,7 @@ const CandidateRow = ({ entry, onOpen, onSource, onHistory }) => {
       <TableCell>
         {c.role ? (
           <Box sx={{ minWidth: 0 }}>
-            <Typography noWrap sx={{ fontWeight: 600, fontSize: "0.85rem" }}>
+            <Typography noWrap sx={{ ...CELL_TEXT, color: "#0D0D0D" }}>
               {c.role}
             </Typography>
             {skills.length > 0 && (
@@ -168,7 +177,7 @@ const CandidateRow = ({ entry, onOpen, onSource, onHistory }) => {
 
       {/* Source */}
       <TableCell>
-        <Typography variant="body2" color="text.secondary" noWrap sx={{ fontSize: "0.82rem" }}>
+        <Typography noWrap sx={{ ...CELL_TEXT, color: "#6B7280" }}>
           {source}
         </Typography>
       </TableCell>

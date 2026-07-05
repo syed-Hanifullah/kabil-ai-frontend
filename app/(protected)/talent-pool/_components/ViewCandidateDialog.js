@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
@@ -16,7 +16,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import ErrorAlert from "@/components/ErrorAlert";
 import CandidateDialog from "../../jobs/[jobId]/pipeline/_components/CandidateDialog";
-import { useJobs, useSourceToJob } from "@/lib/kabil/queries";
+import { useJobs, useSourceToJob, useCandidateHistory } from "@/lib/kabil/queries";
 import { jobStatusColor, humanize } from "@/lib/kabil/constants";
 
 /** Jobs a candidate can be opened against: live or being prepared. */
@@ -27,14 +27,15 @@ const firstName = (name) => (name || "").split(/\s+/).filter(Boolean)[0] || "thi
 /**
  * Opens a pooled candidate's full profile by reusing the pipeline's
  * CandidateDialog. The pool only stores a snapshot, so the rich record (parsed
- * CV, scores, authenticity, CV file) only exists on an *application*. We obtain
- * one via the idempotent `/talent-pool/source` endpoint:
+ * CV, scores, authenticity, CV file) lives on an *application*.
  *
- *  - Entries that came from a job (`source_job_id`) already have an application —
- *    we auto-source to that job, which returns the existing one (`already_existed`),
- *    and open the dialog straight away.
- *  - Entries uploaded straight to the pool have no application yet, so we ask for
- *    a job; sourcing then creates the application that produces the parsed profile.
+ *  - Candidates that already have an application (they came from a job, or were
+ *    sourced onto one before) — we find it via the read-only candidate history
+ *    and open it directly. Viewing is **non-destructive**: it never sources the
+ *    candidate, so it doesn't move them out of the pool.
+ *  - Candidates uploaded straight to the pool have no application yet. Building a
+ *    profile requires sourcing them onto a job, which *does* move them — so we
+ *    ask for a job explicitly rather than doing it silently on open.
  */
 const ViewCandidateDialog = ({ entry, open, onClose }) => {
   const candidate = entry?.candidate;
@@ -46,23 +47,16 @@ const ViewCandidateDialog = ({ entry, open, onClose }) => {
   const { mutate: sourceMutate, reset: sourceReset } = source;
   const jobsQuery = useJobs({ pageSize: 100 });
 
-  const resolve = (targetJobId) => {
-    if (!candidate?.id || !targetJobId) return;
-    sourceMutate(
-      { candidateId: candidate.id, jobId: targetJobId },
-      { onSuccess: (res) => setAppId(res.application_id) },
-    );
-  };
-
-  // Candidates collected from a job already have a scored application — resolve
-  // it on open so the click lands straight on the full profile.
-  useEffect(() => {
-    if (open && sourceJobId && !appId && !source.isPending && !source.isError) {
-      resolve(sourceJobId);
-    }
-    // Intentionally narrow deps: fire once per open, not on every render.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, sourceJobId]);
+  // Read-only: the history lists every application the candidate has ever had.
+  // If one exists we open it directly — no sourcing, so no move out of the pool.
+  const history = useCandidateHistory(candidate?.id, { enabled: open && !!candidate?.id });
+  const existingAppId = useMemo(() => {
+    const stints = history.data?.stints ?? [];
+    if (stints.length === 0) return null;
+    // Prefer the stint for the job this pool entry was collected from.
+    const match = stints.find((s) => s.job_id === sourceJobId) ?? stints[0];
+    return match?.application_id ?? null;
+  }, [history.data, sourceJobId]);
 
   const handleClose = () => {
     setJobId("");
@@ -71,15 +65,27 @@ const ViewCandidateDialog = ({ entry, open, onClose }) => {
     onClose();
   };
 
-  // Once we have an application, hand off entirely to the pipeline dialog.
-  if (appId) {
-    return <CandidateDialog appId={appId} open={open} onClose={handleClose} readOnly />;
+  // Prefer an application that already exists (no move); otherwise use one we
+  // just created by sourcing a never-sourced direct-upload candidate.
+  const openAppId = appId || existingAppId;
+  if (openAppId) {
+    return <CandidateDialog appId={openAppId} open={open} onClose={handleClose} readOnly />;
   }
+
+  // Only reached for candidates with no application at all. Sourcing here is
+  // explicit (a job pick + button), never automatic.
+  const resolve = (targetJobId) => {
+    if (!candidate?.id || !targetJobId) return;
+    sourceMutate(
+      { candidateId: candidate.id, jobId: targetJobId },
+      { onSuccess: (res) => setAppId(res.application_id) },
+    );
+  };
 
   const jobs = (jobsQuery.data?.items ?? []).filter((j) =>
     SOURCEABLE_STATUSES.includes(j.status),
   );
-  const effectiveJob = jobId || sourceJobId;
+  const loadingProfile = history.isLoading || source.isPending;
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="xs" fullWidth>
@@ -91,7 +97,7 @@ const ViewCandidateDialog = ({ entry, open, onClose }) => {
       </DialogTitle>
 
       <DialogContent sx={{ pt: 2 }}>
-        {source.isPending ? (
+        {loadingProfile ? (
           <Stack spacing={1.5} sx={{ alignItems: "center", py: 3 }}>
             <CircularProgress size={28} />
             <Typography variant="body2" color="text.secondary">
@@ -101,14 +107,15 @@ const ViewCandidateDialog = ({ entry, open, onClose }) => {
         ) : (
           <Stack spacing={2}>
             <Typography variant="body2" color="text.secondary">
-              The pool keeps only a snapshot. Pick a job to open {firstName(candidate?.full_name)}
-              ’s full profile — parsed CV, scores and authenticity.
+              The pool keeps only a snapshot, and {firstName(candidate?.full_name)} hasn’t been
+              sourced to a job yet. Pick one to build their full profile — parsed CV, scores and
+              authenticity. This moves them onto that job.
             </Typography>
             <TextField
               select
               fullWidth
               label="Job"
-              value={effectiveJob}
+              value={jobId}
               onChange={(e) => setJobId(e.target.value)}
               disabled={jobsQuery.isLoading || jobs.length === 0}
               helperText={
@@ -147,6 +154,7 @@ const ViewCandidateDialog = ({ entry, open, onClose }) => {
 
             {source.isError && <ErrorAlert error={source.error} />}
             {jobsQuery.isError && <ErrorAlert error={jobsQuery.error} />}
+            {history.isError && <ErrorAlert error={history.error} />}
           </Stack>
         )}
       </DialogContent>
@@ -157,8 +165,8 @@ const ViewCandidateDialog = ({ entry, open, onClose }) => {
         </Button>
         <Button
           variant="contained"
-          onClick={() => resolve(effectiveJob)}
-          disabled={!effectiveJob || source.isPending}
+          onClick={() => resolve(jobId)}
+          disabled={!jobId || source.isPending}
           startIcon={<VisibilityOutlinedIcon />}
         >
           View profile

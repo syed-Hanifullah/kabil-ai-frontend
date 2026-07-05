@@ -67,7 +67,7 @@ const STAT_TILE = {
 };
 
 const PoolStat = ({ icon: Icon, value, label, loading }) => (
-  <Card sx={{ borderRadius: 2.5 }}>
+  <Card sx={{ borderRadius: "5px" }}>
     <CardContent sx={{ p: 2, display: "flex", gap: 1.5, alignItems: "center", "&:last-child": { pb: 2 } }}>
       <Box sx={STAT_TILE}>
         <Icon fontSize="small" />
@@ -212,7 +212,7 @@ const TalentPoolPage = () => {
       </Stack>
 
       {/* Toolbar: search + Sources (jobs) + Scores, inside a card */}
-      <Card sx={{ borderRadius: 2.5 }}>
+      <Card sx={{ borderRadius: "5px" }}>
         <CardContent sx={{ p: 1.5, "&:last-child": { pb: 1.5 } }}>
           <Stack
             direction={{ xs: "column", md: "row" }}
@@ -228,7 +228,7 @@ const TalentPoolPage = () => {
                 flexGrow: 1,
                 "& .MuiOutlinedInput-root": {
                   bgcolor: "#f2efe7",
-                  borderRadius: 2,
+                  borderRadius: "5px",
                   "& fieldset": { borderColor: "transparent" },
                   "&:hover fieldset": { borderColor: "transparent" },
                   "&.Mui-focused fieldset": { borderColor: "primary.main" },
@@ -353,11 +353,11 @@ const TalentPoolPage = () => {
       {active.isError ? (
         <ErrorAlert error={active.error} />
       ) : active.isLoading ? (
-        <Card sx={{ borderRadius: 2 }}>
+        <Card sx={{ borderRadius: "5px" }}>
           <TableSkeleton />
         </Card>
       ) : visibleItems.length === 0 ? (
-        <Card sx={{ borderRadius: 2 }}>
+        <Card sx={{ borderRadius: "5px" }}>
           <EmptyState
             emoji={searching ? "🔍" : "🧑‍💼"}
             title={searching ? "No matches" : "The pool is empty"}
@@ -392,22 +392,25 @@ const TalentPoolPage = () => {
             </Typography>
           )}
 
-          <Card sx={{ borderRadius: 2.5 }}>
+          <Card sx={{ borderRadius: "5px", border: "1px solid #EDE8DF" }}>
             <Box sx={{ overflowX: "auto" }}>
               <Table sx={{ "& td, & th": { borderColor: "#eef1ef" } }}>
-                <TableHead>
+                <TableHead sx={{ bgcolor: "#F9F7F3" }}>
                   <TableRow>
                     {HEAD_CELLS.map((c, i) => (
                       <TableCell
                         key={c || `actions-${i}`}
                         align={i === HEAD_CELLS.length - 1 ? "right" : "left"}
                         sx={{
-                          fontWeight: 700,
-                          color: "text.secondary",
-                          whiteSpace: "nowrap",
+                          fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+                          fontWeight: 600,
+                          fontSize: "11.5px",
+                          lineHeight: "17.25px",
+                          letterSpacing: "0.4px",
                           textTransform: "uppercase",
-                          letterSpacing: "0.05em",
-                          fontSize: "0.7rem",
+                          color: "#6B7280",
+                          whiteSpace: "nowrap",
+                          bgcolor: "#F9F7F3",
                         }}
                       >
                         {c}
