@@ -11,7 +11,6 @@ import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
 import Chip from "@mui/material/Chip";
 import Tooltip from "@mui/material/Tooltip";
-import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { QUESTION_CATEGORIES, questionCategoryLabel } from "@/lib/kabil/jobOptions";
@@ -68,10 +67,9 @@ const StepWhatsAppQuestions = ({ questions, onChange }) => {
           Screening Questions
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          Sent to every candidate via WhatsApp after CV approval. The fixed
-          questions and the AI background-validation checks are set automatically
-          and can&apos;t be edited — only the AI checks have their answers scored
-          by AI. You can add your own custom questions below.
+          Sent to every candidate via WhatsApp after CV approval. AI guarantees
+          coverage of Background Validations, Commitment to the Job, Salary
+          Expectations. Edit or add your own.
         </Typography>
 
         <Stack spacing={2}>
@@ -83,21 +81,22 @@ const StepWhatsAppQuestions = ({ questions, onChange }) => {
 
           {questions.map((q, index) => {
             const editable = isCustom(q);
+            const isBgValidation = q.category === "background_validation";
             return (
               <Box
                 key={q.id}
                 sx={{
-                  borderRadius: 2,
+                  borderRadius: "12px",
                   border: "1px solid",
-                  borderColor: "divider",
-                  bgcolor: "rgba(0,0,0,0.015)",
+                  borderColor: "#E0DBD0",
+                  bgcolor: "#F4F0E8",
                   p: 2,
                 }}
               >
-                <Stack direction="row" spacing={2} sx={{ alignItems: "flex-start" }}>
+                {/* Top row: number + category/type chips, then the question below */}
+                <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
                   <Box
                     sx={{
-                      mt: 0.5,
                       width: 26,
                       height: 26,
                       flexShrink: 0,
@@ -112,93 +111,49 @@ const StepWhatsAppQuestions = ({ questions, onChange }) => {
                   >
                     {index + 1}
                   </Box>
-                  <Stack spacing={1.5} sx={{ flex: 1, minWidth: 0 }}>
+                  <Stack
+                    direction="row"
+                    spacing={1}
+                    useFlexGap
+                    sx={{ alignItems: "center", flexWrap: "wrap", flex: 1, minWidth: 0 }}
+                  >
                     {editable ? (
-                      <>
-                        <TextField
-                          fullWidth
-                          multiline
-                          minRows={2}
-                          label="Question (English)"
-                          value={q.question_en}
-                          onChange={(e) => update(index, { question_en: e.target.value })}
-                        />
-                        <TextField
-                          fullWidth
-                          multiline
-                          minRows={1}
-                          label="Question (Arabic)"
-                          dir="rtl"
-                          value={q.question_ar}
-                          onChange={(e) => update(index, { question_ar: e.target.value })}
-                        />
-                      </>
+                      <TextField
+                        select
+                        label="Category"
+                        size="small"
+                        sx={{ minWidth: 220 }}
+                        value={q.category}
+                        onChange={(e) => update(index, { category: e.target.value })}
+                      >
+                        {QUESTION_CATEGORIES.map((c) => (
+                          <MenuItem key={c.value} value={c.value}>
+                            {c.label}
+                          </MenuItem>
+                        ))}
+                      </TextField>
                     ) : (
-                      <>
-                        <Typography sx={{ fontWeight: 600 }}>{q.question_en}</Typography>
-                        {q.question_ar && (
-                          <Typography color="text.secondary" dir="rtl">
-                            {q.question_ar}
-                          </Typography>
-                        )}
-                      </>
+                      <Chip
+                        size="small"
+                        label={questionCategoryLabel(q.category)}
+                        sx={{
+                          bgcolor: isBgValidation ? "#E8F5F1" : "#FEF3DC",
+                          color: isBgValidation ? "#0F6E56" : "#EF9F27",
+                          fontWeight: 700,
+                          borderRadius: "5px",
+                        }}
+                      />
                     )}
-                    <Stack
-                      direction="row"
-                      spacing={1.5}
-                      useFlexGap
-                      sx={{ alignItems: "center", flexWrap: "wrap" }}
-                    >
-                      {editable ? (
-                        <TextField
-                          select
-                          label="Category"
-                          size="small"
-                          sx={{ minWidth: 220 }}
-                          value={q.category}
-                          onChange={(e) => update(index, { category: e.target.value })}
-                        >
-                          {QUESTION_CATEGORIES.map((c) => (
-                            <MenuItem key={c.value} value={c.value}>
-                              {c.label}
-                            </MenuItem>
-                          ))}
-                        </TextField>
-                      ) : (
-                        <Chip
-                          size="small"
-                          variant="outlined"
-                          label={questionCategoryLabel(q.category)}
+                    {!q.source_field && !q.is_ai_generated && (
+                      <Chip size="small" variant="outlined" label="Custom" sx={{ borderRadius: "5px" }} />
+                    )}
+                    {q.reasoning && (
+                      <Tooltip title={q.reasoning} arrow>
+                        <InfoOutlinedIcon
+                          sx={{ fontSize: 18, color: "text.disabled", cursor: "help" }}
                         />
-                      )}
-                      {q.source_field ? (
-                        <Chip
-                          size="small"
-                          color="primary"
-                          variant="outlined"
-                          label="Fixed"
-                          sx={{ fontWeight: 600 }}
-                        />
-                      ) : q.is_ai_generated ? (
-                        <Tooltip title="AI-generated — the candidate's answer is scored by AI" arrow>
-                          <Chip
-                            size="small"
-                            color="secondary"
-                            label="✨ AI"
-                            sx={{ fontWeight: 600 }}
-                          />
-                        </Tooltip>
-                      ) : (
-                        <Chip size="small" variant="outlined" label="Custom" />
-                      )}
-                      {q.reasoning && (
-                        <Tooltip title={q.reasoning} arrow>
-                          <InfoOutlinedIcon
-                            sx={{ fontSize: 18, color: "text.disabled", cursor: "help" }}
-                          />
-                        </Tooltip>
-                      )}
-                    </Stack>
+                      </Tooltip>
+                    )}
                   </Stack>
                   {editable && (
                     <IconButton onClick={() => removeAt(index)} aria-label="Remove question">
@@ -206,6 +161,50 @@ const StepWhatsAppQuestions = ({ questions, onChange }) => {
                     </IconButton>
                   )}
                 </Stack>
+
+                <Box sx={{ mt: 1.5, pl: "38px" }}>
+                  {editable ? (
+                    <Stack spacing={1.5}>
+                      <TextField
+                        fullWidth
+                        multiline
+                        minRows={2}
+                        label="Question (English)"
+                        value={q.question_en}
+                        onChange={(e) => update(index, { question_en: e.target.value })}
+                      />
+                      <TextField
+                        fullWidth
+                        multiline
+                        minRows={1}
+                        label="Question (Arabic)"
+                        dir="rtl"
+                        value={q.question_ar}
+                        onChange={(e) => update(index, { question_ar: e.target.value })}
+                      />
+                    </Stack>
+                  ) : (
+                    <>
+                      <Typography
+                        sx={{
+                          fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+                          fontWeight: 400,
+                          fontSize: "14px",
+                          lineHeight: "21px",
+                          letterSpacing: 0,
+                          color: "#2C2C2A",
+                        }}
+                      >
+                        {q.question_en}
+                      </Typography>
+                      {q.question_ar && (
+                        <Typography color="text.secondary" dir="rtl">
+                          {q.question_ar}
+                        </Typography>
+                      )}
+                    </>
+                  )}
+                </Box>
               </Box>
             );
           })}
@@ -213,13 +212,27 @@ const StepWhatsAppQuestions = ({ questions, onChange }) => {
 
         <Box sx={{ mt: 2.5 }}>
           <Button
-            variant="outlined"
-            startIcon={<AddIcon />}
+            variant="text"
+            disableRipple
             disabled={questions.length >= MAX_QUESTIONS}
             onClick={addQuestion}
-            sx={{ borderRadius: 2 }}
+            sx={{
+              p: 0,
+              minWidth: 0,
+              color: "#0F6E56",
+              fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+              fontWeight: 500,
+              fontSize: "14px",
+              lineHeight: "21px",
+              letterSpacing: 0,
+              textAlign: "center",
+              textTransform: "none",
+              textDecoration: "underline",
+              textDecorationStyle: "solid",
+              "&:hover": { textDecoration: "underline", bgcolor: "transparent" },
+            }}
           >
-            Add Custom Question
+            + Add Custom Question
           </Button>
           <Typography variant="caption" color="text.secondary" sx={{ ml: 2 }}>
             {questions.length} / {MAX_QUESTIONS}

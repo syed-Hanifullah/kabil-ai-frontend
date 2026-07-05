@@ -248,7 +248,7 @@ const JobCard = ({ job }) => {
 
           {/* Skills */}
           {skills.length > 0 && (
-            <Stack direction="row" spacing={1} sx={{ mt: 2, flexWrap: "wrap", gap: 1 }}>
+            <Stack direction="row" sx={{ mt: 2, flexWrap: "wrap", gap: 1, justifyContent: "flex-start" }}>
               {skills.slice(0, MAX_SKILLS).map((skill) => (
                 <Chip
                   key={skill}

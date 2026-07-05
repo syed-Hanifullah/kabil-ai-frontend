@@ -22,7 +22,6 @@ import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import BlockIcon from "@mui/icons-material/Block";
 import ReplayIcon from "@mui/icons-material/Replay";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import PersonAddAltOutlinedIcon from "@mui/icons-material/PersonAddAltOutlined";
 import VideocamOutlinedIcon from "@mui/icons-material/VideocamOutlined";
@@ -39,7 +38,6 @@ import WhatsAppDialog from "./WhatsAppDialog";
 import CvScoreCard from "./CvScoreCard";
 import {
   useApplication,
-  useAuditLog,
   useUpdateStage,
   useUpdateStatus,
   useMoveToPool,
@@ -182,8 +180,8 @@ const Section = ({ title, action, children }) => (
 );
 
 /** Cream surface shared by the candidate-profile cards (matches the score cards). */
-const PROFILE_BG = "#FBF9F2";
-const PROFILE_BORDER = "#ECE5D6";
+const PROFILE_BG = "#F4F0E84D";
+const PROFILE_BORDER = "#E2DDCE";
 const SKILL_LIMIT = 21;
 
 const skillChipSx = {
@@ -197,12 +195,40 @@ const skillChipSx = {
   "& .MuiChip-label": { px: 1.5 },
 };
 
+// Eyebrow label ("card key") + value ("key") type for the Experience/Languages cards.
+const STAT_LABEL_SX = {
+  fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+  fontWeight: 700,
+  fontSize: "10px",
+  lineHeight: "15px",
+  letterSpacing: "0.5px",
+  textTransform: "uppercase",
+  color: "#0F6E56",
+};
+const STAT_VALUE_SX = {
+  fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+  fontWeight: 600,
+  fontSize: "14px",
+  lineHeight: "20px",
+  letterSpacing: 0,
+  color: "#1C4A3E",
+};
+// Secondary (sub-line) value type for the Education / Work History cards.
+const INFO_VALUE_SX = {
+  fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+  fontWeight: 400,
+  fontSize: "12px",
+  lineHeight: "16px",
+  letterSpacing: 0,
+  color: "#6B7280",
+};
+
 /** Eyebrow stat card (Experience / Languages). */
 const StatCard = ({ icon, label, children }) => (
-  <Box sx={{ border: `1px solid ${PROFILE_BORDER}`, bgcolor: PROFILE_BG, borderRadius: 2.5, px: 2.5, py: 1.75 }}>
+  <Box sx={{ border: `1px solid ${PROFILE_BORDER}`, bgcolor: PROFILE_BG, borderRadius: "14px", px: 2.5, py: 1.75 }}>
     <Stack direction="row" spacing={0.85} sx={{ alignItems: "center", mb: 1 }}>
       {icon}
-      <Typography sx={{ color: GREEN, fontWeight: 800, fontSize: 10, letterSpacing: 0.8 }}>{label}</Typography>
+      <Typography sx={STAT_LABEL_SX}>{label}</Typography>
     </Stack>
     {children}
   </Box>
@@ -210,7 +236,7 @@ const StatCard = ({ icon, label, children }) => (
 
 /** Cream info card used for education + work-history rows. */
 const InfoCard = ({ children }) => (
-  <Box sx={{ border: `1px solid ${PROFILE_BORDER}`, bgcolor: PROFILE_BG, borderRadius: 2.5, px: 2.25, py: 1.85 }}>
+  <Box sx={{ border: `1px solid ${PROFILE_BORDER}`, bgcolor: PROFILE_BG, borderRadius: "14px", px: 2.25, py: 1.85 }}>
     {children}
   </Box>
 );
@@ -249,8 +275,8 @@ const ParsedProfile = ({ profile }) => {
     stats.push(
       <StatCard key="exp" icon={<WorkOutlineIcon sx={{ fontSize: 18, color: GREEN }} />} label="EXPERIENCE">
         <Stack direction="row" spacing={0.75} sx={{ alignItems: "baseline" }}>
-          <Typography sx={{ fontSize: 18, fontWeight: 800, lineHeight: 1, color: "#1c2522" }}>{years}</Typography>
-          <Typography sx={{ color: "text.secondary", fontWeight: 600 }}>{years === 1 ? "yr" : "yrs"}</Typography>
+          <Typography sx={STAT_VALUE_SX}>{years}</Typography>
+          <Typography sx={{ ...STAT_VALUE_SX, color: "text.secondary" }}>{years === 1 ? "yr" : "yrs"}</Typography>
         </Stack>
       </StatCard>,
     );
@@ -258,7 +284,7 @@ const ParsedProfile = ({ profile }) => {
   if (languages.length > 0) {
     stats.push(
       <StatCard key="lang" icon={<TranslateOutlinedIcon sx={{ fontSize: 18, color: GREEN }} />} label="LANGUAGES">
-        <Typography sx={{ fontWeight: 700, fontSize: 11, color: "#1c2522" }}>{languages.join(", ")}</Typography>
+        <Typography sx={STAT_VALUE_SX}>{languages.join(", ")}</Typography>
       </StatCard>,
     );
   }
@@ -310,9 +336,9 @@ const ParsedProfile = ({ profile }) => {
                   const year = obj ? obj.year : "";
                   return (
                     <InfoCard key={i}>
-                      <Typography sx={{ fontWeight: 700, fontSize: 11, color: "#1c2522" }}>{degree}</Typography>
+                      <Typography sx={STAT_VALUE_SX}>{degree}</Typography>
                       {(inst || year) && (
-                        <Typography variant="body2" color="text.secondary">
+                        <Typography sx={INFO_VALUE_SX}>
                           {[inst, year].filter(Boolean).join(" · ")}
                         </Typography>
                       )}
@@ -332,33 +358,26 @@ const ParsedProfile = ({ profile }) => {
                   const sub = [w.company, dates].filter(Boolean).join(" · ");
                   return (
                     <InfoCard key={i}>
-                      <Stack direction="row" spacing={1.25} sx={{ alignItems: "flex-start" }}>
+                      <Stack direction="row" spacing={1.25} sx={{ alignItems: "center", minWidth: 0 }}>
                         <Box
                           sx={{
                             width: 9,
                             height: 9,
                             borderRadius: "50%",
                             bgcolor: i === 0 ? COLORS.gold : GREEN,
-                            mt: 0.85,
                             flexShrink: 0,
                           }}
                         />
-                        <Box sx={{ minWidth: 0 }}>
-                          <Typography sx={{ fontWeight: 700, fontSize: 11, color: "#1c2522" }}>
-                            {w.title || w.role || "Role"}
-                          </Typography>
-                          {sub && (
-                            <Typography variant="body2" color="text.secondary">
-                              {sub}
-                            </Typography>
-                          )}
-                          {w.summary && (
-                            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
-                              {w.summary}
-                            </Typography>
-                          )}
-                        </Box>
+                        <Typography noWrap sx={STAT_VALUE_SX}>
+                          {w.title || w.role || "Role"}
+                        </Typography>
                       </Stack>
+                      {sub && <Typography sx={{ ...INFO_VALUE_SX, pl: "19px" }}>{sub}</Typography>}
+                      {w.summary && (
+                        <Typography sx={{ ...INFO_VALUE_SX, pl: "19px", display: "block", mt: 0.5 }}>
+                          {w.summary}
+                        </Typography>
+                      )}
                     </InfoCard>
                   );
                 })}
@@ -381,14 +400,10 @@ const OpenCvButton = ({ doc }) => (
       href={doc.blob_url}
       target="_blank"
       rel="noopener noreferrer"
-      sx={{ bgcolor: GREEN, px: 4, py: 1.25, borderRadius: 2, "&:hover": { bgcolor: GREEN_DARK } }}
+      sx={{ bgcolor: GREEN, px: 4, py: 1.25, borderRadius: "5px", "&:hover": { bgcolor: GREEN_DARK } }}
     >
       Open CV
     </Button>
-    <Typography variant="caption" color="text.secondary">
-      Uploaded {timeAgo(doc.uploaded_at)}
-      {doc.language ? ` · ${doc.language.toUpperCase()}` : ""}
-    </Typography>
   </Box>
 );
 
@@ -575,13 +590,14 @@ const FieldLabel = ({ children, required }) => (
 /** Warm-gray filled input matching the contact-details mock. */
 const contactFieldSx = {
   "& .MuiOutlinedInput-root": {
-    bgcolor: "#f6f5ef",
-    borderRadius: 2,
-    "& fieldset": { borderColor: "#e7e4d9" },
-    "&:hover fieldset": { borderColor: "#d8d3c4" },
+    bgcolor: "#F4F0E84D",
+    borderRadius: "5px",
+    height: 39,
+    "& fieldset": { borderColor: "#E0DBD0" },
+    "&:hover fieldset": { borderColor: "#E0DBD0" },
     "&.Mui-focused fieldset": { borderColor: GREEN, borderWidth: 1 },
   },
-  "& .MuiOutlinedInput-input": { py: 1.05 },
+  "& .MuiOutlinedInput-input": { py: 0 },
 };
 
 /**
@@ -714,7 +730,7 @@ const DetailsTab = ({ appId, candidate, editable }) => {
             variant="contained"
             endIcon={<CheckIcon />}
             disabled={!canSave}
-            sx={{ bgcolor: GREEN, px: 4, py: 1.25, borderRadius: 2, "&:hover": { bgcolor: GREEN_DARK } }}
+            sx={{ bgcolor: GREEN, px: 4, py: 1.25, borderRadius: "5px", "&:hover": { bgcolor: GREEN_DARK } }}
           >
             {update.isPending ? "Saving…" : "Save Changes"}
           </Button>
@@ -723,41 +739,6 @@ const DetailsTab = ({ appId, candidate, editable }) => {
     </Box>
   );
 };
-
-/** The Activity (audit) log — shared by the Candidate Profile tab and the
- *  read-only pooled-candidate view. */
-const ProfileExtras = ({ audit }) => (
-  <>
-    <Section title="Activity">
-      {asArray(audit?.items).length === 0 ? (
-        <Typography variant="body2" color="text.secondary">
-          No activity recorded yet.
-        </Typography>
-      ) : (
-        <Stack spacing={1.25}>
-          {asArray(audit?.items).map((entry) => (
-            <Stack key={entry.id} direction="row" spacing={1.25}>
-              <HistoryOutlinedIcon sx={{ fontSize: 18, color: "text.disabled", mt: 0.25 }} />
-              <Box sx={{ minWidth: 0 }}>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  {humanize(entry.action)}
-                </Typography>
-                {entry.after_state?.reason && (
-                  <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
-                    {String(entry.after_state.reason)}
-                  </Typography>
-                )}
-                <Typography variant="caption" color="text.disabled">
-                  {timeAgo(entry.created_at)}
-                </Typography>
-              </Box>
-            </Stack>
-          ))}
-        </Stack>
-      )}
-    </Section>
-  </>
-);
 
 const DialogSkeleton = () => (
   <Stack spacing={2}>
@@ -818,7 +799,6 @@ const CandidateDialog = ({ appId, open, onClose, readOnly = false }) => {
     setTab(0);
   }
   const { data: app, isLoading, isError, error } = useApplication(appId, { poll: true });
-  const { data: audit } = useAuditLog(appId);
   const updateStage = useUpdateStage(appId);
   const updateStatus = useUpdateStatus(appId);
   const moveToPool = useMoveToPool();
@@ -1084,7 +1064,7 @@ const CandidateDialog = ({ appId, open, onClose, readOnly = false }) => {
                         fontWeight: 700,
                         fontSize: "18px",
                         lineHeight: 1.2,
-                        borderRadius: "12px",
+                        borderRadius: "5px",
                         px: 3,
                         py: 1.25,
                         "& .MuiButton-endIcon": { ml: 1.25 },
@@ -1125,7 +1105,6 @@ const CandidateDialog = ({ appId, open, onClose, readOnly = false }) => {
                     <ParsedProfile profile={candidate?.parsed_profile} />
                     {app.cv_document?.blob_url && <OpenCvButton doc={app.cv_document} />}
                   </Stack>
-                  <ProfileExtras audit={audit} />
                 </Stack>
               ) : tab === 0 ? (
                 <Stack spacing={2} sx={{ mt: 2 }} divider={<Divider flexItem />}>
@@ -1148,8 +1127,6 @@ const CandidateDialog = ({ appId, open, onClose, readOnly = false }) => {
                 <Stack spacing={2.5} sx={{ mt: 2 }}>
                   <ParsedProfile profile={candidate?.parsed_profile} />
                   {app.cv_document?.blob_url && <OpenCvButton doc={app.cv_document} />}
-                  <Divider />
-                  <ProfileExtras audit={audit} />
                 </Stack>
               )}
             </Box>

@@ -70,7 +70,7 @@ const StepJdBuilder = () => {
               Job Description
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Paste your own, or let AI draft one from your Role Basics.
+              Paste your existing JD
             </Typography>
           </Box>
           <Stack direction="row" spacing={1}>
@@ -78,7 +78,7 @@ const StepJdBuilder = () => {
               variant="contained"
               size="small"
               startIcon={<ContentPasteOutlinedIcon />}
-              sx={{ borderRadius: 2 }}
+              sx={{ borderRadius: "5px" }}
             >
               Paste JD
             </Button>
@@ -103,7 +103,7 @@ const StepJdBuilder = () => {
                       <AutoAwesomeOutlinedIcon />
                     )
                   }
-                  sx={{ borderRadius: 2 }}
+                  sx={{ borderRadius: "5px" }}
                 >
                   {generate.isPending ? "Drafting…" : hasJd ? "Regenerate" : "AI Builder"}
                 </Button>
@@ -130,7 +130,7 @@ const StepJdBuilder = () => {
             minLength: { value: MIN, message: `Add at least ${MIN} characters` },
             maxLength: { value: MAX, message: `Max ${MAX.toLocaleString()} characters` },
           })}
-          sx={{ "& .MuiOutlinedInput-root": { bgcolor: "rgba(0,0,0,0.015)" } }}
+          sx={{ "& .MuiOutlinedInput-root": { bgcolor: "#F4F0E84D" } }}
         />
         <Stack
           direction="row"
@@ -152,7 +152,7 @@ const StepJdBuilder = () => {
         <Typography variant="body2" color="text.secondary" sx={{ mt: 2, textAlign: "right" }}>
           {hasJd
             ? "AI-drafted text is editable — tweak anything before continuing."
-            : "Don't have a JD yet? Fill in Role Basics, then click AI Builder."}
+            : "Don’t have a JD yet? Use AI builder"}
         </Typography>
       </CardContent>
     </Card>

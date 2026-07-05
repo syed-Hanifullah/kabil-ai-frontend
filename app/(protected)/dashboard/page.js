@@ -299,7 +299,16 @@ const DashboardPage = () => {
           }}
         >
           <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}>
-            <Typography sx={{ fontWeight: 700, color: "primary.main", fontSize: "1.05rem" }}>
+            <Typography
+              sx={{
+                fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+                fontWeight: 700,
+                fontSize: "22px",
+                lineHeight: "32px",
+                letterSpacing: 0,
+                color: "#1C4A3E",
+              }}
+            >
               Performance
             </Typography>
             <Button

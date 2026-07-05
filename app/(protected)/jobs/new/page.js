@@ -185,11 +185,6 @@ const NewJobPage = () => {
         <Typography variant="h5" sx={{ fontWeight: 700 }}>
           Post New Job
         </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, maxWidth: 720 }}>
-          Every job is screened on WhatsApp with a fixed set of questions; the AI adds a
-          few background-validation checks and scores those answers. You can add your own
-          custom questions before publishing.
-        </Typography>
       </Box>
 
       <Stepper activeStep={active} alternativeLabel>

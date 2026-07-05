@@ -1248,7 +1248,6 @@ const CvScoreCard = ({
           (jd && jdValue != null ? (
             <MeterRow label="Profile Match" value={jdValue} computedAt={jd.computed_at}>
               {jdBreak && <JdBreakdown b={jdBreak} />}
-              <ScreeningSummary jd={jdBreak} trust={trustBreak} />
             </MeterRow>
           ) : (
             // At L1 but the similarity score is still computing — skeleton the bar.

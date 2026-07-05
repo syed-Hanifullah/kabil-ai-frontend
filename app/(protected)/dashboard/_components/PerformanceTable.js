@@ -35,10 +35,10 @@ import DonutChart from "./DonutChart";
 const HEAD_CELLS = [
   { key: "title", label: "Role", align: "left" },
   { key: "status", label: "Status", align: "left" },
-  { key: "candidates", label: "Candidates", align: "right" },
-  { key: "shortlisted", label: "Shortlisted", align: "right" },
-  { key: "days_open", label: "Days Open", align: "right" },
-  { key: "health", label: "Health", align: "right" },
+  { key: "candidates", label: "Candidates", align: "center" },
+  { key: "shortlisted", label: "Shortlisted", align: "center" },
+  { key: "days_open", label: "Days Open", align: "center" },
+  { key: "health", label: "Health", align: "center" },
 ];
 
 // Status dot color, keyed by JobStatus. Live roles read green; paused/ended
@@ -233,10 +233,10 @@ const PerformanceTable = ({ data, loading, view = "table" }) => {
                         <Typography sx={REST_CELL_SX}>{humanize(r.status)}</Typography>
                       </Stack>
                     </TableCell>
-                    <TableCell align="right">{r.candidates}</TableCell>
-                    <TableCell align="right">{r.shortlisted}</TableCell>
-                    <TableCell align="right">{r.days_open}</TableCell>
-                    <TableCell align="right">
+                    <TableCell align="center">{r.candidates}</TableCell>
+                    <TableCell align="center">{r.shortlisted}</TableCell>
+                    <TableCell align="center">{r.days_open}</TableCell>
+                    <TableCell align="center">
                       <Typography sx={{ ...HEALTH_CELL_SX, color: healthColor(r.health) }}>
                         {jobHealthChip(r.health).label}
                       </Typography>
