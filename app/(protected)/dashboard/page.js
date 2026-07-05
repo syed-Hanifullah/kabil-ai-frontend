@@ -218,7 +218,7 @@ const DashboardPage = () => {
               color: "#6B7280",
             }}
           >
-            Salt Recruitment — performance overview
+            Digycorp Recruitment — performance overview
           </Typography>
         </Box>
         <ToggleButtonGroup

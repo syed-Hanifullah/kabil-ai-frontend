@@ -201,7 +201,20 @@ const NewJobPage = () => {
       </Stepper>
 
       <FormProvider {...methods}>
-        <Box component="form" onSubmit={onSubmit} noValidate>
+        <Box
+          component="form"
+          onSubmit={onSubmit}
+          noValidate
+          sx={{
+            "& .MuiOutlinedInput-root": {
+              bgcolor: "#F4F0E84D",
+              borderRadius: "5px",
+              "& fieldset": { borderColor: "#E0DBD0" },
+              "&:hover fieldset": { borderColor: "#E0DBD0" },
+              "&.Mui-focused fieldset": { borderColor: "primary.main" },
+            },
+          }}
+        >
           {generating ? (
             <Card>
               <CardContent sx={{ p: { xs: 2.5, sm: 4 } }}>
@@ -246,7 +259,7 @@ const NewJobPage = () => {
               onClick={() =>
                 active === 0 ? router.push("/jobs") : setActive((s) => s - 1)
               }
-              sx={{ borderRadius: 2, px: 2.5 }}
+              sx={{ borderRadius: "5px", px: 2.5 }}
             >
               {active === 0 ? "Cancel" : "Back"}
             </Button>
@@ -256,7 +269,7 @@ const NewJobPage = () => {
                 type="submit"
                 variant="contained"
                 disabled={saveQuestions.isPending}
-                sx={{ borderRadius: 2, px: 3 }}
+                sx={{ borderRadius: "5px", px: 3 }}
               >
                 {saveQuestions.isPending ? "Publishing…" : "Publish Job"}
               </Button>
@@ -266,7 +279,7 @@ const NewJobPage = () => {
                 variant="contained"
                 endIcon={<ArrowForwardIcon />}
                 disabled={generating || createJob.isPending}
-                sx={{ borderRadius: 2, px: 3 }}
+                sx={{ borderRadius: "5px", px: 3 }}
               >
                 {generating ? "Generating…" : `Next: ${STEPS[active].next}`}
               </Button>

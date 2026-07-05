@@ -60,7 +60,7 @@ const TopBar = ({ onMenuClick }) => {
     <Box
       component="header"
       sx={{
-        bgcolor: "background.default",
+        bgcolor: "#F4F0E84D",
         borderBottom: `1px solid ${COLORS.sidebarBorder}`,
         px: { xs: 2, md: 4 },
         py: 1.5,

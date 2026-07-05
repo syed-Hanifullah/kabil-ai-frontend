@@ -55,6 +55,32 @@ const STATUS_DOT = {
 // At Risk reads red — matching the Performance table's colored health column.
 const healthColor = (health) => (health === "at_risk" ? "error.main" : "success.main");
 
+// Body cell typography. Role and the middle columns share Jakarta 500/10px (only
+// the line-height differs); the Health column uses Inter 14px.
+const ROLE_CELL_SX = {
+  fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+  fontWeight: 500,
+  fontSize: "10px",
+  lineHeight: "12px",
+  letterSpacing: "0.1px",
+  color: "#2C2C2A",
+};
+const REST_CELL_SX = {
+  fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+  fontWeight: 500,
+  fontSize: "10px",
+  lineHeight: "15px",
+  letterSpacing: "0.1px",
+  color: "#2C2C2A",
+};
+const HEALTH_CELL_SX = {
+  fontFamily: "var(--font-sans), system-ui, sans-serif",
+  fontWeight: 400,
+  fontSize: "14px",
+  lineHeight: "21px",
+  letterSpacing: 0,
+};
+
 // Health categories for the "All Jobs" donut, in fixed legend order. Values are
 // the backend JobHealth enum (see `jobHealthChip`); colors echo the brand.
 const HEALTH_SEGMENTS = [
@@ -153,11 +179,11 @@ const PerformanceTable = ({ data, loading, view = "table" }) => {
             No jobs yet.
           </Typography>
         ) : (
-          <Box sx={{ overflow: "auto", flex: 1, minHeight: 0 }}>
+          <Box sx={{ overflow: "auto", flex: 1, minHeight: 0, mx: -2 }}>
             <Table
               size="small"
               stickyHeader
-              sx={{ "& td, & th": { borderColor: "divider" } }}
+              sx={{ "& td, & th": { borderColor: "divider", py: 1.75 }, "& tbody td": REST_CELL_SX }}
             >
               <TableHead>
                 <TableRow>
@@ -189,7 +215,7 @@ const PerformanceTable = ({ data, loading, view = "table" }) => {
                     sx={{ cursor: "pointer", "&:last-child td": { border: 0 } }}
                   >
                     <TableCell sx={{ maxWidth: 220 }}>
-                      <Typography variant="body2" noWrap sx={{ fontWeight: 600 }}>
+                      <Typography noWrap sx={ROLE_CELL_SX}>
                         {r.title}
                       </Typography>
                     </TableCell>
@@ -204,17 +230,14 @@ const PerformanceTable = ({ data, loading, view = "table" }) => {
                             bgcolor: STATUS_DOT[r.status] ?? "#8a948b",
                           }}
                         />
-                        <Typography variant="body2">{humanize(r.status)}</Typography>
+                        <Typography sx={REST_CELL_SX}>{humanize(r.status)}</Typography>
                       </Stack>
                     </TableCell>
                     <TableCell align="right">{r.candidates}</TableCell>
                     <TableCell align="right">{r.shortlisted}</TableCell>
                     <TableCell align="right">{r.days_open}</TableCell>
                     <TableCell align="right">
-                      <Typography
-                        variant="body2"
-                        sx={{ fontWeight: 700, color: healthColor(r.health) }}
-                      >
+                      <Typography sx={{ ...HEALTH_CELL_SX, color: healthColor(r.health) }}>
                         {jobHealthChip(r.health).label}
                       </Typography>
                     </TableCell>

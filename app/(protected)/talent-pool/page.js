@@ -179,7 +179,15 @@ const TalentPoolPage = () => {
   };
 
   return (
-    <Stack spacing={2.5}>
+    <Stack
+      spacing={2.5}
+      sx={{
+        bgcolor: "#F9F7F3",
+        // Bleed past the main content padding so the tint fills the whole page.
+        p: 2,
+        minHeight: "100%",
+      }}
+    >
       {/* Header */}
       <Stack
         direction={{ xs: "column", sm: "row" }}

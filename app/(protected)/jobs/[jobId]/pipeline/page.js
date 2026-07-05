@@ -520,7 +520,7 @@ const PipelinePage = ({ params }) => {
           />
         </Card>
       ) : tab === "accepted" ? (
-        <Box sx={{ p: 0, mt: 2 }}>
+        <Box sx={{ p: { xs: 1.5, sm: 2 }, mt: 2 }}>
           <PipelineBoard
             byStage={byStage}
             jobTitle={job?.title}
