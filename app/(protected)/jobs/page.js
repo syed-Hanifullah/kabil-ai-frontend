@@ -21,9 +21,9 @@ import JobCard, { JobCardSkeleton } from "./_components/JobCard";
 // Tabs as drawn in the design. `status: null` → no status filter; every other
 // tab filters the list by its backend status value ("Active" === `open`).
 const TABS = [
+  { label: "Active", status: "open" },
   { label: "All", status: null },
   { label: "Drafts", status: "draft" },
-  { label: "Active", status: "open" },
   { label: "Inactive", status: "inactive" },
   { label: "Archived", status: "archived" },
 ];
