@@ -39,7 +39,7 @@ const isPdf = (file) =>
 const BEIGE_FIELD_SX = {
   "& .MuiOutlinedInput-root": {
     bgcolor: "#efe9dc",
-    borderRadius: 1.5,
+    borderRadius: "5px",
     fontSize: "0.8rem",
     "& fieldset": { borderColor: "transparent" },
     "&:hover fieldset": { borderColor: "transparent" },
@@ -71,7 +71,7 @@ const StepBadge = ({ step }) => (
       sx={{
         px: 1.5,
         py: 0.6,
-        borderRadius: 1.5,
+        borderRadius: "5px",
         fontSize: "0.72rem",
         fontWeight: 700,
         color: "#fff",
@@ -86,10 +86,10 @@ const StepBadge = ({ step }) => (
 const FlowBanner = () => (
   <Box
     sx={{
-      bgcolor: "#e9f2ed",
+      bgcolor: "#E8F5F1",
       border: "1px solid",
-      borderColor: "rgba(15,110,86,0.35)",
-      borderRadius: 2.5,
+      borderColor: "#0F6E56",
+      borderRadius: "5px",
       px: 2.5,
       py: 2,
     }}
@@ -109,7 +109,16 @@ const FlowBanner = () => (
       ))}
     </Stack>
     <Typography
-      sx={{ mt: 1.5, textAlign: "center", color: "primary.main", fontSize: "0.75rem" }}
+      sx={{
+        mt: 1.5,
+        textAlign: "center",
+        fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+        fontWeight: 400,
+        fontSize: "14px",
+        lineHeight: "21px",
+        letterSpacing: 0,
+        color: "#0F6E56",
+      }}
     >
       {CV_INBOX_HINT}
     </Typography>
@@ -378,9 +387,9 @@ const CvInboxPage = () => {
               <Box
                 sx={{
                   border: "1px solid",
-                  borderColor: "primary.main",
-                  bgcolor: "rgba(19,64,45,0.04)",
-                  borderRadius: 1.5,
+                  borderColor: "#0F6E56",
+                  bgcolor: "#E8F5F1",
+                  borderRadius: "5px",
                   px: 1.5,
                   py: 0.5,
                 }}
@@ -427,7 +436,7 @@ const CvInboxPage = () => {
                       <AddIcon />
                     )
                   }
-                  sx={{ px: 5, borderRadius: 1.5, fontSize: "0.8rem" }}
+                  sx={{ px: 5, borderRadius: "5px", fontSize: "0.8rem" }}
                 >
                   {upload.isPending ? "Uploading…" : "Upload CVs"}
                 </Button>

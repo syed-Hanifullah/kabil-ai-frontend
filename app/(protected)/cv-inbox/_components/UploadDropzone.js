@@ -49,7 +49,7 @@ const UploadDropzone = ({ files, onAdd, onRemove, onClear, disabled }) => {
         sx={{
           border: "1.5px dashed",
           borderColor: dragging ? "primary.main" : "#cdd5d1",
-          borderRadius: 2,
+          borderRadius: "12px",
           bgcolor: dragging ? "rgba(19,64,45,0.04)" : "transparent",
           px: 2,
           py: 5,

@@ -303,7 +303,7 @@ const TalentPoolPage = () => {
                     fontWeight: 600,
                     color: "text.secondary",
                     bgcolor: "#f2efe7",
-                    borderRadius: 2,
+                    borderRadius: "5px",
                     px: 2,
                     "&:hover": { bgcolor: "#e9e5da" },
                   }}
