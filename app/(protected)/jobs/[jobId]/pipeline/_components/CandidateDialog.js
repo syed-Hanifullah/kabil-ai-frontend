@@ -865,6 +865,10 @@ const CandidateDialog = ({ appId, open, onClose, readOnly = false }) => {
     ? { score: app.interview_score, comment: app.interview_comment, scoredAt: app.interview_scored_at }
     : null;
   const interviewEditable = app?.stage === "interview" && app?.status === "active";
+  // Once HR has recorded an interview mark, the booking-status Interview section
+  // (invite sent / awaiting slot / booked details) is no longer useful — the
+  // manual score lives in the scoring card — so we drop it.
+  const hasInterviewScore = app?.interview_score != null;
   // Contact details are editable only through the hard_filter stage; from
   // whatsapp onward the screening flow owns the contact channel (mirrors the
   // backend's CONTACT_EDITABLE_STAGES gate).
@@ -1129,7 +1133,7 @@ const CandidateDialog = ({ appId, open, onClose, readOnly = false }) => {
                     interviewFeedback={interviewFeedback}
                     interviewEditable={false}
                   />
-                  {app.interview && <InterviewSection interview={app.interview} />}
+                  {app.interview && !hasInterviewScore && <InterviewSection interview={app.interview} />}
                   <Stack spacing={2.5}>
                     <ParsedProfile profile={candidate?.parsed_profile} />
                     {app.cv_document?.blob_url && <OpenCvButton doc={app.cv_document} />}
@@ -1145,7 +1149,7 @@ const CandidateDialog = ({ appId, open, onClose, readOnly = false }) => {
                     interviewFeedback={interviewFeedback}
                     interviewEditable={interviewEditable}
                   />
-                  {app.interview && <InterviewSection interview={app.interview} />}
+                  {app.interview && !hasInterviewScore && <InterviewSection interview={app.interview} />}
                   {moveCandidate}
                 </Stack>
               ) : tab === 1 ? (

@@ -683,7 +683,18 @@ const BgValidationBreakdown = ({ items }) => (
             <Box sx={{ height: "20px", display: "flex", alignItems: "center", flexShrink: 0 }}>
               <Box sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: "#1C4A3E" }} />
             </Box>
-            <Typography sx={PM_HEAD_SX}>{it.question}</Typography>
+            <Typography
+              sx={{
+                fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+                fontWeight: 600,
+                fontSize: "12px",
+                lineHeight: "20px",
+                letterSpacing: 0,
+                color: "#1C4A3E",
+              }}
+            >
+              {it.question}
+            </Typography>
           </Stack>
           {it.score != null && (
             <Typography
