@@ -125,10 +125,28 @@ const formatEligibility = (key, extracted, state) => {
  *    AI-scored answers' relevance (0–10, only the AI questions are scored) —
  *    the backend computes no such aggregate, so we mean-then-scale here. Null
  *    until at least one AI answer has been scored.
+ *  - `bgValidationBreakdown`: the per-question rows behind that score — one
+ *    entry per scored answer to an AI-authored `background_validation` question
+ *    (question text, the candidate's answer, and the 0–100 relevance). Only the
+ *    background-validation questions are included; the fixed canonical
+ *    questions (commitment/salary/notice/…) surface in Eligibility instead.
  */
 const deriveScreening = (convo, questions) => {
   const answers = asArray(convo?.answers);
-  const sourceById = new Map(asArray(questions).map((q) => [q.id, q.source_field]));
+  const qList = asArray(questions);
+  const sourceById = new Map(qList.map((q) => [q.id, q.source_field]));
+  // AI-authored background-validation questions — the only ones scored. Fixed
+  // canonical questions also carry the `background_validation` category, so we
+  // additionally require `is_ai_generated` (equivalently a null source_field).
+  const bgQuestionIds = new Set(
+    qList
+      .filter(
+        (q) =>
+          q?.category === "background_validation" &&
+          (q?.is_ai_generated || q?.ai_verifies_response || q?.source_field == null),
+      )
+      .map((q) => q.id),
+  );
 
   const extractedBySource = new Map();
   for (const a of answers) {
@@ -142,14 +160,25 @@ const deriveScreening = (convo, questions) => {
     value: formatEligibility(f.key, extractedBySource.get(f.key), state),
   }));
 
-  const scored = answers.filter((a) => a?.relevance_score != null);
+  // Scored answers to background-validation questions. When the question list
+  // hasn't loaded yet (empty set) fall back to every scored answer, since in
+  // practice only AI background-validation questions are ever scored.
+  const scored = answers.filter(
+    (a) => a?.relevance_score != null && (bgQuestionIds.size === 0 || bgQuestionIds.has(a?.question_id)),
+  );
   const bgValidation = scored.length
     ? Math.round((scored.reduce((s, a) => s + a.relevance_score, 0) / scored.length) * 10)
     : null;
+  const bgValidationBreakdown = scored.map((a) => ({
+    question: a.question,
+    answer: a.answer,
+    score: Math.round(a.relevance_score * 10),
+  }));
 
   return {
     eligibility,
     bgValidation,
+    bgValidationBreakdown,
     computedAt: convo?.closed_at || convo?.updated_at || null,
   };
 };

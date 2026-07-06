@@ -65,7 +65,7 @@ const bandHex = (band) =>
 const cardSx = {
   bgcolor: "#F4F0E84D",
   border: `1px solid ${CARD_BORDER}`,
-  borderRadius: 2.5,
+  borderRadius: "14px",
   overflow: "hidden",
 };
 
@@ -173,8 +173,8 @@ const RowShell = ({ children }) => (
 
 /** A numeric score row (CV Score, Background Validation): title + meter + score
  *  disc, with an optional expandable breakdown drawer + computed footer. */
-const MeterRow = ({ label, value, computedAt, showFooter = true, children }) => {
-  const [open, setOpen] = useState(false);
+const MeterRow = ({ label, value, computedAt, showFooter = true, defaultOpen = false, children }) => {
+  const [open, setOpen] = useState(defaultOpen);
   const has = value != null;
   const color = has ? bandHex(scoreBand(value).color) : TRACK;
   const hasBreakdown = !!children;
@@ -208,9 +208,13 @@ const MeterRow = ({ label, value, computedAt, showFooter = true, children }) => 
       {/* Footer sits at the bottom, so expanded detail nests above it. */}
       {showFooter && (computedAt || hasBreakdown) && (
         <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", pt: 1 }}>
-          <Typography variant="caption" color="text.secondary">
-            {computedAt ? `Computed ${timeAgo(computedAt)}` : "—"}
-          </Typography>
+          {computedAt ? (
+            <Typography variant="caption" color="text.secondary">
+              {`Computed ${timeAgo(computedAt)}`}
+            </Typography>
+          ) : (
+            <Box />
+          )}
           {hasBreakdown && <BreakdownToggle open={open} onClick={() => setOpen((o) => !o)} />}
         </Stack>
       )}
@@ -666,6 +670,59 @@ const JdBreakdown = ({ b }) => {
     </>
   );
 };
+
+/** Background Validation breakdown: one row per scored background-validation
+ *  question — the question, the candidate's answer, and its 0–100 relevance. */
+const BgValidationBreakdown = ({ items }) => (
+  <Stack spacing={2.5} divider={<Divider sx={{ borderColor: CARD_BORDER }} />}>
+    {items.map((it, i) => (
+      <Box key={i}>
+        <Stack direction="row" spacing={2} sx={{ justifyContent: "space-between", alignItems: "flex-start" }}>
+          <Stack direction="row" spacing={1.25} sx={{ alignItems: "flex-start", minWidth: 0 }}>
+            {/* Center the dot on the first line (question line-height is 20px). */}
+            <Box sx={{ height: "20px", display: "flex", alignItems: "center", flexShrink: 0 }}>
+              <Box sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: "#1C4A3E" }} />
+            </Box>
+            <Typography sx={PM_HEAD_SX}>{it.question}</Typography>
+          </Stack>
+          {it.score != null && (
+            <Typography
+              sx={{
+                fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+                fontWeight: 600,
+                fontSize: "11px",
+                lineHeight: "16.5px",
+                letterSpacing: 0,
+                textAlign: "center",
+                color: "#0F6E56",
+                flexShrink: 0,
+                whiteSpace: "nowrap",
+              }}
+            >
+              {it.score}
+            </Typography>
+          )}
+        </Stack>
+        {it.answer && (
+          <Typography
+            sx={{
+              ml: "18px",
+              mt: 0.5,
+              fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+              fontWeight: 400,
+              fontSize: "10px",
+              lineHeight: "16px",
+              letterSpacing: 0,
+              color: "#000000B2",
+            }}
+          >
+            {it.answer}
+          </Typography>
+        )}
+      </Box>
+    ))}
+  </Stack>
+);
 
 const TrustBreakdown = ({ breakdown }) => {
   const signals = pickSignals(breakdown);
@@ -1203,6 +1260,7 @@ const CvScoreCard = ({
   const atWhatsApp = stage === "whatsapp";
 
   const bgValidation = screening?.bgValidation ?? null;
+  const bgBreakdown = asArray(screening?.bgValidationBreakdown);
   const eligibility = asArray(screening?.eligibility);
   const screenedAt = screening?.computedAt || null;
 
@@ -1257,7 +1315,13 @@ const CvScoreCard = ({
         {/* Derived client-side from the AI-scored answers. While the candidate is
             in screening but no answer is scored yet, skeleton the bar. */}
         {bgValidation != null ? (
-          <MeterRow label="Background Validation" value={bgValidation} showFooter={false} />
+          <MeterRow
+            label="Background Validation"
+            value={bgValidation}
+            defaultOpen={bgBreakdown.length > 0}
+          >
+            {bgBreakdown.length > 0 ? <BgValidationBreakdown items={bgBreakdown} /> : null}
+          </MeterRow>
         ) : (
           atWhatsApp && <MeterSkeletonRow label="Background Validation" />
         )}

@@ -128,7 +128,7 @@ const CandidateCard = ({ app, jobTitle, onOpen, draggable = false, onDragStart, 
       onDragStart={draggable ? (e) => onDragStart?.(e, app) : undefined}
       onDragEnd={draggable ? onDragEnd : undefined}
       sx={{
-        width: 215,
+        width: "100%",
         height: 168,
         borderRadius: "13.19px",
         borderWidth: "0.82px",

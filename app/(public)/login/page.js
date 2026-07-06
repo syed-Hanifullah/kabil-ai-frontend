@@ -80,7 +80,7 @@ const Field = ({ label, children }) => (
 
 const FIELD_SX = {
   "& .MuiOutlinedInput-root": {
-    borderRadius: 2.5,
+    borderRadius: "5px",
     bgcolor: "#fff",
   },
 };
@@ -212,7 +212,7 @@ const LoginForm = () => {
               size="large"
               disabled={isSubmitting}
               fullWidth
-              sx={{ py: 1.5, borderRadius: 2.5, mt: 1 }}
+              sx={{ py: 1.5, borderRadius: "5px", mt: 1 }}
               startIcon={
                 isSubmitting ? (
                   <CircularProgress size={18} color="inherit" />

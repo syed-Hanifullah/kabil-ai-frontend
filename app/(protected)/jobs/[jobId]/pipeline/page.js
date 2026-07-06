@@ -520,7 +520,19 @@ const PipelinePage = ({ params }) => {
           />
         </Card>
       ) : tab === "accepted" ? (
-        <Box sx={{ p: { xs: 1.5, sm: 2 }, mt: 2 }}>
+        <Box
+          sx={{
+            // Break the board out of the app-shell's main padding
+            // (p: { xs:2, sm:3, md:4 }) so the columns span the full content
+            // width — no white gutters on the sides — while the header above
+            // keeps its normal contained width. Own beige bg so the full-width
+            // strip stays consistent past the inset container's edges.
+            bgcolor: "#F9F7F3",
+            mx: { xs: -2, sm: -3, md: -4 },
+            px: { xs: 1, sm: 1, md: 1 },
+            py: { xs: 1.5, sm: 2 },
+          }}
+        >
           <PipelineBoard
             byStage={byStage}
             jobTitle={job?.title}
