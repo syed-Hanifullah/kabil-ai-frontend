@@ -267,7 +267,7 @@ const AuthenticityRow = ({ value, summary }) => {
 /** Eligibility Questions row: the candidate's verbatim answers to the six fixed
  *  WhatsApp screening questions, shown as an open-by-default breakdown. */
 const EligibilityRow = ({ items, computedAt }) => {
-  const [open, setOpen] = useState(true); // open by default per the mock
+  const [open, setOpen] = useState(false); // collapsed until the recruiter opens it
   return (
     <RowShell>
       <Typography sx={{ fontWeight: 700, fontSize: "0.775rem" }}>Eligibility Questions</Typography>
@@ -354,15 +354,15 @@ const MeterSkeletonRow = ({ label }) => (
   </RowShell>
 );
 
-/** Interview Scoring row: HR's manual post-interview mark + comment.
- *  Fresh (no mark yet): the breakdown opens by default onto the entry form.
- *  Once a mark exists: it shows as a score disc and the breakdown stays
- *  collapsed. While the app is at the interview stage HR can (re)open the form
- *  to edit; past that it's read-only (the comment, if any). */
+/** Interview Scoring row: HR's manual post-interview mark + comment. The
+ *  breakdown stays collapsed by default; the user opens it to see/enter the
+ *  mark. Once a mark exists it also shows as a score disc. While the app is at
+ *  the interview stage HR can open the form to edit; past that it's read-only
+ *  (the comment, if any). */
 const InterviewScoringRow = ({ appId, feedback, editable }) => {
   const scoreVal = toScore(feedback?.score);
   const has = scoreVal != null;
-  const [open, setOpen] = useState(!has); // fresh → open onto the form
+  const [open, setOpen] = useState(false); // collapsed until the user opens it
   const [marks, setMarks] = useState(has ? String(Math.round(scoreVal)) : "");
   const [comment, setComment] = useState(feedback?.comment || "");
   const submit = useSubmitInterviewFeedback(appId);
@@ -1326,11 +1326,7 @@ const CvScoreCard = ({
         {/* Derived client-side from the AI-scored answers. While the candidate is
             in screening but no answer is scored yet, skeleton the bar. */}
         {bgValidation != null ? (
-          <MeterRow
-            label="Background Validation"
-            value={bgValidation}
-            defaultOpen={bgBreakdown.length > 0}
-          >
+          <MeterRow label="Background Validation" value={bgValidation}>
             {bgBreakdown.length > 0 ? <BgValidationBreakdown items={bgBreakdown} /> : null}
           </MeterRow>
         ) : (
