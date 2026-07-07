@@ -11,8 +11,8 @@ import LinearProgress from "@mui/material/LinearProgress";
 import Skeleton from "@mui/material/Skeleton";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import CircleIcon from "@mui/icons-material/Circle";
-import { scoreBand, toScore, timeAgo } from "@/lib/kabil/constants";
-import { useWhatsAppConversation } from "@/lib/kabil/queries";
+import { authenticityBandChip, bandColor, scoreBand, toScore, timeAgo } from "@/lib/kabil/constants";
+import { useApplication, useWhatsAppConversation } from "@/lib/kabil/queries";
 
 const initials = (name) =>
   (name || "?")
@@ -95,6 +95,14 @@ const CandidateCard = ({ app, jobTitle, onOpen, draggable = false, onDragStart, 
   // for cards actually sitting in that stage.
   const convo = useWhatsAppConversation(app.id, { enabled: isAssessment });
 
+  // CV authenticity band (authentic / review / fabricated) drives the corner
+  // dot. It lives on the candidate, not the list item, so we read it from the
+  // application detail — the same cached read the detail drawer uses, so
+  // opening a card later is instant. Null until the authenticity step has run.
+  const detail = useApplication(app.id);
+  const authBand = detail.data?.candidate?.authenticity_band ?? null;
+  const authDot = tone(bandColor(authBand));
+
   // The score that belongs to this candidate's current stage, plus whether it's
   // still being fetched/computed — while pending we skeleton the bar until it
   // lands (a card that just moved to a new stage waits on that stage's score).
@@ -154,14 +162,26 @@ const CandidateCard = ({ app, jobTitle, onOpen, draggable = false, onDragStart, 
             {initials(app.candidate_full_name)}
           </Avatar>
           <Box sx={{ minWidth: 0, flexGrow: 1 }}>
-            <Typography
-              variant="body2"
-              noWrap
-              title={app.candidate_full_name}
-              sx={{ fontWeight: 700, color: "#1c2522" }}
-            >
-              {app.candidate_full_name}
-            </Typography>
+            <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
+              <Typography
+                variant="body2"
+                noWrap
+                title={app.candidate_full_name}
+                sx={{ fontWeight: 700, color: "#1c2522", flexGrow: 1, minWidth: 0 }}
+              >
+                {app.candidate_full_name}
+              </Typography>
+              <Box
+                title={`CV Authenticity: ${authenticityBandChip(authBand).label}`}
+                sx={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: "50%",
+                  bgcolor: authDot.solid,
+                  flexShrink: 0,
+                }}
+              />
+            </Stack>
             <Typography
               variant="caption"
               color="text.secondary"
