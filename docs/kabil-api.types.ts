@@ -79,8 +79,10 @@ export type ScoreModel =
 export type AuthenticityBand = "authentic" | "review" | "fabricated";
 
 /** Dashboard Performance-table health verdict (computed, never persisted).
- *  Precedence: shortlisted → at_risk → healthy. */
-export type JobHealth = "healthy" | "at_risk" | "shortlisted";
+ *  Age-based on OPEN jobs, in working days (Mon-Fri). Precedence:
+ *  unhealthy (open >20 working days) → at_risk (open >=18) → healthy
+ *  (younger, or any non-open job). */
+export type JobHealth = "healthy" | "at_risk" | "unhealthy";
 
 /** The four Candidate Pipeline funnel columns. sourcing = vector_screen +
  *  hard_filter, screening = whatsapp, interview = interview, final_shortlist =

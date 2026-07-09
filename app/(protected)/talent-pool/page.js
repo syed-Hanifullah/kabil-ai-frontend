@@ -24,10 +24,6 @@ import TableRow from "@mui/material/TableRow";
 import CloseIcon from "@mui/icons-material/Close";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import CloudUploadOutlinedIcon from "@mui/icons-material/CloudUploadOutlined";
-import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
-import BoltOutlinedIcon from "@mui/icons-material/BoltOutlined";
-import TrendingUpOutlinedIcon from "@mui/icons-material/TrendingUpOutlined";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
 import FilterAltOutlinedIcon from "@mui/icons-material/FilterAltOutlined";
 import EmptyState from "@/components/EmptyState";
 import ErrorAlert from "@/components/ErrorAlert";
@@ -43,50 +39,11 @@ import {
   TALENT_POOL_SEARCH_MIN_LENGTH,
   TALENT_POOL_SEARCH_MAX_LENGTH,
   TALENT_POOL_SEARCH_MAX_LIMIT,
-  POOL_SCORE_FILTERS,
-  POOL_HIGH_SCORE,
-  POOL_READY_SCORE,
-  inPoolScoreBand,
-  toScore,
 } from "@/lib/kabil/constants";
 
 const SEARCH_DEBOUNCE_MS = 350;
 
-const HEAD_CELLS = ["Candidate", "Role", "AI Score", "Source", "Status", ""];
-
-// Uniform soft-cream circle for every stat icon, matching the reference.
-const STAT_TILE = {
-  width: 44,
-  height: 44,
-  borderRadius: "50%",
-  flexShrink: 0,
-  display: "grid",
-  placeItems: "center",
-  bgcolor: "#fbecd4",
-  color: "#EF9F27",
-};
-
-const PoolStat = ({ icon: Icon, value, label, loading }) => (
-  <Card sx={{ borderRadius: "5px" }}>
-    <CardContent sx={{ p: 2, display: "flex", gap: 1.5, alignItems: "center", "&:last-child": { pb: 2 } }}>
-      <Box sx={STAT_TILE}>
-        <Icon fontSize="small" />
-      </Box>
-      <Box sx={{ minWidth: 0 }}>
-        {loading ? (
-          <Skeleton variant="text" width={32} sx={{ fontSize: "1.4rem" }} />
-        ) : (
-          <Typography sx={{ fontWeight: 800, lineHeight: 1.1, fontSize: "1.4rem" }}>
-            {value}
-          </Typography>
-        )}
-        <Typography variant="caption" color="text.secondary" noWrap sx={{ display: "block" }}>
-          {label}
-        </Typography>
-      </Box>
-    </CardContent>
-  </Card>
-);
+const HEAD_CELLS = ["Candidate", "Role", "Source", ""];
 
 const TableSkeleton = () => (
   <Stack spacing={1.25} sx={{ p: 2 }}>
@@ -107,7 +64,6 @@ const TalentPoolPage = () => {
   const [rawQuery, setRawQuery] = useState("");
   const [query, setQuery] = useState("");
   const [selectedJob, setSelectedJob] = useState(""); // "" = All sources
-  const [scoreFilter, setScoreFilter] = useState(""); // "" = All scores
   const [page, setPage] = useState(1);
   const [sourceTarget, setSourceTarget] = useState(null);
   const [viewTarget, setViewTarget] = useState(null);
@@ -137,44 +93,19 @@ const TalentPoolPage = () => {
     limit: TALENT_POOL_SEARCH_MAX_LIMIT,
     enabled: searching,
   });
-  // "Total in Pool" is the whole pool regardless of the active filter.
-  const poolCount = useTalentPool({ pageSize: 1, enabled: searching });
-
   const active = searching ? search : browse;
-  const items = useMemo(() => active.data?.items ?? [], [active.data]);
-  const totalInPool = searching ? (poolCount.data?.total ?? 0) : (browse.data?.total ?? 0);
+  const visibleItems = useMemo(() => active.data?.items ?? [], [active.data]);
   const total = active.data?.total ?? 0;
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
-
-  // Stat cards live off the matched result set (the score band filters the table
-  // only). Browse mode has no scores, so the score-based cards read 0.
-  const stats = useMemo(() => {
-    const scored = items.map((i) => toScore(i.similarity_score)).filter((n) => n != null);
-    return {
-      matched: scored.length,
-      high: scored.filter((n) => n >= POOL_HIGH_SCORE).length,
-      ready: items.filter(
-        (i) => i.is_active && (toScore(i.similarity_score) ?? -1) >= POOL_READY_SCORE,
-      ).length,
-    };
-  }, [items]);
-
-  // The AI-score band filter only applies to job (semantic) search, where hits
-  // carry a score. Text search is lexical (no score), so it isn't filtered.
-  const visibleItems = useMemo(
-    () => (byJob ? items.filter((i) => inPoolScoreBand(i.similarity_score, scoreFilter)) : items),
-    [items, scoreFilter, byJob],
-  );
 
   const debouncing = rawQuery.trim() !== query;
   const spinner = active.isFetching || debouncing;
 
-  const anyFilter = Boolean(rawQuery || selectedJob || scoreFilter);
+  const anyFilter = Boolean(rawQuery || selectedJob);
   const clearFilters = () => {
     setRawQuery("");
     setQuery("");
     setSelectedJob("");
-    setScoreFilter("");
     setPage(1);
   };
 
@@ -267,10 +198,7 @@ const TalentPoolPage = () => {
               select
               size="small"
               value={selectedJob}
-              onChange={(e) => {
-                setSelectedJob(e.target.value);
-                setScoreFilter("");
-              }}
+              onChange={(e) => setSelectedJob(e.target.value)}
               slotProps={{ select: { displayEmpty: true } }}
               sx={{ minWidth: 170 }}
             >
@@ -278,22 +206,6 @@ const TalentPoolPage = () => {
               {jobs.map((j) => (
                 <MenuItem key={j.id} value={j.id}>
                   {j.title}
-                </MenuItem>
-              ))}
-            </TextField>
-            <TextField
-              select
-              size="small"
-              value={scoreFilter}
-              onChange={(e) => setScoreFilter(e.target.value)}
-              // AI scores only exist for job (semantic) search; text search is lexical.
-              disabled={!byJob}
-              slotProps={{ select: { displayEmpty: true } }}
-              sx={{ minWidth: 150 }}
-            >
-              {POOL_SCORE_FILTERS.map((o) => (
-                <MenuItem key={o.value} value={o.value}>
-                  {o.label}
                 </MenuItem>
               ))}
             </TextField>
@@ -323,40 +235,6 @@ const TalentPoolPage = () => {
           </Stack>
         </CardContent>
       </Card>
-
-      {/* Stat cards — recompute as filters change */}
-      <Box
-        sx={{
-          display: "grid",
-          gap: 1.5,
-          gridTemplateColumns: { xs: "1fr 1fr", md: "repeat(4, 1fr)" },
-        }}
-      >
-        <PoolStat
-          icon={GroupsOutlinedIcon}
-          value={totalInPool}
-          label="Total in Pool"
-          loading={active.isLoading}
-        />
-        <PoolStat
-          icon={BoltOutlinedIcon}
-          value={stats.matched}
-          label="AI Matched"
-          loading={active.isLoading}
-        />
-        <PoolStat
-          icon={TrendingUpOutlinedIcon}
-          value={stats.high}
-          label={`High Score (${POOL_HIGH_SCORE}+)`}
-          loading={active.isLoading}
-        />
-        <PoolStat
-          icon={CheckCircleOutlineIcon}
-          value={stats.ready}
-          label="Ready to Match"
-          loading={active.isLoading}
-        />
-      </Box>
 
       {active.isError ? (
         <ErrorAlert error={active.error} />

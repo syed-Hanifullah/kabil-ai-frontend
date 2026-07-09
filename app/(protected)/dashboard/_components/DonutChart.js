@@ -5,28 +5,34 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
 /**
- * Dependency-free SVG donut chart. Renders the ring with a percentage label sat
- * on each slice's band plus a legend on the right. Slices with a zero value are
- * dropped from the ring but kept in the legend so the category list stays stable
- * across selections.
+ * Dependency-free SVG donut chart. Renders the ring with each slice's
+ * percentage label sat just *outside* the band (radially, angled to its slice)
+ * plus a legend on the right. Slices with a zero value are dropped from the ring
+ * but kept in the legend so the category list stays stable across selections.
  *
  * `segments`: `[{ label, value, color }]`. Pure presentational — the caller
  * shapes the data (job-health counts, pipeline buckets, …).
  */
-// Coordinate space. Labels now sit inside the ring band, so the canvas only has
-// to hold the ring itself (outer radius = RADIUS + THICKNESS / 2) plus a small
-// margin; the <svg> renders it down to DISPLAY px.
+// Coordinate space. Labels sit outside the ring, so the canvas has to hold the
+// ring (outer radius = RADIUS + THICKNESS / 2) plus a label ring beyond it and a
+// text margin so the "%" never clips; the <svg> renders it down to DISPLAY px.
 const THICKNESS = 26;
 const RADIUS = 82;
-const CANVAS = 2 * (RADIUS + THICKNESS / 2) + 8;
-const DISPLAY = 210;
+// Centerline the labels ride, just past the ring's outer edge.
+const LABEL_RADIUS = RADIUS + THICKNESS / 2 + 20;
+// Room around a label point for its text (widest is "100%").
+const TEXT_MARGIN = 44;
+const CANVAS = 2 * (LABEL_RADIUS + TEXT_MARGIN);
+const DISPLAY = 290;
 const CENTER = CANVAS / 2;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 // White separator between adjacent slices, in user-space units along the arc.
 const GAP = 3;
-// Percentage labels ride the centerline of the band; slices thinner than this
-// fraction of the ring are left unlabelled so the text never overflows the arc.
+// Slices thinner than this fraction of the ring are left unlabelled so tiny
+// slivers don't collide with their neighbours' labels.
 const MIN_LABEL_FRACTION = 0.06;
+// All external labels read in the brand's dark green, per the design.
+const LABEL_TEXT = "#1C4A3E";
 
 /** Polar (radians, 0 = top, clockwise) → SVG cartesian point. */
 const polarToXY = (angle, radius) => ({
@@ -34,14 +40,11 @@ const polarToXY = (angle, radius) => ({
   y: CENTER + radius * Math.sin(angle - Math.PI / 2),
 });
 
-/** Pick dark or white label text for legibility against a slice's fill. */
-const labelColor = (hex) => {
-  const n = parseInt(hex.slice(1), 16);
-  const r = (n >> 16) & 255;
-  const g = (n >> 8) & 255;
-  const b = n & 255;
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return luminance > 0.6 ? "#13402d" : "#ffffff";
+/** Anchor a label so its text grows outward (away from the ring), never over it. */
+const labelAnchor = (x) => {
+  const dx = x - CENTER;
+  if (Math.abs(dx) < LABEL_RADIUS * 0.35) return "middle"; // top / bottom slices
+  return dx > 0 ? "start" : "end"; // right / left slices
 };
 
 const DonutChart = ({ segments }) => {
@@ -64,7 +67,7 @@ const DonutChart = ({ segments }) => {
             offset: -startFraction * CIRCUMFERENCE,
             pct: Math.round(fraction * 100),
             showLabel: fraction >= MIN_LABEL_FRACTION,
-            label_point: polarToXY(midAngle, RADIUS),
+            label_point: polarToXY(midAngle, LABEL_RADIUS),
           };
         })
     : [];
@@ -110,9 +113,9 @@ const DonutChart = ({ segments }) => {
                 key={`${a.label}-pct`}
                 x={a.label_point.x}
                 y={a.label_point.y}
-                textAnchor="middle"
+                textAnchor={labelAnchor(a.label_point.x)}
                 dominantBaseline="central"
-                style={{ fontWeight: 700, fontSize: 15, fill: labelColor(a.color) }}
+                style={{ fontWeight: 700, fontSize: 20, fill: LABEL_TEXT }}
               >
                 {a.pct}%
               </text>

@@ -47,7 +47,9 @@ const FunnelRow = ({ label, accent, count, max }) => (
 const CandidatePipelinePanel = () => {
   // Default to "All Jobs" (value "") — the workspace-wide aggregate.
   const [jobId, setJobId] = useState("");
-  const { data: jobsData } = useJobs({ pageSize: 50 });
+  // Alphabetical by title — the canonical dropdown order shared with the
+  // Performance card's job selector so both list jobs identically.
+  const { data: jobsData } = useJobs({ pageSize: 50, order: "title" });
   const jobs = jobsData?.items ?? [];
 
   const { data, isLoading } = useCandidatePipeline(jobId || null, {
@@ -65,12 +67,7 @@ const CandidatePipelinePanel = () => {
 
   return (
     <Card
-      sx={{
-        borderRadius: 2.5,
-        height: "100%",
-        borderTop: "3px solid",
-        borderTopColor: "primary.main",
-      }}
+      sx={{ borderRadius: 2.5, height: "100%" }}
     >
       <CardContent sx={{ p: 2 }}>
         <Stack

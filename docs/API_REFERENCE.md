@@ -230,8 +230,10 @@ sorted **at-risk first, then `days_open` descending**.
 ```
 - `candidates` / `shortlisted` **exclude archived** stints; `shortlisted` counts
   apps that reached the `done` stage. `days_open` = `(closed_at or now) −
-  created_at` in whole days. `health` is `JobHealth` (precedence: shortlisted →
-  at-risk → healthy; at-risk = open > 20 days with nobody shortlisted).
+  created_at` in whole (calendar) days. `health` is `JobHealth`, age-based on
+  **open** jobs in **working days** (Mon–Fri): `unhealthy` = open > 20 working
+  days, `at_risk` = open ≥ 18 working days, else `healthy` (younger open jobs and
+  any non-open job). Rows are sorted worst-health-first.
 - Hook: `usePerformance()`.
 
 #### `GET /dashboard/pipeline`
@@ -322,8 +324,10 @@ cache so a repeat click yields a fresh draft.
 
 #### `GET /jobs`
 Auth. Query: `status` (`draft|open|inactive|archived|closed`), `search`
-(1..120 chars), `page`, `page_size`. → `200` `JobListResponse` (paginated
-`JobListItem`).
+(1..120 chars), `order` (`updated_at` (default, most-recently-touched first) |
+`title` (case-insensitive alphabetical — use for job-selector dropdowns so they
+list jobs identically)), `page`, `page_size`. → `200` `JobListResponse`
+(paginated `JobListItem`).
 
 #### `GET /jobs/{job_id}`
 Auth. → `200` `JobDetail` (full job incl. `whatsapp_questions`,

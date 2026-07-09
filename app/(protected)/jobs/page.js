@@ -15,7 +15,7 @@ import AddIcon from "@mui/icons-material/Add";
 import EmptyState from "@/components/EmptyState";
 import ErrorAlert from "@/components/ErrorAlert";
 import SearchField from "@/components/SearchField";
-import { useJobs } from "@/lib/kabil/queries";
+import { useDashboard, useJobs } from "@/lib/kabil/queries";
 import JobCard, { JobCardSkeleton } from "./_components/JobCard";
 
 // Tabs as drawn in the design. `status: null` → no status filter; every other
@@ -42,6 +42,33 @@ const grid = {
   },
 };
 
+/** Circular count pill shown beside each tab label (design spec: #EF9F27 bg,
+ *  white Plus Jakarta Sans 700 / 10px / 13.6px). Rounds to a pill for 3+ digits. */
+const CountBadge = ({ count }) => (
+  <Box
+    component="span"
+    sx={{
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      ml: 0.75,
+      minWidth: 20,
+      height: 20,
+      px: 0.75,
+      borderRadius: 999,
+      bgcolor: "#EF9F27",
+      color: "#fff",
+      fontFamily: '"Plus Jakarta Sans", sans-serif',
+      fontWeight: 700,
+      fontSize: "10px",
+      lineHeight: "13.6px",
+      letterSpacing: 0,
+    }}
+  >
+    {count}
+  </Box>
+);
+
 const JobsGridSkeleton = () => (
   <Box sx={grid}>
     {Array.from({ length: 6 }).map((_, i) => (
@@ -64,6 +91,15 @@ const JobsPageInner = () => {
   });
 
   const jobs = data?.items ?? [];
+
+  // Per-tab counts come from the workspace rollup (jobs.total + jobs.by_status,
+  // zero-filled across every JobStatus), so the badges are independent of the
+  // active tab's filter/search. `null` while the summary loads → badge hidden.
+  const { data: summary } = useDashboard();
+  const countFor = (status) => {
+    if (!summary?.jobs) return null;
+    return status === null ? summary.jobs.total : summary.jobs.by_status[status] ?? 0;
+  };
 
   return (
     <Stack spacing={2.5}>
@@ -105,9 +141,18 @@ const JobsPageInner = () => {
 
       <Box>
         <Tabs value={tab} onChange={(_, v) => setTab(v)}>
-          {TABS.map((t) => (
-            <Tab key={t.label} label={t.label} sx={{ textTransform: "none", fontWeight: 600 }} />
-          ))}
+          {TABS.map((t) => {
+            const count = countFor(t.status);
+            return (
+              <Tab
+                key={t.label}
+                iconPosition="end"
+                icon={count === null ? undefined : <CountBadge count={count} />}
+                label={t.label}
+                sx={{ textTransform: "none", fontWeight: 600, minHeight: "auto" }}
+              />
+            );
+          })}
         </Tabs>
       </Box>
 

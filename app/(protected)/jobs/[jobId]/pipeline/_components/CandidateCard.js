@@ -11,7 +11,7 @@ import LinearProgress from "@mui/material/LinearProgress";
 import Skeleton from "@mui/material/Skeleton";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import CircleIcon from "@mui/icons-material/Circle";
-import { authenticityBandChip, bandColor, scoreBand, toScore, timeAgo } from "@/lib/kabil/constants";
+import { authenticityBandChip, bandColor, bandHex, scoreBand, toScore, timeAgo } from "@/lib/kabil/constants";
 import { useApplication, useWhatsAppConversation } from "@/lib/kabil/queries";
 
 const initials = (name) =>
@@ -260,7 +260,7 @@ const CandidateCard = ({ app, jobTitle, onOpen, draggable = false, onDragStart, 
                     height: 5,
                     borderRadius: 3,
                     bgcolor: "rgba(0,0,0,0.06)",
-                    "& .MuiLinearProgress-bar": { bgcolor: "#EF9F27", borderRadius: 3 },
+                    "& .MuiLinearProgress-bar": { bgcolor: bandHex(band.color), borderRadius: 3 },
                   }}
                 />
                 <Typography

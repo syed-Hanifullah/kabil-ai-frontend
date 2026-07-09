@@ -103,15 +103,16 @@ Orthogonal to stage.
 
 ## Dashboard — job health — `JobHealth`
 
-Computed per job for the Performance table (never persisted). Precedence is
-first-match: shortlisted → at-risk → healthy. Helper: `jobHealthChip()` in
-`lib/kabil/constants.js`.
+Computed per job for the Performance table (never persisted). Age-based on how
+long an **open** job has been open, counted in **working days** (Mon–Fri).
+Precedence is first-match: unhealthy → at-risk → healthy. Helper:
+`jobHealthChip()` in `lib/kabil/constants.js`.
 
 | Value | When | Chip |
 |---|---|---|
-| `shortlisted` | Job has ≥1 candidate at the `done` stage. | success |
-| `at_risk` | Job is `open`, open **> 20 days**, and **no** shortlisted candidate. | error |
-| `healthy` | Everything else (young open jobs, closed jobs with no shortlist). | info |
+| `unhealthy` | Job is `open` and open **> 20 working days**. | error |
+| `at_risk` | Job is `open` and open **≥ 18 working days** (not yet unhealthy). | warning |
+| `healthy` | Everything else: a younger open job, or any non-open (closed/inactive/archived) job. | success |
 
 ---
 

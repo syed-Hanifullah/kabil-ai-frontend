@@ -5,12 +5,7 @@ import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Avatar from "@mui/material/Avatar";
-import Badge from "@mui/material/Badge";
 import IconButton from "@mui/material/IconButton";
-import InputBase from "@mui/material/InputBase";
-import InputAdornment from "@mui/material/InputAdornment";
-import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
-import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
 import MenuIcon from "@mui/icons-material/Menu";
 import { COLORS } from "@/lib/theme";
 
@@ -102,64 +97,7 @@ const TopBar = ({ onMenuClick }) => {
         </Typography>
       </Box>
 
-      {/* Center search — visual shell; global search isn't wired yet. */}
-      <Box
-        sx={{
-          width: 300,
-          ml: "auto",
-          display: { xs: "none", md: "block" },
-        }}
-      >
-        <InputBase
-          fullWidth
-          placeholder="Search…"
-          startAdornment={
-            <InputAdornment position="start">
-              <SearchOutlinedIcon fontSize="small" sx={{ color: "text.secondary" }} />
-            </InputAdornment>
-          }
-          sx={{
-            px: 1.75,
-            py: 0.6,
-            borderRadius: "5px",
-            bgcolor: "#F4F0E8",
-            fontSize: 13,
-            "& .MuiInputBase-input": { p: 0 },
-          }}
-        />
-      </Box>
-
-      <Stack direction="row" spacing={1.25} sx={{ alignItems: "center" }}>
-        {/* Notifications — visual shell; the feed isn't wired yet. */}
-        <Badge
-          variant="dot"
-          overlap="circular"
-          anchorOrigin={{ vertical: "top", horizontal: "right" }}
-          sx={{
-            "& .MuiBadge-badge": {
-              bgcolor: "secondary.main",
-              minWidth: 9,
-              height: 9,
-              borderRadius: "50%",
-              border: "2px solid",
-              borderColor: "background.default",
-            },
-          }}
-        >
-          <IconButton
-            aria-label="Notifications"
-            sx={{
-              width: 40,
-              height: 40,
-              bgcolor: BEIGE,
-              color: "primary.main",
-              "&:hover": { bgcolor: "#e8e2d5" },
-            }}
-          >
-            <NotificationsNoneOutlinedIcon fontSize="small" />
-          </IconButton>
-        </Badge>
-
+      <Stack direction="row" spacing={1.25} sx={{ alignItems: "center", ml: "auto" }}>
         {/* Company pill */}
         <Stack
           direction="row"

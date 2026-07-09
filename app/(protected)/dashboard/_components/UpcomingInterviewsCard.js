@@ -26,7 +26,7 @@ const UpcomingInterviewsCard = () => {
   const total = data?.total ?? 0;
 
   return (
-    <Card sx={{ borderRadius: 2.5, height: "100%", border: "1px solid", borderColor: "primary.main" }}>
+    <Card sx={{ borderRadius: 2.5, height: "100%"}}>
       <CardContent sx={{ p: 2 }}>
         <Stack direction="row" spacing={0.75} sx={{ alignItems: "center", mb: 1.75 }}>
           <EventOutlinedIcon fontSize="small" color="primary" />

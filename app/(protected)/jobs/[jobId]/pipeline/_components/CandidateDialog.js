@@ -51,6 +51,7 @@ import {
   commitmentVerdict,
   formatNoticePeriod,
   humanize,
+  stageLabel,
   timeAgo,
 } from "@/lib/kabil/constants";
 import { COLORS } from "@/lib/theme";
@@ -196,10 +197,10 @@ const Field = ({ label, children }) => (
 );
 
 /** A titled block inside the dialog. */
-const Section = ({ title, action, children }) => (
+const Section = ({ title, action, children, titleSx }) => (
   <Box>
     <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between", mb: 1 }}>
-      <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 700 }}>
+      <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 700, ...titleSx }}>
         {title}
       </Typography>
       {action}
@@ -900,7 +901,18 @@ const CandidateDialog = ({ appId, open, onClose, readOnly = false }) => {
 
   // The stage/reject controls (Scoring tab only).
   const moveCandidate = app && (
-    <Section title="Move candidate">
+    <Section
+      title="Move candidate"
+      titleSx={{
+        fontFamily: "var(--font-jakarta)",
+        fontWeight: 700,
+        fontSize: "12px",
+        lineHeight: "15px",
+        letterSpacing: "1px",
+        textTransform: "capitalize",
+        color: "#0F6E56",
+      }}
+    >
       {app.rejection_reason && (
         <Typography variant="body2" color="error.main" sx={{ mb: 1.5 }}>
           {app.rejection_reason}
@@ -916,9 +928,9 @@ const CandidateDialog = ({ appId, open, onClose, readOnly = false }) => {
         onChange={(e) => setReason(e.target.value)}
         inputProps={{ maxLength: 500 }}
         disabled={busy}
-        sx={{ mb: 1.5 }}
+        sx={{ mb: 1.5, "& .MuiOutlinedInput-root": { borderRadius: "14px" } }}
       />
-      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, justifyContent: "center" }}>
         {isActive && nextStage && (
           <Button
             variant="contained"
@@ -926,9 +938,9 @@ const CandidateDialog = ({ appId, open, onClose, readOnly = false }) => {
             endIcon={<ArrowForwardIcon />}
             onClick={advance}
             disabled={busy}
-            sx={{ bgcolor: GREEN, "&:hover": { bgcolor: GREEN_DARK } }}
+            sx={{ py: 1, bgcolor: GREEN, "&:hover": { bgcolor: GREEN_DARK } }}
           >
-            Advance to {humanize(nextStage)}
+            Advance to {stageLabel(nextStage)}
           </Button>
         )}
         {isActive && (
@@ -939,6 +951,7 @@ const CandidateDialog = ({ appId, open, onClose, readOnly = false }) => {
             startIcon={<BlockIcon />}
             onClick={() => setStatus("rejected")}
             disabled={busy}
+            sx={{ py: 1 }}
           >
             Reject
           </Button>

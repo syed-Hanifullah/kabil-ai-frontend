@@ -10,7 +10,9 @@ import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Stepper from "@mui/material/Stepper";
 import Step from "@mui/material/Step";
-import StepLabel from "@mui/material/StepLabel";
+import StepLabel, { stepLabelClasses } from "@mui/material/StepLabel";
+import StepConnector, { stepConnectorClasses } from "@mui/material/StepConnector";
+import { styled } from "@mui/material/styles";
 import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
 import ArrowBackIcon from "@mui/icons-material/ArrowBackOutlined";
@@ -86,6 +88,56 @@ const toJobPayload = (v) => ({
   ...toJobSpecPayload(v),
   job_description: v.job_description.trim(),
 });
+
+// Short, light connector line centred on the 32px step circles.
+const WizardConnector = styled(StepConnector)(() => ({
+  [`&.${stepConnectorClasses.alternativeLabel}`]: { top: 16 },
+  [`& .${stepConnectorClasses.line}`]: {
+    borderColor: "#E0DBD0",
+    borderTopWidth: 1,
+  },
+}));
+
+// Current/completed steps: filled green disc, white number.
+// Future steps: transparent disc with a light outline, grey number.
+const WizardStepIcon = ({ active, completed, icon }) => {
+  const filled = active || completed;
+  return (
+    <Box
+      sx={{
+        width: 32,
+        height: 32,
+        borderRadius: "50%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        bgcolor: filled ? "#0F6E56" : "transparent",
+        border: filled ? "none" : "1px solid #E0DBD0",
+        color: filled ? "#FFFFFF" : "#6B7280",
+        fontFamily: "var(--font-jakarta)",
+        fontWeight: 700,
+        fontSize: 13,
+        lineHeight: 1,
+      }}
+    >
+      {icon}
+    </Box>
+  );
+};
+
+const stepLabelSx = {
+  [`& .${stepLabelClasses.label}`]: {
+    mt: 1,
+    fontFamily: "var(--font-jakarta)",
+    fontWeight: 400,
+    fontSize: 14,
+    lineHeight: "21px",
+    letterSpacing: 0,
+    color: "#6B7280",
+    [`&.${stepLabelClasses.active}`]: { fontWeight: 700, color: "#2C2C2A" },
+    [`&.${stepLabelClasses.completed}`]: { fontWeight: 400, color: "#6B7280" },
+  },
+};
 
 const NewJobPage = () => {
   const router = useRouter();
@@ -187,10 +239,12 @@ const NewJobPage = () => {
         </Typography>
       </Box>
 
-      <Stepper activeStep={active} alternativeLabel>
+      <Stepper activeStep={active} alternativeLabel connector={<WizardConnector />}>
         {STEPS.map((s) => (
           <Step key={s.label}>
-            <StepLabel>{s.label}</StepLabel>
+            <StepLabel slots={{ stepIcon: WizardStepIcon }} sx={stepLabelSx}>
+              {s.label}
+            </StepLabel>
           </Step>
         ))}
       </Stepper>

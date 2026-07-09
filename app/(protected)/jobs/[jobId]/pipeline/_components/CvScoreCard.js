@@ -13,7 +13,6 @@ import TextField from "@mui/material/TextField";
 import LinearProgress from "@mui/material/LinearProgress";
 import Skeleton from "@mui/material/Skeleton";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import CheckIcon from "@mui/icons-material/Check";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import AccessTimeOutlinedIcon from "@mui/icons-material/AccessTimeOutlined";
 import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
@@ -22,10 +21,9 @@ import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
 import WorkOutlineIcon from "@mui/icons-material/WorkOutlineOutlined";
 import VerifiedUserOutlinedIcon from "@mui/icons-material/VerifiedUserOutlined";
 import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
-import { toScore, scoreBand, timeAgo, humanize, APPLICATION_STAGES } from "@/lib/kabil/constants";
+import { toScore, scoreBand, bandHex, timeAgo, humanize, APPLICATION_STAGES } from "@/lib/kabil/constants";
 import { useSubmitInterviewFeedback } from "@/lib/kabil/queries";
 import ErrorAlert from "@/components/ErrorAlert";
-import { COLORS } from "@/lib/theme";
 
 /** HR interview mark bounds — mirrors the backend `INTERVIEW_SCORE_*` thresholds. */
 const INTERVIEW_SCORE_MIN = 0;
@@ -56,11 +54,6 @@ const GREEN = "#0F6E56";
 const CARD_BG = "#FBF9F2";
 const CARD_BORDER = "#ECE5D6";
 const TRACK = "#E7E1D2";
-
-/** scoreBand() palette name → a concrete brand hex (gold for the mid band, to
- *  match the cream/gold scoring cards). */
-const bandHex = (band) =>
-  ({ success: "#1f9d57", warning: COLORS.gold, error: "#d24a39" })[band] || "#9aa3a0";
 
 const cardSx = {
   bgcolor: "#F4F0E84D",
@@ -153,14 +146,6 @@ const BreakdownToggle = ({ open, onClick }) => (
     {open ? "Hide Breakdown" : "Breakdown"}
   </Button>
 );
-
-/** Small green section eyebrow ("Score"). */
-const Eyebrow = ({ children }) => (
-  <Typography sx={{ color: GREEN, fontWeight: 800, fontSize: 11, letterSpacing: 0.5, mb: 1 }}>
-    {children}
-  </Typography>
-);
-
 /* ── Rows (stacked inside the single Credibility Check card) ─────────────────── */
 
 /** One row inside the unified card; a hairline separates it from the next (the
@@ -734,34 +719,6 @@ const BgValidationBreakdown = ({ items }) => (
     ))}
   </Stack>
 );
-
-const TrustBreakdown = ({ breakdown }) => {
-  const signals = pickSignals(breakdown);
-  return TRUST_SIGNALS.map(({ key, label, tip }) => {
-    const sig = signals?.[key];
-    if (!sig) return null;
-    const desc = signalText(sig);
-    const details = sig.details || {};
-    return (
-      <SignalBar key={key} label={label} tip={tip}>
-        {desc && (
-          <Typography variant="caption" color="text.secondary" sx={{ display: "block", lineHeight: 1.5 }}>
-            {desc}
-          </Typography>
-        )}
-        {/* Legacy deterministic diagnostics (kept for old rows; new LLM rows
-            carry the evidence inside `finding` above). */}
-        {key === "timeline_coherence" && details.unmatched && (
-          <ChipRow lead="Can't trace:" items={details.unmatched} color="error" max={7} />
-        )}
-        {key === "linguistic_genericity" && details.top_markers && (
-          <ChipRow lead="Flagged terms:" items={Object.keys(details.top_markers)} color="warning" />
-        )}
-      </SignalBar>
-    );
-  });
-};
-
 /* The hard-filter (CV Score) rubric: an open-ended `{ criterion: … }` map where
  * each criterion typically carries a numeric `score` (a percent string per the
  * API) plus a prose reason — but the leaf shape and field names vary. Extract
@@ -917,6 +874,9 @@ const RubricRow = ({ label, value }) => {
   // The mock shows each signal's weighted point contribution (these sum to the
   // overall CV Score). Fall back to the raw score when there's no weight.
   const score = padScore(raw != null && weight != null ? (raw / 100) * weight : raw);
+  // The criterion's weightage (max points it can contribute), shown as a percent
+  // next to the label and as the smaller denominator in the "score/weight" value.
+  const weightPct = weight != null ? Math.round(weight) : null;
   const text = rubricText(value);
   // Whatever the score + reason didn't capture, surface it generically.
   let leftover = null;
@@ -936,8 +896,22 @@ const RubricRow = ({ label, value }) => {
         <Stack direction="row" spacing={1.25} sx={{ alignItems: "center", minWidth: 0 }}>
           <Box sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: GREEN, flexShrink: 0 }} />
           <Typography sx={{ fontWeight: 700, color: GREEN, fontSize: "0.725rem" }}>{label}</Typography>
+          {weightPct != null && (
+            <Typography sx={{ fontWeight: 600, color: "#9CA3AF", fontSize: "0.7rem", flexShrink: 0 }}>
+              {`${weightPct}%`}
+            </Typography>
+          )}
         </Stack>
-        {score != null && <Typography sx={{ fontWeight: 700, color: GREEN, flexShrink: 0 }}>{score}</Typography>}
+        {score != null && (
+          <Typography sx={{ fontWeight: 700, color: GREEN, flexShrink: 0 }}>
+            {score}
+            {weightPct != null && (
+              <Box component="span" sx={{ fontSize: "0.75em", fontWeight: 600, color: "#9CA3AF" }}>
+                {`/${weightPct}`}
+              </Box>
+            )}
+          </Typography>
+        )}
       </Stack>
       {text && (
         <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75, ml: 2.25, lineHeight: 1.6 }}>
@@ -1127,103 +1101,16 @@ const SummaryRow = ({ icon, label, value, tagColor: tc, tag }) => (
   </Stack>
 );
 
-const ScreeningSummary = ({ jd, trust }) => {
-  const signals = pickSignals(trust);
-  const total = jd?.required_skills_total;
-  const matched = jd?.required_skills_matched;
-  const consistency = toScore(signals?.consistency?.score);
-  // "AI-generated content" now reads the LLM language + formatting signals
-  // (lower score = more AI-like) rather than the retired marker-word count.
-  const linguistic = toScore(signals?.linguistic_genericity?.score);
-  const structural = toScore(signals?.structural_templating?.score);
-  const aiScore = [linguistic, structural].filter((n) => n != null);
-  const aiMin = aiScore.length ? Math.min(...aiScore) : null;
-  const specificity = toScore(signals?.specificity?.score);
-  const passes = jd?.passes_threshold;
-  return (
-    <Box sx={{ border: `1px solid ${CARD_BORDER}`, borderRadius: 2, p: 2, bgcolor: CARD_BG }}>
-      <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
-        Screening summary
-      </Typography>
-      {total != null && matched != null && (
-        <SummaryRow
-          icon={<WorkOutlineIcon fontSize="small" />}
-          label="Skills match"
-          value={`${matched} of ${total}`}
-          tag={matched / Math.max(1, total) < 0.5 ? "Low" : "OK"}
-          tagColor={matched / Math.max(1, total) < 0.5 ? "error" : "success"}
-        />
-      )}
-      {consistency != null && (
-        <SummaryRow
-          icon={<VerifiedUserOutlinedIcon fontSize="small" />}
-          label="Experience verification"
-          value={consistency < 75 ? "Claim exceeds evidence" : "Consistent"}
-          tag={consistency < 75 ? "Review" : "OK"}
-          tagColor={consistency < 75 ? "warning" : "success"}
-        />
-      )}
-      {aiMin != null && (
-        <SummaryRow
-          icon={<SmartToyOutlinedIcon fontSize="small" />}
-          label="AI-generated content"
-          value={aiMin < 75 ? "Likely" : "Not detected"}
-          tag={aiMin < 75 ? "Flagged" : "Clear"}
-          tagColor={aiMin < 75 ? "warning" : "success"}
-        />
-      )}
-      {specificity != null && (
-        <SummaryRow
-          icon={<FactCheckOutlinedIcon fontSize="small" />}
-          label="Detail quality"
-          value={specificity >= 50 ? "Names clients + projects" : "Sparse / generic"}
-          tag={specificity >= 50 ? "OK" : "Low"}
-          tagColor={specificity >= 50 ? "success" : "warning"}
-        />
-      )}
-      {passes != null && (
-        <SummaryRow
-          icon={<CheckCircleOutlineIcon fontSize="small" />}
-          label="Meets minimum threshold"
-          value={passes ? "Yes" : "No"}
-          tag={passes ? "Pass" : "Fail"}
-          tagColor={passes ? "success" : "error"}
-        />
-      )}
-    </Box>
-  );
-};
-
 /* ── Data → view-model helpers ─────────────────────────────────────────────── */
 
 const trustSummary = (trustBreak) => {
-  const signals = pickSignals(trustBreak);
-  const weak = TRUST_SIGNALS.map((s) => ({ label: s.label, score: toScore(signals?.[s.key]?.score) }))
-    .filter((s) => s.score != null && s.score < 75)
-    .sort((a, b) => a.score - b.score)
-    .slice(0, 2);
-  if (!weak.length) {
-    // No weak signals: prefer the judge's own positive synthesis, else a
-    // generic all-clear line.
-    return trustBreak?.rationale || "All authenticity checks look solid.";
-  }
-  return `${weak.map((w) => w.label).join(" and ")} flagged for review.`;
+  return trustBreak?.rationale || "All authenticity checks look solid.";
 };
 
 /** A recruiter-facing concern summary for the CV Authenticity card face: the
  *  actual `finding` sentences from the weakest sub-signals, falling back to the
  *  judge's rationale / a generic "which checks are flagged" line. */
 const authenticitySummary = (trustBreak) => {
-  const signals = pickSignals(trustBreak);
-  const findings = TRUST_SIGNALS.map((s) => ({
-    score: toScore(signals?.[s.key]?.score),
-    text: signalText(signals?.[s.key]),
-  }))
-    .filter((s) => s.score != null && s.score < 75 && s.text)
-    .sort((a, b) => a.score - b.score)
-    .map((s) => String(s.text).trim().replace(/\.$/, ""))
-    .slice(0, 2);
-  if (findings.length) return `Some concerns: ${findings.join("; ")}.`;
   return trustSummary(trustBreak);
 };
 
@@ -1257,6 +1144,7 @@ const CvScoreCard = ({
   );
 
   const trustBreak = trust?.breakdown || null;
+
   const jdBreak = jd?.breakdown || null;
   const trustValue = trust ? toScore(trust.value) : null;
   const jdValue = jd ? toScore(jd.value) : null;

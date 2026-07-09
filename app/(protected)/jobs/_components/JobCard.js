@@ -78,7 +78,7 @@ const formatSalary = (min, max, currency) => {
   return null;
 };
 
-const MAX_SKILLS = 4;
+const MAX_SKILLS = 30;
 
 /** A single job tile. Clicking the body opens the pipeline. */
 const JobCard = ({ job }) => {

@@ -16,7 +16,7 @@ import Box from "@mui/material/Box";
 import MenuItem from "@mui/material/MenuItem";
 import TextField from "@mui/material/TextField";
 import { jobHealthChip, humanize, PIPELINE_BUCKETS } from "@/lib/kabil/constants";
-import { useCandidatePipeline } from "@/lib/kabil/queries";
+import { useCandidatePipeline, useJobs } from "@/lib/kabil/queries";
 import DonutChart from "./DonutChart";
 
 /**
@@ -51,9 +51,14 @@ const STATUS_DOT = {
   draft: "#8a948b",
 };
 
-// Health verdict → text color. Healthy and Shortlisted read green (all good),
-// At Risk reads red — matching the Performance table's colored health column.
-const healthColor = (health) => (health === "at_risk" ? "error.main" : "success.main");
+// Health verdict → text color. Unhealthy reads red (worst), At Risk amber
+// (early warning), Healthy green — matching the donut's segment colors.
+const healthColor = (health) =>
+  health === "unhealthy"
+    ? "error.main"
+    : health === "at_risk"
+      ? "warning.main"
+      : "success.main";
 
 // Body cell typography. Role and the middle columns share Jakarta 500/10px (only
 // the line-height differs); the Health column uses Inter 14px.
@@ -85,8 +90,8 @@ const HEALTH_CELL_SX = {
 // the backend JobHealth enum (see `jobHealthChip`); colors echo the brand.
 const HEALTH_SEGMENTS = [
   { key: "healthy", label: "Healthy", color: "#0F6E56" },
-  { key: "at_risk", label: "At Risk", color: "#D85A30" },
-  { key: "shortlisted", label: "Shortlisted", color: "#EF9F27" },
+  { key: "at_risk", label: "At Risk", color: "#EF9F27" },
+  { key: "unhealthy", label: "Unhealthy", color: "#D85A30" },
 ];
 
 /** Donut segments for the workspace-wide health distribution. */
@@ -110,6 +115,15 @@ const PerformanceTable = ({ data, loading, view = "table" }) => {
   const [selectedJob, setSelectedJob] = useState(""); // "" = All Jobs
 
   const allRows = data?.rows ?? [];
+
+  // Job-selector options: the shared alphabetical-by-title list, so this
+  // dropdown lists jobs in the same order as the Candidate Pipeline card's.
+  // The table body below still renders `allRows` in its at-risk-first order.
+  const { data: jobsData, isLoading: jobsLoading } = useJobs({
+    order: "title",
+    pageSize: 100,
+  });
+  const jobOptions = jobsData?.items ?? [];
 
   // Per-job pipeline — only fetched in chart mode with a specific job picked.
   const { data: pipeline, isLoading: pipelineLoading } = useCandidatePipeline(
@@ -137,20 +151,58 @@ const PerformanceTable = ({ data, loading, view = "table" }) => {
       >
         {isChart ? (
           <Box>
-            <Stack direction="row" sx={{ justifyContent: "flex-end", mb: 1 }}>
+            <Stack
+              direction="row"
+              sx={{ justifyContent: "space-between", alignItems: "center", gap: 1.5, mb: 1 }}
+            >
+              <Stack direction="row" spacing={0.75} sx={{ alignItems: "center", minWidth: 0 }}>
+                <Typography
+                  noWrap
+                  sx={{
+                    fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+                    fontWeight: 700,
+                    fontSize: "12px",
+                    lineHeight: "16px",
+                    letterSpacing: 0,
+                    color: "#1C4A3E",
+                  }}
+                >
+                  {/* All-Jobs shows the health mix; a single job shows its
+                      pipeline buckets — label reflects what the donut plots. */}
+                  {selectedJob ? "Candidate Pipeline" : "Health Status"}
+                </Typography>
+                {/* Circle + activity-pulse glyph (inline so it inherits the
+                    brand orange and the exact 12px size). */}
+                <Box
+                  component="svg"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                  sx={{ width: 12, height: 12, flexShrink: 0, color: "#EF9F27", display: "block" }}
+                >
+                  <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="2" />
+                  <path
+                    d="M6 13 L9 13 L11 16 L13 8 L15 13 L18 13"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </Box>
+              </Stack>
               <TextField
                 select
                 size="small"
                 value={selectedJob}
                 onChange={(e) => setSelectedJob(e.target.value)}
-                disabled={loading}
+                disabled={loading || jobsLoading}
                 slotProps={{ select: { displayEmpty: true } }}
                 sx={{ minWidth: 150, maxWidth: 220 }}
               >
                 <MenuItem value="">All Jobs</MenuItem>
-                {allRows.map((r) => (
-                  <MenuItem key={r.job_id} value={r.job_id}>
-                    {r.title}
+                {jobOptions.map((j) => (
+                  <MenuItem key={j.id} value={j.id}>
+                    {j.title}
                   </MenuItem>
                 ))}
               </TextField>

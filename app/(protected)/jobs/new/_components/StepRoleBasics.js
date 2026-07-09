@@ -14,6 +14,7 @@ import TagsInput from "@/components/TagsInput";
 import FieldLabel from "./FieldLabel";
 import {
   COUNTRIES,
+  citiesByCountry,
   CURRENCIES,
   NOTICE_PERIOD_OPTIONS,
   VISA_OPTIONS,
@@ -27,13 +28,18 @@ const PILL_GROUP_SX = {
   flexWrap: "wrap",
   gap: 1.5,
   "& .MuiToggleButtonGroup-grouped": {
+    width: 100,
     borderRadius: "999px",
     border: "1px solid #e4ddcd",
-    px: 3,
     py: 0.9,
     textTransform: "none",
-    fontWeight: 600,
-    color: "#3f4a44",
+    textAlign: "center",
+    fontFamily: "var(--font-jakarta)",
+    fontWeight: 500,
+    fontSize: 14,
+    lineHeight: "21px",
+    letterSpacing: 0,
+    color: "#2C2C2A",
     "&:not(:first-of-type)": {
       ml: 0,
       borderLeft: "1px solid #e4ddcd",
@@ -71,11 +77,17 @@ const StepRoleBasics = () => {
     control,
     watch,
     getValues,
+    setValue,
     formState: { errors },
   } = useFormContext();
 
   // Salary labels track the chosen currency (e.g. "Min Salary (AED per month)").
   const currency = watch("currency") || "AED";
+
+  // City options are derived from the selected country; changing the country
+  // resets the city so a stale value from the previous country can't linger.
+  const country = watch("country");
+  const cityOptions = citiesByCountry(country);
 
   return (
     <Card>
@@ -85,7 +97,7 @@ const StepRoleBasics = () => {
         </Typography>
 
         <Stack spacing={3}>
-          {/* Title / Company / Country */}
+          {/* Job Title / Hiring Company / Min Experience */}
           <Grid cols={3}>
             <Field>
               <FieldLabel label="Job Title" required />
@@ -114,36 +126,6 @@ const StepRoleBasics = () => {
               />
             </Field>
             <Field>
-              <FieldLabel label="Country" required />
-              <Controller
-                control={control}
-                name="country"
-                render={({ field }) => (
-                  <TextField select fullWidth {...field}>
-                    {COUNTRIES.map((c) => (
-                      <MenuItem key={c.code} value={c.code}>
-                        {c.flag} {c.label}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                )}
-              />
-            </Field>
-          </Grid>
-
-          {/* City / Min Experience / Currency */}
-          <Grid cols={3}>
-            <Field>
-              <FieldLabel label="City" required />
-              <TextField
-                fullWidth
-                placeholder="e.g. Dubai"
-                error={!!errors.city}
-                helperText={errors.city?.message}
-                {...register("city", { required: "City is required" })}
-              />
-            </Field>
-            <Field>
               <FieldLabel label="Min Experience (years)" required />
               <TextField
                 fullWidth
@@ -159,6 +141,90 @@ const StepRoleBasics = () => {
                 })}
               />
             </Field>
+          </Grid>
+
+          {/* Country / City / Nationality Preference */}
+          <Grid cols={3}>
+            <Field>
+              <FieldLabel label="Country" required />
+              <Controller
+                control={control}
+                name="country"
+                render={({ field }) => (
+                  <TextField
+                    select
+                    fullWidth
+                    {...field}
+                    onChange={(e) => {
+                      field.onChange(e);
+                      // Clear the city; its options depend on the new country.
+                      setValue("city", "", { shouldValidate: false });
+                    }}
+                  >
+                    {COUNTRIES.map((c) => (
+                      <MenuItem key={c.code} value={c.code}>
+                        {c.flag} {c.label}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                )}
+              />
+            </Field>
+            <Field>
+              <FieldLabel label="City" required />
+              <Controller
+                control={control}
+                name="city"
+                rules={{ required: "City is required" }}
+                render={({ field }) => (
+                  <TextField
+                    select
+                    fullWidth
+                    {...field}
+                    disabled={!cityOptions.length}
+                    error={!!errors.city}
+                    helperText={errors.city?.message}
+                    slotProps={{
+                      select: {
+                        displayEmpty: true,
+                        renderValue: (v) =>
+                          v || (
+                            <Box component="span" sx={{ color: "text.disabled" }}>
+                              {country ? "Select a city" : "Select a country first"}
+                            </Box>
+                          ),
+                      },
+                    }}
+                  >
+                    {cityOptions.map((c) => (
+                      <MenuItem key={c} value={c}>
+                        {c}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                )}
+              />
+            </Field>
+            <Field>
+              <FieldLabel label="Nationality Preference" />
+              <Controller
+                control={control}
+                name="nationality_preference"
+                render={({ field }) => (
+                  <TextField select fullWidth {...field}>
+                    {NATIONALITY_OPTIONS.map((o) => (
+                      <MenuItem key={o.value} value={o.value}>
+                        {o.icon} {o.label}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                )}
+              />
+            </Field>
+          </Grid>
+
+          {/* Currency / Min Salary / Max Salary */}
+          <Grid cols={3}>
             <Field>
               <FieldLabel label="Currency" />
               <Controller
@@ -175,10 +241,6 @@ const StepRoleBasics = () => {
                 )}
               />
             </Field>
-          </Grid>
-
-          {/* Min Salary / Max Salary / Notice period */}
-          <Grid cols={3}>
             <Field>
               <FieldLabel label={`Min Salary (${currency} per month)`} required />
               <TextField
@@ -214,25 +276,9 @@ const StepRoleBasics = () => {
                 })}
               />
             </Field>
-            <Field>
-              <FieldLabel label="Immediate Join" />
-              <Controller
-                control={control}
-                name="notice_period"
-                render={({ field }) => (
-                  <TextField select fullWidth {...field}>
-                    {NOTICE_PERIOD_OPTIONS.map((o) => (
-                      <MenuItem key={o.value} value={o.value}>
-                        {o.label}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                )}
-              />
-            </Field>
           </Grid>
 
-          {/* Visa / Nationality / Languages */}
+          {/* Visa Requirement / Immediate Join */}
           <Grid cols={3}>
             <Field>
               <FieldLabel label="Visa Requirement" />
@@ -251,45 +297,26 @@ const StepRoleBasics = () => {
               />
             </Field>
             <Field>
-              <FieldLabel label="Nationality Preference" />
+              <FieldLabel label="Immediate Join" />
               <Controller
                 control={control}
-                name="nationality_preference"
+                name="notice_period"
                 render={({ field }) => (
                   <TextField select fullWidth {...field}>
-                    {NATIONALITY_OPTIONS.map((o) => (
+                    {NOTICE_PERIOD_OPTIONS.map((o) => (
                       <MenuItem key={o.value} value={o.value}>
-                        {o.icon} {o.label}
+                        {o.label}
                       </MenuItem>
                     ))}
                   </TextField>
                 )}
               />
             </Field>
-            <Field>
-              <FieldLabel label="Languages Required" />
-              <Controller
-                control={control}
-                name="languages_required"
-                render={({ field }) => (
-                  <ToggleButtonGroup
-                    value={field.value}
-                    onChange={(_, v) => field.onChange(v)}
-                    sx={PILL_GROUP_SX}
-                  >
-                    {LANGUAGES.map((lang) => (
-                      <ToggleButton key={lang} value={lang}>
-                        {lang}
-                      </ToggleButton>
-                    ))}
-                  </ToggleButtonGroup>
-                )}
-              />
-            </Field>
+            <Field />
           </Grid>
 
-          {/* Employment Type / Work Mode */}
-          <Grid cols={2}>
+          {/* Employment Type / Work Mode / Languages Required */}
+          <Grid cols={3}>
             <Field>
               <FieldLabel label="Employment Type" required />
               <Controller
@@ -324,6 +351,26 @@ const StepRoleBasics = () => {
                     <ToggleButton value="onsite">Onsite</ToggleButton>
                     <ToggleButton value="hybrid">Hybrid</ToggleButton>
                     <ToggleButton value="remote">Remote</ToggleButton>
+                  </ToggleButtonGroup>
+                )}
+              />
+            </Field>
+            <Field>
+              <FieldLabel label="Languages Required" />
+              <Controller
+                control={control}
+                name="languages_required"
+                render={({ field }) => (
+                  <ToggleButtonGroup
+                    value={field.value}
+                    onChange={(_, v) => field.onChange(v)}
+                    sx={PILL_GROUP_SX}
+                  >
+                    {LANGUAGES.map((lang) => (
+                      <ToggleButton key={lang} value={lang}>
+                        {lang}
+                      </ToggleButton>
+                    ))}
                   </ToggleButtonGroup>
                 )}
               />
