@@ -17,6 +17,8 @@ import Snackbar from "@mui/material/Snackbar";
 import Alert from "@mui/material/Alert";
 import SearchIcon from "@mui/icons-material/Search";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import SwapVertIcon from "@mui/icons-material/SwapVert";
+import CheckIcon from "@mui/icons-material/Check";
 import CircleIcon from "@mui/icons-material/Circle";
 import PlaceOutlinedIcon from "@mui/icons-material/PlaceOutlined";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
@@ -72,6 +74,47 @@ const LINKEDIN_BTN_SX = {
   border: "1px solid #9db8d6",
   "&:hover": { bgcolor: "#eef4fb", border: "1px solid #2f6fb0" },
 };
+
+/* ── Sorting ────────────────────────────────────────────────────────────────
+ * The board sorts each column independently: "Highest score" ranks a column by
+ * that step's own headline score (Applied by Profile Match, Screening/Assessment
+ * by CV Score, Interviewed/Shortlist by the interview mark), so a single global
+ * sort won't do. All applicants are already in memory (one paged fetch), so the
+ * sort is client-side, applied per column when bucketing. */
+const SORT_OPTIONS = [
+  { value: "newest", label: "Newest first" },
+  { value: "score", label: "Highest score" },
+  { value: "lowest", label: "Lowest score" },
+];
+const SORT_LABELS = Object.fromEntries(SORT_OPTIONS.map((o) => [o.value, o.label]));
+
+/** The score that leads a card at its current stage, as a number (or null). */
+const stageScore = (a) => {
+  if (a.stage === "vector_screen") return toScore(a.similarity_score);
+  if (a.stage === "interview" || a.stage === "done")
+    return (
+      toScore(a.interview_score) ?? toScore(a.hard_filter_score) ?? toScore(a.similarity_score)
+    );
+  return toScore(a.hard_filter_score) ?? toScore(a.similarity_score);
+};
+
+const byNewest = (a, b) => new Date(b.created_at) - new Date(a.created_at);
+
+/** Sort by stage-score in `dir` (1 = highest first, -1 = lowest first). Unscored
+ *  (pending) cards always sink to the bottom either way; newest breaks ties. */
+const byScoreDir = (dir) => (a, b) => {
+  const sa = stageScore(a);
+  const sb = stageScore(b);
+  if (sa == null && sb == null) return byNewest(a, b);
+  if (sa == null) return 1;
+  if (sb == null) return -1;
+  return dir * (sb - sa) || byNewest(a, b);
+};
+const byScore = byScoreDir(1);
+const byScoreAsc = byScoreDir(-1);
+
+const comparatorFor = (mode) =>
+  mode === "score" ? byScore : mode === "lowest" ? byScoreAsc : byNewest;
 
 /** Accepted / Rejected filter pill in the header. */
 const TabPill = ({ selected, label, count, icon: Icon, onSelect }) => (
@@ -139,6 +182,8 @@ const PipelinePage = ({ params }) => {
   } = useApplications(jobId, { pageSize: 100 });
 
   const [search, setSearch] = useState("");
+  const [sortMode, setSortMode] = useState("newest"); // "newest" | "score"
+  const [sortAnchor, setSortAnchor] = useState(null);
   const [tab, setTab] = useState("accepted");
   const [selectedId, setSelectedId] = useState(null);
   const [pendingId, setPendingId] = useState(null);
@@ -170,14 +215,18 @@ const PipelinePage = ({ params }) => {
       if (!matchesSearch(app)) continue;
       (groups[app.stage] ??= []).push(app);
     }
+    // Sort each column on its own, so "Highest score" ranks every stage by its
+    // own headline score rather than one global column.
+    const cmp = comparatorFor(sortMode);
+    for (const stage of Object.keys(groups)) groups[stage].sort(cmp);
     return groups;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [acceptedItems, search]);
+  }, [acceptedItems, search, sortMode]);
 
   const filteredRejected = useMemo(
-    () => rejectedItems.filter(matchesSearch),
+    () => rejectedItems.filter(matchesSearch).sort(comparatorFor(sortMode)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [rejectedItems, search],
+    [rejectedItems, search, sortMode],
   );
 
   const total = appsData?.total ?? 0;
@@ -380,7 +429,47 @@ const PipelinePage = ({ params }) => {
                         icon={HighlightOffIcon}
                         onSelect={() => setTab("rejected")}
                       />
+                      {/* Sort control — reorders each column by its own step score. */}
+                      <Button
+                        variant="text"
+                        startIcon={<SwapVertIcon />}
+                        endIcon={<KeyboardArrowDownIcon />}
+                        onClick={(e) => setSortAnchor(e.currentTarget)}
+                        sx={BEIGE_BTN_SX}
+                      >
+                        {SORT_LABELS[sortMode]}
+                      </Button>
+                      <Menu
+                        anchorEl={sortAnchor}
+                        open={Boolean(sortAnchor)}
+                        onClose={() => setSortAnchor(null)}
+                        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+                        transformOrigin={{ vertical: "top", horizontal: "left" }}
+                      >
+                        {SORT_OPTIONS.map((opt) => (
+                          <MenuItem
+                            key={opt.value}
+                            selected={sortMode === opt.value}
+                            onClick={() => {
+                              setSortMode(opt.value);
+                              setSortAnchor(null);
+                            }}
+                          >
+                            <ListItemIcon>
+                              {sortMode === opt.value ? <CheckIcon fontSize="small" /> : null}
+                            </ListItemIcon>
+                            {opt.label}
+                          </MenuItem>
+                        ))}
+                      </Menu>
                     </Stack>
+                  )}
+                  {/* The board loads a single page of 100; sorting is over that
+                      window, so say so when there are more than we've fetched. */}
+                  {ready && total > items.length && (
+                    <Typography variant="caption" sx={{ display: "block", mt: 0.75, color: "text.secondary" }}>
+                      Showing the {items.length} most recent of {total} applicants — sorting applies to these.
+                    </Typography>
                   )}
                 </Box>
 

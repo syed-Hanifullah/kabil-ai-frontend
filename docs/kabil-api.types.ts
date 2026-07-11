@@ -399,6 +399,8 @@ export interface ApplicationListItem {
   /** Percentage string ("82%") or null until scored. */
   similarity_score: PercentString | null;
   hard_filter_score: PercentString | null;
+  /** HR's interview mark ("76%"), set only at the interview stage; null otherwise. */
+  interview_score: PercentString | null;
   stage_updated_at: ISODateTime;
   created_at: ISODateTime;
 }
