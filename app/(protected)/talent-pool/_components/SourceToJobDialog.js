@@ -121,7 +121,17 @@ const SourceToJobDialog = ({ candidate, open, onClose }) => {
                     spacing={1}
                     sx={{ alignItems: "center", justifyContent: "space-between", width: "100%" }}
                   >
-                    <Box component="span" sx={{ minWidth: 0 }}>
+                    <Box
+                      component="span"
+                      sx={{
+                        flexGrow: 1,
+                        minWidth: 0,
+                        display: "block",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
                       {job.title}
                       {job.hiring_company ? ` — ${job.hiring_company}` : ""}
                     </Box>
