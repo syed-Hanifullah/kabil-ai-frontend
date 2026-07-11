@@ -990,6 +990,7 @@ const CvScoreCard = ({
   appId,
   interviewFeedback,
   interviewEditable = false,
+  historyMode = false,
 }) => {
   const trust = findScore(scores, "authenticity");
   const jd = findScore(scores, "similarity");
@@ -1001,6 +1002,38 @@ const CvScoreCard = ({
 
   const trustValue = trust ? toScore(trust.value) : null;
   const jdValue = jd ? toScore(jd.value) : null;
+
+  // History mode (talent-pool candidate history): a candidate's archived stint
+  // carries only its numeric score rows (similarity + hard_filter) — authenticity
+  // is candidate-level and screening/interview state isn't part of the digest —
+  // so we render just Profile Match + CV Score with the very same MeterRow /
+  // RubricBreakdown styling as the live board, and nothing that isn't there.
+  if (historyMode) {
+    const hf = others.find((s) => s.score_type === "hard_filter");
+    const hfValue = hf ? toScore(hf.value) : null;
+    const hasHfBreakdown = hf?.breakdown && Object.keys(hf.breakdown).length > 0;
+    const hasProfileMatch = jd && jdValue != null;
+    const hasCvScore = hf && hfValue != null;
+    return (
+      <Box>
+        <Box sx={cardSx}>
+          {hasProfileMatch && <MeterRow label="Profile Match" value={jdValue} />}
+          {hasCvScore && (
+            <MeterRow label="CV Score" value={hfValue}>
+              {hasHfBreakdown ? <RubricBreakdown data={hf.breakdown} /> : null}
+            </MeterRow>
+          )}
+          {!hasProfileMatch && !hasCvScore && (
+            <RowShell>
+              <Typography variant="body2" color="text.secondary">
+                No scores were computed for this job.
+              </Typography>
+            </RowShell>
+          )}
+        </Box>
+      </Box>
+    );
+  }
 
   const stageIdx = APPLICATION_STAGES.indexOf(stage);
   const reachedHardFilter = stageIdx >= APPLICATION_STAGES.indexOf("hard_filter");

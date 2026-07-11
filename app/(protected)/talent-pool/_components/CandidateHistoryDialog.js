@@ -1,44 +1,34 @@
 "use client";
 
-import Link from "next/link";
+import { useState } from "react";
 import Dialog from "@mui/material/Dialog";
-import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
-import DialogActions from "@mui/material/DialogActions";
-import Stack from "@mui/material/Stack";
 import Box from "@mui/material/Box";
+import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import Card from "@mui/material/Card";
-import Chip from "@mui/material/Chip";
+import Avatar from "@mui/material/Avatar";
+import IconButton from "@mui/material/IconButton";
 import Button from "@mui/material/Button";
-import Divider from "@mui/material/Divider";
+import Collapse from "@mui/material/Collapse";
 import Skeleton from "@mui/material/Skeleton";
-import Tooltip from "@mui/material/Tooltip";
-import LinearProgress from "@mui/material/LinearProgress";
-import Accordion from "@mui/material/Accordion";
-import AccordionSummary from "@mui/material/AccordionSummary";
-import AccordionDetails from "@mui/material/AccordionDetails";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import WorkOutlineOutlinedIcon from "@mui/icons-material/WorkOutlineOutlined";
-import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import WhatsAppIcon from "@mui/icons-material/WhatsApp";
+import CloseIcon from "@mui/icons-material/Close";
 import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
-import PhoneOutlinedIcon from "@mui/icons-material/PhoneOutlined";
-import EmptyState from "@/components/EmptyState";
 import ErrorAlert from "@/components/ErrorAlert";
+import CvScoreCard from "@/app/(protected)/jobs/[jobId]/pipeline/_components/CvScoreCard";
 import { useCandidateHistory } from "@/lib/kabil/queries";
-import {
-  humanize,
-  stageLabel,
-  statusColor,
-  statusLabel,
-  bandColor,
-  authenticityLabel,
-  scoreBand,
-  toScore,
-  whatsappStateLabel,
-  timeAgo,
-} from "@/lib/kabil/constants";
+import { stageLabel, statusLabel } from "@/lib/kabil/constants";
+import { COLORS } from "@/lib/theme";
+
+/** Brand green — mirrors the candidate dialog chrome so both dialogs read identically. */
+const GREEN = "#0F6E56";
+/** Shared card surface (identical to CvScoreCard's `cardSx`). */
+const CARD_BORDER = "#ECE5D6";
+const cardSx = {
+  bgcolor: "#F4F0E84D",
+  border: `1px solid ${CARD_BORDER}`,
+  borderRadius: "14px",
+  overflow: "hidden",
+};
 
 const initials = (name) =>
   (name || "?")
@@ -46,604 +36,265 @@ const initials = (name) =>
     .filter(Boolean)
     .slice(0, 2)
     .map((p) => p[0]?.toUpperCase())
-    .join("") || "🧑";
+    .join("") || "?";
 
 const asArray = (v) => (Array.isArray(v) ? v : []);
-const isPlainObject = (v) => v && typeof v === "object" && !Array.isArray(v);
 
-/** Absolute timestamp for a tooltip, e.g. "Jun 14, 2026, 7:04 PM". */
-const fmtDate = (iso) => {
-  if (!iso) return "—";
+/** "January 2026" — the month a stint was moved back to the pool. */
+const monthYear = (iso) => {
+  if (!iso) return "";
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? "—" : d.toLocaleString();
+  return Number.isNaN(d.getTime())
+    ? ""
+    : new Intl.DateTimeFormat(undefined, { month: "long", year: "numeric" }).format(d);
 };
 
-/** Relative time with the absolute datetime on hover. */
-const When = ({ iso, prefix = "" }) => (
-  <Tooltip title={fmtDate(iso)}>
-    <Box component="span">
-      {prefix}
-      {timeAgo(iso)}
-    </Box>
-  </Tooltip>
-);
+/** Section heading — matches the candidate dialog's "Move candidate" label scale. */
+const sectionTitleSx = (color) => ({
+  fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+  fontWeight: 700,
+  fontSize: "13px",
+  lineHeight: "16px",
+  letterSpacing: "0.2px",
+  color,
+});
 
-/* ── Score breakdown (recursive) ──────────────────────────────────────────── */
+/* ── Recent activity: one row per move-to-pool, with an inline "View Reason" ── */
 
-const LeafValue = ({ value }) => {
-  if (value == null || value === "") {
-    return (
-      <Typography variant="caption" color="text.disabled">
-        —
-      </Typography>
-    );
-  }
-  if (typeof value === "boolean") {
-    return (
-      <Chip
-        size="small"
-        variant="outlined"
-        color={value ? "success" : "default"}
-        label={value ? "Yes" : "No"}
-        sx={{ height: 18 }}
-      />
-    );
-  }
-  if (Array.isArray(value)) {
-    if (!value.length) {
-      return (
-        <Typography variant="caption" color="text.disabled">
-          None
-        </Typography>
-      );
-    }
-    return (
-      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-        {value.map((v, i) => (
-          <Chip
-            key={i}
-            size="small"
-            variant="outlined"
-            label={typeof v === "object" ? JSON.stringify(v) : String(v)}
-            sx={{ height: 18, maxWidth: "100%" }}
-          />
-        ))}
-      </Box>
-    );
-  }
+const ActivityRow = ({ stint, isLast }) => {
+  const [open, setOpen] = useState(false);
+  const reason = stint.move_to_pool_reason;
   return (
-    <Typography variant="caption" sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-      {String(value)}
-    </Typography>
-  );
-};
-
-const BreakdownNode = ({ label, value, depth }) => {
-  if (isPlainObject(value)) {
-    return (
-      <Box sx={depth > 0 ? { pl: 1.25, borderLeft: "2px solid #eef0ef" } : undefined}>
-        {label && (
-          <Typography variant="caption" sx={{ fontWeight: 700, display: "block", mb: 0.5 }}>
-            {humanize(label)}
+    <Box
+      sx={{
+        px: 2,
+        py: 1.5,
+        borderBottom: isLast ? "none" : `1px solid ${CARD_BORDER}`,
+      }}
+    >
+      <Stack direction="row" spacing={1.5} sx={{ alignItems: "flex-start" }}>
+        <Box
+          sx={{
+            width: 8,
+            height: 8,
+            borderRadius: "50%",
+            bgcolor: COLORS.gold,
+            mt: "5px",
+            flexShrink: 0,
+          }}
+        />
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Typography variant="body2" sx={{ color: "#2C2C2A", fontWeight: 500 }}>
+            Moved from {stint.job_title || "a job"} to Talent Pool at {stageLabel(stint.stage)}.
           </Typography>
-        )}
-        <Stack spacing={0.5}>
-          {Object.entries(value).map(([k, v]) => (
-            <BreakdownNode key={k} label={k} value={v} depth={depth + 1} />
-          ))}
-        </Stack>
-      </Box>
-    );
-  }
-  return (
-    <Box sx={{ display: "flex", gap: 1.25, flexWrap: "wrap", alignItems: "baseline" }}>
-      <Typography variant="caption" color="text.secondary" sx={{ minWidth: 120, flexShrink: 0 }}>
-        {humanize(label)}
-      </Typography>
-      <Box sx={{ flex: "1 1 220px", minWidth: 0 }}>
-        <LeafValue value={value} />
-      </Box>
-    </Box>
-  );
-};
-
-const Breakdown = ({ data }) => {
-  const entries = Object.entries(data || {});
-  if (!entries.length) return null;
-  return (
-    <Stack spacing={0.75} sx={{ mt: 0.75 }}>
-      {entries.map(([k, v]) => (
-        <BreakdownNode key={k} label={k} value={v} depth={0} />
-      ))}
-    </Stack>
-  );
-};
-
-/** Every score row for a stint (similarity, CV fit, …) with provenance + breakdown. */
-const ScoreDetails = ({ scores }) => {
-  const rows = asArray(scores);
-  if (!rows.length) {
-    return (
-      <Typography variant="caption" color="text.secondary">
-        No scores computed for this stint yet.
-      </Typography>
-    );
-  }
-  return (
-    <Stack spacing={1.5}>
-      {rows.map((s, i) => {
-        const n = toScore(s.value);
-        const band = scoreBand(s.value);
-        return (
-          <Box key={s.id || `${s.score_type}-${i}`}>
-            <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                {humanize(s.score_type)}
-              </Typography>
-              <Chip size="small" label={s.value ?? "—"} color={band.color} sx={{ fontWeight: 700, height: 22 }} />
-            </Stack>
-            <LinearProgress
-              variant="determinate"
-              value={n != null ? Math.min(100, Math.max(0, n)) : 0}
-              color={band.color}
-              sx={{ mt: 0.5, height: 5, borderRadius: 3 }}
-            />
-            <Typography variant="caption" color="text.disabled" sx={{ display: "block", mt: 0.5 }}>
-              {[s.model_used, s.prompt_version && s.prompt_version !== "-" ? s.prompt_version : null]
-                .filter(Boolean)
-                .join(" · ")}
-              {s.model_used || (s.prompt_version && s.prompt_version !== "-") ? " · " : ""}
-              <When iso={s.computed_at} />
-            </Typography>
-            {isPlainObject(s.breakdown) && Object.keys(s.breakdown).length > 0 && (
-              <Box sx={{ mt: 0.5 }}>
-                <Breakdown data={s.breakdown} />
-              </Box>
-            )}
-          </Box>
-        );
-      })}
-    </Stack>
-  );
-};
-
-/* ── WhatsApp screening digest ────────────────────────────────────────────── */
-
-const ScreeningBlock = ({ screening }) => {
-  const wa = whatsappStateLabel(screening.state);
-  const answers = asArray(screening.answers);
-  return (
-    <Box>
-      <Stack direction="row" spacing={1} sx={{ alignItems: "center", mb: 0.75, flexWrap: "wrap", rowGap: 0.5 }}>
-        <WhatsAppIcon sx={{ fontSize: 17, color: "#25D366" }} />
-        <Typography variant="caption" sx={{ fontWeight: 700 }}>
-          WhatsApp screening
-        </Typography>
-        <Chip size="small" label={wa.label} color={wa.color} sx={{ height: 18 }} />
-        <Typography variant="caption" color="text.disabled">
-          <When iso={screening.created_at} prefix="started " />
-          {screening.closed_at ? <> · <When iso={screening.closed_at} prefix="closed " /></> : null}
-        </Typography>
-      </Stack>
-      {answers.length === 0 ? (
-        <Typography variant="caption" color="text.secondary">
-          No answers recorded — the candidate hadn’t replied at this stage.
-        </Typography>
-      ) : (
-        <Stack spacing={1}>
-          {answers.map((a, i) => (
-            <Box key={a.question_index ?? i} sx={{ border: "1px solid #eef0ef", borderRadius: 1.5, p: 1.25 }}>
-              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                {a.question || `Question ${(a.question_index ?? i) + 1}`}
-              </Typography>
-              <Typography variant="body2" sx={{ mt: 0.25, whiteSpace: "pre-wrap" }}>
-                {a.answer || "—"}
-              </Typography>
-              <Stack direction="row" spacing={0.75} sx={{ mt: 0.75, flexWrap: "wrap", rowGap: 0.5 }}>
-                {a.relevance_score != null && (
-                  <Tooltip title="How relevant the answer was to the question (0–100)">
-                    <Chip size="small" variant="outlined" label={`Relevance ${a.relevance_score}`} sx={{ height: 20 }} />
-                  </Tooltip>
-                )}
-                {a.ai_score != null && (
-                  <Tooltip title="Likelihood the answer was AI-generated — higher = more likely (0–100)">
-                    <Chip size="small" variant="outlined" label={`AI ${a.ai_score}`} sx={{ height: 20 }} />
-                  </Tooltip>
-                )}
-              </Stack>
-              {a.rationale && (
-                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
-                  {a.rationale}
-                </Typography>
-              )}
-            </Box>
-          ))}
-        </Stack>
-      )}
-    </Box>
-  );
-};
-
-/* ── A collapsible sub-section header inside a stint ──────────────────────── */
-
-const StintAccordion = ({ icon, title, badge, children, defaultExpanded = false }) => (
-  <Accordion
-    disableGutters
-    elevation={0}
-    square
-    defaultExpanded={defaultExpanded}
-    sx={{ bgcolor: "transparent", "&:before": { display: "none" } }}
-  >
-    <AccordionSummary expandIcon={<ExpandMoreIcon fontSize="small" />} sx={{ px: 0, minHeight: 0 }}>
-      <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-        {icon}
-        <Typography variant="caption" sx={{ fontWeight: 700 }}>
-          {title}
-        </Typography>
-        {badge}
-      </Stack>
-    </AccordionSummary>
-    <AccordionDetails sx={{ px: 0, pt: 0 }}>{children}</AccordionDetails>
-  </Accordion>
-);
-
-/* ── One job the candidate passed through ─────────────────────────────────── */
-
-const StintCard = ({ stint, onClose }) => {
-  const archived = stint.status === "archived";
-  const scoreCount = asArray(stint.scores).length;
-  const answerCount = asArray(stint.screening?.answers).length;
-  return (
-    <Card variant="outlined" sx={{ borderRadius: 2, p: 2, opacity: archived ? 0.9 : 1 }}>
-      <Stack spacing={1.25}>
-        <Stack direction="row" spacing={1} sx={{ alignItems: "flex-start", justifyContent: "space-between" }}>
-          <Stack direction="row" spacing={1} sx={{ alignItems: "center", minWidth: 0 }}>
-            <WorkOutlineOutlinedIcon sx={{ fontSize: 18, color: "text.disabled" }} />
-            <Typography sx={{ fontWeight: 700 }} noWrap>
-              {stint.job_title}
-            </Typography>
-          </Stack>
-          <Button
-            component={Link}
-            href={`/jobs/${stint.job_id}/pipeline`}
-            onClick={onClose}
-            size="small"
-            endIcon={<OpenInNewIcon sx={{ fontSize: 15 }} />}
-            sx={{ flexShrink: 0 }}
-          >
-            Open
-          </Button>
-        </Stack>
-
-        <Stack direction="row" spacing={0.75} sx={{ flexWrap: "wrap", rowGap: 0.5 }}>
-          <Chip size="small" label={stageLabel(stint.stage)} color="primary" variant="outlined" sx={{ height: 22 }} />
-          <Chip size="small" label={statusLabel(stint.status)} color={statusColor(stint.status)} sx={{ height: 22 }} />
-          {stint.sourced_from_talent_pool && (
-            <Chip size="small" label="Sourced from pool" variant="outlined" sx={{ height: 22 }} />
-          )}
-        </Stack>
-
-        {/* Quick score read-out */}
-        <Stack direction="row" spacing={2} sx={{ flexWrap: "wrap", rowGap: 1 }}>
-          <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
-            <Typography variant="caption" color="text.secondary">
-              Relevancy
-            </Typography>
-            <Chip
-              size="small"
-              label={stint.similarity_score ?? "—"}
-              color={stint.similarity_score != null ? scoreBand(stint.similarity_score).color : "default"}
-              variant={stint.similarity_score != null ? "filled" : "outlined"}
-              sx={{ height: 22, fontWeight: 700 }}
-            />
-          </Stack>
-          <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
-            <Typography variant="caption" color="text.secondary">
-              CV fit
-            </Typography>
-            <Chip
-              size="small"
-              label={stint.hard_filter_score ?? "—"}
-              color={stint.hard_filter_score != null ? scoreBand(stint.hard_filter_score).color : "default"}
-              variant={stint.hard_filter_score != null ? "filled" : "outlined"}
-              sx={{ height: 22, fontWeight: 700 }}
-            />
-          </Stack>
-        </Stack>
-
-        {/* Full score breakdowns */}
-        {scoreCount > 0 && (
-          <>
-            <Divider flexItem />
-            <StintAccordion
-              title="Score details"
-              badge={
-                <Typography variant="caption" color="text.secondary">
-                  {scoreCount} score{scoreCount === 1 ? "" : "s"}
-                </Typography>
-              }
-            >
-              <ScoreDetails scores={stint.scores} />
-            </StintAccordion>
-          </>
-        )}
-
-        {/* WhatsApp screening */}
-        {stint.screening && (
-          <>
-            <Divider flexItem />
-            <StintAccordion
-              icon={<WhatsAppIcon sx={{ fontSize: 16, color: "#25D366" }} />}
-              title="WhatsApp screening"
-              badge={
-                <Chip
-                  size="small"
-                  label={whatsappStateLabel(stint.screening.state).label}
-                  color={whatsappStateLabel(stint.screening.state).color}
-                  sx={{ height: 18 }}
-                />
-              }
-            >
-              <ScreeningBlock screening={stint.screening} />
-            </StintAccordion>
-          </>
-        )}
-
-        <Divider flexItem />
-        <Typography variant="caption" color="text.disabled">
-          <When iso={stint.created_at} prefix="Started " />
-          {" · "}
-          <When iso={stint.stage_updated_at} prefix="stage updated " />
-          {archived && stint.archived_at ? (
-            <>
-              {" · "}
-              <When iso={stint.archived_at} prefix="moved to pool " />
-            </>
-          ) : null}
-        </Typography>
-      </Stack>
-    </Card>
-  );
-};
-
-/* ── Candidate CV profile (candidate-level, shown once) ───────────────────── */
-
-const CandidateProfile = ({ profile }) => {
-  const p = profile || {};
-  const skills = asArray(p.skills);
-  const work = asArray(p.work_history);
-  const education = asArray(p.education);
-  const languages = asArray(p.languages);
-  const years = p.total_experience_years;
-  if (!Object.keys(p).length) {
-    return (
-      <Typography variant="caption" color="text.secondary">
-        CV not parsed yet for this candidate.
-      </Typography>
-    );
-  }
-  return (
-    <Stack spacing={1.25}>
-      {years != null && (
-        <Typography variant="body2">
-          <strong>{years}</strong> year{years === 1 ? "" : "s"} total experience
-        </Typography>
-      )}
-      {skills.length > 0 && (
-        <Box>
-          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: "block", mb: 0.5 }}>
-            Skills
+          <Typography variant="caption" sx={{ color: "text.secondary" }}>
+            {monthYear(stint.archived_at) || monthYear(stint.stage_updated_at)}
           </Typography>
-          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-            {skills.map((s, i) => (
-              <Chip key={`${s}-${i}`} size="small" variant="outlined" label={String(s)} sx={{ height: 22 }} />
-            ))}
-          </Box>
         </Box>
-      )}
-      {languages.length > 0 && (
-        <Typography variant="body2">
-          <Box component="span" sx={{ color: "text.secondary" }}>
-            Languages:{" "}
-          </Box>
-          {languages.map((l) => (typeof l === "object" ? l.name || JSON.stringify(l) : l)).join(", ")}
+        <Button
+          onClick={() => setOpen((o) => !o)}
+          disableRipple
+          size="small"
+          sx={{
+            color: GREEN,
+            fontWeight: 700,
+            textTransform: "none",
+            minWidth: 0,
+            p: 0,
+            flexShrink: 0,
+            "&:hover": { bgcolor: "transparent" },
+          }}
+        >
+          {open ? "Hide Reason" : "View Reason"}
+        </Button>
+      </Stack>
+      <Collapse in={open} timeout="auto" unmountOnExit>
+        <Typography
+          variant="body2"
+          sx={{ mt: 1, ml: 3.25, color: reason ? "#2C2C2A" : "text.disabled", whiteSpace: "pre-wrap" }}
+        >
+          {reason || "No reason was recorded for this move."}
         </Typography>
-      )}
-      {work.length > 0 && (
-        <Box>
-          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: "block", mb: 0.5 }}>
-            Work history
-          </Typography>
-          <Stack spacing={0.75}>
-            {work.map((w, i) => (
-              <Box key={i} sx={{ border: "1px solid #eef0ef", borderRadius: 1.5, p: 1 }}>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  {w.title || w.role || "Role"}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {[w.company, [w.start_date || w.start, w.end_date || w.end].filter(Boolean).join(" – ")]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </Typography>
-              </Box>
-            ))}
-          </Stack>
-        </Box>
-      )}
-      {education.length > 0 && (
-        <Box>
-          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: "block", mb: 0.5 }}>
-            Education
-          </Typography>
-          <Stack spacing={0.25}>
-            {education.map((e, i) => (
-              <Typography key={i} variant="body2">
-                {typeof e === "object"
-                  ? [e.degree, e.institution || e.school, e.year].filter(Boolean).join(" · ")
-                  : String(e)}
-              </Typography>
-            ))}
-          </Stack>
-        </Box>
-      )}
-    </Stack>
+      </Collapse>
+    </Box>
   );
 };
 
 const HistorySkeleton = () => (
-  <Stack spacing={2}>
-    <Skeleton variant="rounded" height={70} />
-    <Skeleton variant="rounded" height={160} />
-    <Skeleton variant="rounded" height={160} />
-  </Stack>
+  <Box sx={{ px: { xs: 2, sm: 3 }, py: 2 }}>
+    <Stack spacing={2}>
+      <Skeleton variant="rounded" height={24} width="40%" />
+      <Skeleton variant="rounded" height={200} />
+      <Skeleton variant="rounded" height={120} />
+    </Stack>
+  </Box>
 );
 
 /**
- * The candidate's full cross-job history — every job they were part of, with
- * each stint's full score breakdowns, model/prompt provenance, WhatsApp
- * screening transcript digest, and timestamps, plus the candidate-level CV
- * profile + authenticity and whether they're currently back in the pool.
+ * Talent-pool candidate history. Mirrors the pipeline candidate dialog's exact
+ * chrome (green banner + "CANDIDATE SCORING" eyebrow + the same CvScoreCard),
+ * scoped to a pooled candidate:
+ *   - the scoring card shows the candidate's most recent job's scores,
+ *   - "Recent Activity" lists every move back to the pool (with each move's
+ *     reason behind "View Reason"),
+ *   - "Recruiter Comments" surfaces the reason the candidate was most recently
+ *     moved to the pool.
  * Opened from a pool row's "History" action.
  */
 const CandidateHistoryDialog = ({ candidateId, open, onClose }) => {
   const { data, isLoading, isError, error } = useCandidateHistory(candidateId, { enabled: open });
   const candidate = data?.candidate;
   const stints = asArray(data?.stints);
-  const hasProfile = candidate?.parsed_profile && Object.keys(candidate.parsed_profile).length > 0;
+  // Newest-first from the API. The most recent job drives the scoring card; the
+  // most recent move-to-pool drives the header subtitle + recruiter comment.
+  const recentStint = stints[0] || null;
+  const moves = stints.filter((s) => s.status === "archived");
+  const recentMove = moves[0] || null;
+
+  const subtitle = recentMove
+    ? `Moved To Talent Pool From ${stageLabel(recentMove.stage)}`
+    : recentStint
+      ? `${statusLabel(recentStint.status)} · ${stageLabel(recentStint.stage)}`
+      : "In Talent Pool";
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth scroll="paper">
-      <DialogTitle sx={{ pb: 1 }}>
-        Candidate history
-        {candidate && (
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
-            {candidate.full_name}
-          </Typography>
-        )}
-      </DialogTitle>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      fullWidth
+      maxWidth="sm"
+      scroll="paper"
+      slotProps={{ paper: { sx: { borderRadius: "5px" } } }}
+    >
+      <IconButton
+        onClick={onClose}
+        aria-label="Close"
+        sx={{ position: "absolute", top: 10, right: 10, zIndex: 2, color: "#fff" }}
+      >
+        <CloseIcon />
+      </IconButton>
 
-      <DialogContent dividers>
+      <DialogContent
+        sx={{
+          p: 0,
+          // Uniform shrink of secondary text + controls — identical to the
+          // pipeline candidate dialog so the shared CvScoreCard renders 1:1.
+          "& .MuiTypography-body2": { fontSize: "0.72rem" },
+          "& .MuiTypography-caption": { fontSize: "0.66rem" },
+          "& .MuiTypography-overline": { fontSize: "0.6rem" },
+          "& .MuiTypography-subtitle2": { fontSize: "0.75rem" },
+          "& .MuiButton-root": { fontSize: "0.72rem" },
+          "& .MuiChip-root": { fontSize: "0.66rem" },
+          "& .MuiOutlinedInput-input": { fontSize: "0.655rem" },
+          "& .MuiFormLabel-root": { fontSize: "0.655rem" },
+        }}
+      >
         {isError ? (
-          <ErrorAlert error={error} />
+          <Box sx={{ p: 3 }}>
+            <ErrorAlert error={error} />
+          </Box>
         ) : isLoading || !data ? (
           <HistorySkeleton />
         ) : (
-          <Stack spacing={2}>
-            {/* Candidate header */}
-            <Box>
-              <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
-                <Box
-                  sx={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: "50%",
-                    bgcolor: "primary.main",
-                    color: "primary.contrastText",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontWeight: 700,
-                  }}
+          <Box>
+            {/* Header banner — same styling as the pipeline candidate dialog. */}
+            <Box sx={{ bgcolor: GREEN, color: "#fff", px: { xs: 2, sm: 3 }, py: 2 }}>
+              <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", pr: 4 }}>
+                <Avatar
+                  sx={{ width: 42, height: 42, bgcolor: COLORS.gold, color: "#fff", fontWeight: 700, fontSize: 11 }}
                 >
                   {initials(candidate?.full_name)}
-                </Box>
+                </Avatar>
                 <Box sx={{ minWidth: 0 }}>
-                  <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap", rowGap: 0.5 }}>
-                    {candidate?.authenticity_band && (
-                      <Tooltip
-                        title={
-                          candidate.authenticity_computed_at
-                            ? `Authenticity checked ${fmtDate(candidate.authenticity_computed_at)}`
-                            : "CV authenticity verdict"
-                        }
-                      >
-                        <Chip
-                          size="small"
-                          label={authenticityLabel(candidate.authenticity_band)}
-                          color={bandColor(candidate.authenticity_band)}
-                          variant="outlined"
-                          sx={{ height: 20 }}
-                        />
-                      </Tooltip>
-                    )}
-                    {candidate?.authenticity_score != null && (
-                      <Typography variant="caption" color="text.secondary">
-                        Authenticity {candidate.authenticity_score}
-                      </Typography>
-                    )}
-                    <Chip
-                      size="small"
-                      label={data.in_pool ? "In pool" : "Not in pool"}
-                      color={data.in_pool ? "secondary" : "default"}
-                      variant={data.in_pool ? "filled" : "outlined"}
-                      sx={{ height: 20 }}
-                    />
-                  </Stack>
-                  <Stack direction="row" spacing={2} sx={{ mt: 0.5, flexWrap: "wrap", rowGap: 0.25 }}>
-                    {candidate?.email && (
-                      <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
-                        <EmailOutlinedIcon sx={{ fontSize: 14, color: "text.disabled" }} />
-                        <Typography variant="caption" color="text.secondary" noWrap>
-                          {candidate.email}
-                        </Typography>
-                      </Stack>
-                    )}
-                    {candidate?.phone_e164 && (
-                      <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
-                        <PhoneOutlinedIcon sx={{ fontSize: 14, color: "text.disabled" }} />
-                        <Typography variant="caption" color="text.secondary" noWrap>
-                          {candidate.phone_e164}
-                        </Typography>
-                      </Stack>
-                    )}
-                  </Stack>
+                  <Typography
+                    sx={{
+                      fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+                      fontWeight: 700,
+                      fontSize: "18px",
+                      lineHeight: "22.5px",
+                      color: "#FFFFFF",
+                    }}
+                  >
+                    {candidate?.full_name || "Candidate"}
+                  </Typography>
+                  <Typography
+                    sx={{
+                      fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+                      fontWeight: 400,
+                      fontSize: "10px",
+                      lineHeight: "15px",
+                      letterSpacing: "1px",
+                      textTransform: "capitalize",
+                      color: "#FFFFFF",
+                    }}
+                  >
+                    {subtitle}
+                  </Typography>
                 </Box>
               </Stack>
+            </Box>
 
-              {/* Candidate CV profile */}
-              {hasProfile && (
-                <Box sx={{ mt: 1 }}>
-                  <StintAccordion
-                    title="CV profile"
-                    badge={
-                      <Typography variant="caption" color="text.secondary">
-                        skills · experience · history
+            {/* Body */}
+            <Box sx={{ px: { xs: 2, sm: 3 }, py: 1.75 }}>
+              {/* Eyebrow + email — same styling as the candidate dialog. */}
+              <Box sx={{ minWidth: 0 }}>
+                <Typography
+                  sx={{
+                    fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+                    fontWeight: 700,
+                    fontSize: "12px",
+                    lineHeight: "15px",
+                    letterSpacing: "1px",
+                    textTransform: "uppercase",
+                    color: GREEN,
+                  }}
+                >
+                  Candidate Scoring
+                </Typography>
+                {candidate?.email && (
+                  <Stack direction="row" spacing={0.75} sx={{ alignItems: "center", mt: 0.5 }}>
+                    <EmailOutlinedIcon sx={{ fontSize: 16, color: GREEN }} />
+                    <Typography variant="body2" sx={{ color: GREEN, wordBreak: "break-all" }}>
+                      {candidate.email}
+                    </Typography>
+                  </Stack>
+                )}
+              </Box>
+
+              {/* Scoring from the most recent job — the shared CvScoreCard. */}
+              <Box sx={{ mt: 2 }}>
+                {recentStint ? (
+                  <CvScoreCard historyMode scores={recentStint.scores} stage={recentStint.stage} />
+                ) : (
+                  <Box sx={cardSx}>
+                    <Box sx={{ px: 2, py: 1.75 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        This candidate hasn’t been part of any job yet.
                       </Typography>
-                    }
-                  >
-                    <CandidateProfile profile={candidate.parsed_profile} />
-                  </StintAccordion>
+                    </Box>
+                  </Box>
+                )}
+              </Box>
+
+              {/* Recent activity — every move back to the pool. */}
+              {moves.length > 0 && (
+                <Box sx={{ mt: 3, mb: 1 }}>
+                  <Typography sx={{ ...sectionTitleSx("#2C2C2A"), mb: 1 }}>Recent Activity</Typography>
+                  <Box sx={cardSx}>
+                    {moves.map((stint, i) => (
+                      <ActivityRow
+                        key={stint.application_id}
+                        stint={stint}
+                        isLast={i === moves.length - 1}
+                      />
+                    ))}
+                  </Box>
                 </Box>
               )}
             </Box>
-
-            <Typography variant="body2" color="text.secondary">
-              {data.total_stints} job{data.total_stints === 1 ? "" : "s"} this candidate was part of,
-              newest first.
-            </Typography>
-
-            {stints.length === 0 ? (
-              <EmptyState
-                emoji="🗂️"
-                title="No job history yet"
-                description="This candidate hasn’t been sourced onto any job. Source them to start their pipeline."
-              />
-            ) : (
-              <Stack spacing={1.5}>
-                {stints.map((stint) => (
-                  <StintCard key={stint.application_id} stint={stint} onClose={onClose} />
-                ))}
-              </Stack>
-            )}
-          </Stack>
+          </Box>
         )}
       </DialogContent>
-
-      <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button onClick={onClose} color="inherit">
-          Close
-        </Button>
-      </DialogActions>
     </Dialog>
   );
 };
