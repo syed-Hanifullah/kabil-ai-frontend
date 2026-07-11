@@ -61,7 +61,7 @@ const STATUS_ACTIONS = {
 /** Status → pill label + colour tokens (dot, text, background). */
 const STATUS_PILL = {
   open: { label: "Active", dot: "#0F6E56", text: "#0F6E56", bg: "#e6f1ec" },
-  draft: { label: "Draft", dot: "#c9a23f", text: "#7a611a", bg: "#faf3e0" },
+  draft: { label: "Draft", dot: " #EF9F27", text: "#7a611a", bg: "#faf3e0" },
   inactive: { label: "Inactive", dot: "#e0524f", text: "#a3322f", bg: "#fdeceb" },
   archived: { label: "Archived", dot: "#9aa39e", text: "#5d635f", bg: "#eef0ef" },
   // Legacy terminal state, shown for old rows that still carry it.

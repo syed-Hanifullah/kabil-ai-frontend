@@ -126,10 +126,29 @@ const TalentPoolPage = () => {
         sx={{ justifyContent: "space-between", alignItems: { xs: "flex-start", sm: "center" } }}
       >
         <Box>
-          <Typography sx={{ fontWeight: 700, fontSize: "1.4rem", color: "primary.main" }}>
-            Talent Pool
+          <Typography
+            sx={{
+              fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+              fontWeight: 700,
+              fontSize: "22px",
+              lineHeight: "33px",
+              letterSpacing: 0,
+              color: "#1C4A3E",
+            }}
+          >
+            Talent Database
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+          <Typography
+            sx={{
+              mt: 0.5,
+              fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+              fontWeight: 400,
+              fontSize: "13px",
+              lineHeight: "19.5px",
+              letterSpacing: 0,
+              color: "#6B7280",
+            }}
+          >
             Ready to match against your open jobs
           </Typography>
         </Box>

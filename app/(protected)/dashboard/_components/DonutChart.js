@@ -73,12 +73,21 @@ const DonutChart = ({ segments }) => {
     : [];
 
   return (
-    <Stack
-      direction={{ xs: "column", sm: "row" }}
-      spacing={{ xs: 2, sm: 4 }}
-      sx={{ alignItems: "center", justifyContent: "center", width: "100%", py: 1 }}
+    <Box
+      sx={{
+        position: "relative",
+        display: "flex",
+        flexDirection: { xs: "column", sm: "row" },
+        alignItems: "center",
+        justifyContent: "center",
+        gap: { xs: 2, sm: 0 },
+        width: "100%",
+        height: "100%",
+        py: 1,
+      }}
     >
-      <Box sx={{ position: "relative", flexShrink: 0 }}>
+      {/* Donut centered in the card, nudged ~20px left of dead-center. */}
+      <Box sx={{ position: "relative", flexShrink: 0, transform: { sm: "translateX(-40px)" } }}>
         <svg width={DISPLAY} height={DISPLAY} viewBox={`0 0 ${CANVAS} ${CANVAS}`} role="img">
           {total === 0 ? (
             <circle
@@ -138,22 +147,47 @@ const DonutChart = ({ segments }) => {
         )}
       </Box>
 
-      <Stack spacing={1.25} sx={{ minWidth: 120 }}>
+      {/* Legend floats at the card's bottom-right (absolute on desktop so it
+          doesn't push the donut off-center); on mobile it stacks under the
+          donut. Health segments carry a day-range note ("(<18 days)"); when
+          present it replaces the raw count, otherwise the count is shown
+          (per-job bucket view). */}
+      <Stack
+        spacing={1.25}
+        sx={{
+          minWidth: 120,
+          position: { xs: "static", sm: "absolute" },
+          right: { sm: 20 },
+          bottom: { sm: 20 },
+        }}
+      >
         {segments.map((s) => (
           <Stack key={s.label} direction="row" spacing={1} sx={{ alignItems: "center" }}>
             <Box
               sx={{ width: 11, height: 11, borderRadius: "50%", bgcolor: s.color, flexShrink: 0 }}
             />
-            <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              {s.label}
-              <Box component="span" sx={{ ml: 0.75, fontWeight: 700, color: "text.primary" }}>
-                {s.value}
-              </Box>
+            <Typography
+              sx={{
+                fontFamily: "var(--font-sans), Inter, system-ui, sans-serif",
+                fontWeight: 400,
+                fontSize: "12px",
+                lineHeight: "18px",
+                letterSpacing: 0,
+                textAlign: "center",
+                color: "#2C2C2A",
+              }}
+            >
+              {s.note ? `${s.label} ${s.note}` : s.label}
+              {!s.note && (
+                <Box component="span" sx={{ ml: 0.75, fontWeight: 700 }}>
+                  {s.value}
+                </Box>
+              )}
             </Typography>
           </Stack>
         ))}
       </Stack>
-    </Stack>
+    </Box>
   );
 };
 

@@ -51,7 +51,7 @@ const SCORE_TITLE = {
 /** Solid + soft tint per MUI palette tone, for inline chip/badge styling. */
 const TONE = {
   success: { solid: "#0F6E56", soft: "rgba(15,110,86,0.12)" },
-  warning: { solid: "#b78a1f", soft: "rgba(239,159,39,0.16)" },
+  warning: { solid: " #EF9F27", soft: "rgba(239,159,39,0.16)" },
   error: { solid: "#d14343", soft: "rgba(209,67,67,0.12)" },
   info: { solid: "#2f7fd1", soft: "rgba(47,127,209,0.12)" },
   default: { solid: "#5f6b66", soft: "rgba(0,0,0,0.06)" },

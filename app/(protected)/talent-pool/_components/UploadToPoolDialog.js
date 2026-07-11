@@ -23,7 +23,6 @@ import { useTalentPoolUpload } from "@/lib/kabil/queries";
 import {
   CV_ACCEPT,
   CV_MAX_MB,
-  PDPL_CONSENT_LABEL,
   PDPL_CONSENT_TEXT,
 } from "@/lib/kabil/constants";
 
@@ -218,12 +217,7 @@ const UploadToPoolDialog = ({ open, onClose }) => {
                   />
                 }
                 label={
-                  <Typography variant="body2">
-                    <Box component="span" sx={{ fontWeight: 700, color: "primary.main" }}>
-                      {PDPL_CONSENT_LABEL}
-                    </Box>{" "}
-                    — {PDPL_CONSENT_TEXT}
-                  </Typography>
+                  <Typography variant="body2">{PDPL_CONSENT_TEXT}</Typography>
                 }
                 sx={{ alignItems: "flex-start", m: 0, py: 0.5 }}
               />

@@ -80,7 +80,7 @@ const grid = {
 // Shared height (desktop) for the Performance and Candidate Pipeline cards so
 // they always line up; the Performance table scrolls internally past this. On
 // mobile the cards stack and size to their content.
-const PANEL_HEIGHT = 420;
+const PANEL_HEIGHT = 360;
 
 /** Greeting that tracks the viewer's local time of day. */
 const partOfDay = (h) => (h < 12 ? "Good Morning" : h < 18 ? "Good Afternoon" : "Good Evening");

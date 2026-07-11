@@ -234,7 +234,16 @@ const NewJobPage = () => {
   return (
     <Stack spacing={3} sx={{ maxWidth: 1200, mx: "auto", pt: { xs: 1, md: 2 } }}>
       <Box>
-        <Typography variant="h5" sx={{ fontWeight: 700 }}>
+        <Typography
+          sx={{
+            fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+            fontWeight: 700,
+            fontSize: "24px",
+            lineHeight: "36px",
+            letterSpacing: 0,
+            color: "#0F6E56",
+          }}
+        >
           Post New Job
         </Typography>
       </Box>

@@ -763,11 +763,14 @@ export interface JobPerformanceResponse {
 
 /** GET /dashboard/pipeline — `job_id` null for the All-Jobs view. `by_bucket`
  *  counts *active* applications (every PipelineBucket key present, zero-filled).
- *  Conversion: `applied` = non-archived apps, `offers` = accepted,
- *  `conversion_rate` = offers/applied as a 0–100 percentage. */
+ *  `by_stage` is the same active counts at raw ApplicationStage granularity
+ *  (every stage key present, zero-filled) so the FE can mirror the kanban
+ *  board's five columns. Conversion: `applied` = non-archived apps,
+ *  `offers` = accepted, `conversion_rate` = offers/applied as a 0–100 percentage. */
 export interface CandidatePipelineResponse {
   job_id: string | null;
   by_bucket: Record<PipelineBucket, number>;
+  by_stage: Record<ApplicationStage, number>;
   applied: number;
   offers: number;
   conversion_rate: number;

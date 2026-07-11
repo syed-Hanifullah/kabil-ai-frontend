@@ -16,7 +16,7 @@ const RealtimeIndicator = () => {
   if (status === STREAM_STATUS.DISABLED) return null;
 
   const open = status === STREAM_STATUS.OPEN;
-  const color = open ? "#1f9d57" : "#c9a23f";
+  const color = open ? "#0F6E56" : " #EF9F27";
   const label = open ? "Live — updates in real time" : "Reconnecting…";
 
   return (

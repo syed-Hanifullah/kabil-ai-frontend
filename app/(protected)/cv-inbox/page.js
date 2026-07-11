@@ -28,7 +28,6 @@ import {
   BULK_MAX_FILES,
   CV_MAX_MB,
   BULK_REJECTION_LABELS,
-  PDPL_CONSENT_LABEL,
   PDPL_CONSENT_TEXT,
 } from "@/lib/kabil/constants";
 
@@ -282,8 +281,17 @@ const CvInboxPage = () => {
 
   return (
     <Stack spacing={2.5} sx={{ maxWidth: 960, mx: "auto" }}>
-      <Typography sx={{ fontWeight: 700, fontSize: "1.15rem" }}>
-        CV Inbox
+      <Typography
+        sx={{
+          fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+          fontWeight: 700,
+          fontSize: "24px",
+          lineHeight: "36px",
+          letterSpacing: 0,
+          color: "#2C2C2A",
+        }}
+      >
+        Applicant Pool
       </Typography>
 
       <FlowBanner />
@@ -403,12 +411,7 @@ const CvInboxPage = () => {
                     />
                   }
                   label={
-                    <Typography sx={{ fontSize: "0.78rem" }}>
-                      <Box component="span" sx={{ fontWeight: 700, color: "primary.main" }}>
-                        {PDPL_CONSENT_LABEL}
-                      </Box>{" "}
-                      — {PDPL_CONSENT_TEXT}
-                    </Typography>
+                    <Typography sx={{ fontSize: "0.78rem" }}>{PDPL_CONSENT_TEXT}</Typography>
                   }
                   sx={{ alignItems: "flex-start", m: 0, py: 0.5 }}
                 />

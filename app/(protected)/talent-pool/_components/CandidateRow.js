@@ -30,7 +30,7 @@ const initials = (name) =>
     .join("") || "🧑";
 
 /** Deterministic avatar colour so each candidate keeps a stable hue. */
-const AVATAR_COLORS = ["#12766a", "#7b5cd6", "#e07b39", "#2f7fd1", "#d95c5c", "#1f9d57"];
+const AVATAR_COLORS = ["#12766a", "#7b5cd6", "#e07b39", "#2f7fd1", "#d95c5c", "#0F6E56"];
 const avatarColor = (name) => {
   let hash = 0;
   for (let i = 0; i < (name || "").length; i += 1) hash = (hash + name.charCodeAt(i)) % AVATAR_COLORS.length;

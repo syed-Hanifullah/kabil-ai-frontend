@@ -89,15 +89,16 @@ const HEALTH_CELL_SX = {
 // Health categories for the "All Jobs" donut, in fixed legend order. Values are
 // the backend JobHealth enum (see `jobHealthChip`); colors echo the brand.
 const HEALTH_SEGMENTS = [
-  { key: "healthy", label: "Healthy", color: "#0F6E56" },
-  { key: "at_risk", label: "At Risk", color: "#EF9F27" },
-  { key: "unhealthy", label: "Unhealthy", color: "#D85A30" },
+  { key: "healthy", label: "Healthy", note: "(<18 days)", color: "#0F6E56" },
+  { key: "at_risk", label: "At Risk", note: "(18+ days)", color: "#EF9F27" },
+  { key: "unhealthy", label: "Unhealthy", note: "(20+ days)", color: "#D85A30" },
 ];
 
 /** Donut segments for the workspace-wide health distribution. */
 const healthSegments = (rows) =>
   HEALTH_SEGMENTS.map((s) => ({
     label: s.label,
+    note: s.note,
     color: s.color,
     value: rows.filter((r) => r.health === s.key).length,
   }));
@@ -150,12 +151,30 @@ const PerformanceTable = ({ data, loading, view = "table" }) => {
         }}
       >
         {isChart ? (
-          <Box>
+          <Box sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
             <Stack
               direction="row"
               sx={{ justifyContent: "space-between", alignItems: "center", gap: 1.5, mb: 1 }}
             >
               <Stack direction="row" spacing={0.75} sx={{ alignItems: "center", minWidth: 0 }}>
+                {/* Circle + activity-pulse glyph (inline so it inherits the
+                    brand orange and the exact 12px size). */}
+                <Box
+                  component="svg"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                  sx={{ width: 20, height: 20, flexShrink: 0, color: "#EF9F27", display: "block" }}
+                >
+                  <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="2" />
+                  <path
+                    d="M6 13 L9 13 L11 16 L13 8 L15 13 L18 13"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </Box>
                 <Typography
                   noWrap
                   sx={{
@@ -171,24 +190,6 @@ const PerformanceTable = ({ data, loading, view = "table" }) => {
                       pipeline buckets — label reflects what the donut plots. */}
                   {selectedJob ? "Candidate Pipeline" : "Health Status"}
                 </Typography>
-                {/* Circle + activity-pulse glyph (inline so it inherits the
-                    brand orange and the exact 12px size). */}
-                <Box
-                  component="svg"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                  sx={{ width: 12, height: 12, flexShrink: 0, color: "#EF9F27", display: "block" }}
-                >
-                  <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="2" />
-                  <path
-                    d="M6 13 L9 13 L11 16 L13 8 L15 13 L18 13"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </Box>
               </Stack>
               <TextField
                 select
@@ -196,12 +197,21 @@ const PerformanceTable = ({ data, loading, view = "table" }) => {
                 value={selectedJob}
                 onChange={(e) => setSelectedJob(e.target.value)}
                 disabled={loading || jobsLoading}
-                slotProps={{ select: { displayEmpty: true } }}
-                sx={{ minWidth: 150, maxWidth: 220 }}
+                slotProps={{
+                  select: {
+                    displayEmpty: true,
+                    MenuProps: { slotProps: { list: { sx: { fontSize: "0.8125rem" } } } },
+                  },
+                }}
+                // Smaller font lets a narrower field fit the longest job title;
+                // the menu inherits the trigger width so both stay in sync.
+                sx={{ width: 210, "& .MuiSelect-select": { fontSize: "0.8125rem" } }}
               >
-                <MenuItem value="">All Jobs</MenuItem>
+                <MenuItem value="" sx={{ fontSize: "0.8125rem" }}>
+                  All Jobs
+                </MenuItem>
                 {jobOptions.map((j) => (
-                  <MenuItem key={j.id} value={j.id}>
+                  <MenuItem key={j.id} value={j.id} sx={{ fontSize: "0.8125rem" }}>
                     {j.title}
                   </MenuItem>
                 ))}
@@ -213,7 +223,9 @@ const PerformanceTable = ({ data, loading, view = "table" }) => {
                 <Skeleton variant="circular" width={210} height={210} />
               </Stack>
             ) : (
-              <DonutChart segments={segments} />
+              <Box sx={{ flex: 1, minHeight: 0, display: "flex" }}>
+                <DonutChart segments={segments} />
+              </Box>
             )}
           </Box>
         ) : loading ? (

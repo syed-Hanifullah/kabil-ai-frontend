@@ -55,6 +55,18 @@ const CARD_BG = "#FBF9F2";
 const CARD_BORDER = "#ECE5D6";
 const TRACK = "#E7E1D2";
 
+// Shared title style for every score row (CV Score, Profile Match, Background
+// Validation, Eligibility Questions, Interview Scoring, Shortlist, …) so they
+// all read identically — Inter 600 / 14px / 21px in the near-black brand ink.
+const ROW_TITLE_SX = {
+  fontFamily: "var(--font-sans), system-ui, Arial, sans-serif",
+  fontWeight: 600,
+  fontSize: "14px",
+  lineHeight: "21px",
+  letterSpacing: 0,
+  color: "#2C2C2A",
+};
+
 const cardSx = {
   bgcolor: "#F4F0E84D",
   border: `1px solid ${CARD_BORDER}`,
@@ -158,7 +170,7 @@ const RowShell = ({ children }) => (
 
 /** A numeric score row (CV Score, Background Validation): title + meter + score
  *  disc, with an optional expandable breakdown drawer + computed footer. */
-const MeterRow = ({ label, value, computedAt, showFooter = true, defaultOpen = false, children }) => {
+const MeterRow = ({ label, value, showFooter = true, defaultOpen = false, children }) => {
   const [open, setOpen] = useState(defaultOpen);
   const has = value != null;
   const color = has ? bandHex(scoreBand(value).color) : TRACK;
@@ -167,7 +179,7 @@ const MeterRow = ({ label, value, computedAt, showFooter = true, defaultOpen = f
     <RowShell>
       <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography sx={{ fontWeight: 700, fontSize: "0.775rem", mb: 1 }}>{label}</Typography>
+          <Typography sx={{ ...ROW_TITLE_SX, mb: 1 }}>{label}</Typography>
           <LinearProgress
             variant="determinate"
             value={has ? Math.min(100, Math.max(0, value)) : 0}
@@ -191,16 +203,9 @@ const MeterRow = ({ label, value, computedAt, showFooter = true, defaultOpen = f
       )}
 
       {/* Footer sits at the bottom, so expanded detail nests above it. */}
-      {showFooter && (computedAt || hasBreakdown) && (
-        <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", pt: 1 }}>
-          {computedAt ? (
-            <Typography variant="caption" color="text.secondary">
-              {`Computed ${timeAgo(computedAt)}`}
-            </Typography>
-          ) : (
-            <Box />
-          )}
-          {hasBreakdown && <BreakdownToggle open={open} onClick={() => setOpen((o) => !o)} />}
+      {showFooter && hasBreakdown && (
+        <Stack direction="row" sx={{ justifyContent: "flex-end", alignItems: "center", pt: 1 }}>
+          <BreakdownToggle open={open} onClick={() => setOpen((o) => !o)} />
         </Stack>
       )}
     </RowShell>
@@ -214,18 +219,7 @@ const AuthenticityRow = ({ value, summary }) => {
   return (
     <RowShell>
       <Stack direction="row" spacing={2} sx={{ justifyContent: "space-between", alignItems: "flex-start" }}>
-        <Typography
-          sx={{
-            fontFamily: "var(--font-sans), system-ui, Arial, sans-serif",
-            fontWeight: 600,
-            fontSize: "14px",
-            lineHeight: "21px",
-            letterSpacing: 0,
-            color: "#2C2C2A",
-          }}
-        >
-          CV Authenticity
-        </Typography>
+        <Typography sx={ROW_TITLE_SX}>CV Authenticity</Typography>
         <Typography sx={{ fontWeight: 700, color: labelColor, flexShrink: 0, whiteSpace: "nowrap" }}>
           {badge.label}
         </Typography>
@@ -251,11 +245,11 @@ const AuthenticityRow = ({ value, summary }) => {
 
 /** Eligibility Questions row: the candidate's verbatim answers to the six fixed
  *  WhatsApp screening questions, shown as an open-by-default breakdown. */
-const EligibilityRow = ({ items, computedAt }) => {
+const EligibilityRow = ({ items }) => {
   const [open, setOpen] = useState(false); // collapsed until the recruiter opens it
   return (
     <RowShell>
-      <Typography sx={{ fontWeight: 700, fontSize: "0.775rem" }}>Eligibility Questions</Typography>
+      <Typography sx={ROW_TITLE_SX}>Eligibility Questions</Typography>
       <Collapse in={open} timeout="auto" unmountOnExit>
         <Stack sx={{ mt: 1.25 }}>
           {items.map((it) => (
@@ -305,10 +299,7 @@ const EligibilityRow = ({ items, computedAt }) => {
           ))}
         </Stack>
       </Collapse>
-      <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", pt: 1 }}>
-        <Typography variant="caption" color="text.secondary">
-          {computedAt ? `Computed ${timeAgo(computedAt)}` : "—"}
-        </Typography>
+      <Stack direction="row" sx={{ justifyContent: "flex-end", alignItems: "center", pt: 1 }}>
         <BreakdownToggle open={open} onClick={() => setOpen((o) => !o)} />
       </Stack>
     </RowShell>
@@ -318,7 +309,7 @@ const EligibilityRow = ({ items, computedAt }) => {
 /** Empty placeholder row when a score family hasn't been computed yet. */
 const PendingRow = ({ label }) => (
   <RowShell>
-    <Typography sx={{ fontWeight: 700, fontSize: "0.775rem" }}>{label}</Typography>
+    <Typography sx={ROW_TITLE_SX}>{label}</Typography>
     <Typography variant="caption" color="text.secondary">
       Not computed yet.
     </Typography>
@@ -331,7 +322,7 @@ const MeterSkeletonRow = ({ label }) => (
   <RowShell>
     <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
       <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Typography sx={{ fontWeight: 700, fontSize: "0.775rem", mb: 1 }}>{label}</Typography>
+        <Typography sx={{ ...ROW_TITLE_SX, mb: 1 }}>{label}</Typography>
         <Skeleton variant="rounded" height={8} sx={{ borderRadius: 4 }} />
       </Box>
       <Skeleton variant="circular" width={44} height={44} sx={{ flexShrink: 0 }} />
@@ -375,7 +366,7 @@ const InterviewScoringRow = ({ appId, feedback, editable }) => {
     <RowShell>
       <Stack direction="row" spacing={2} sx={{ alignItems: "center", justifyContent: "space-between" }}>
         <Box sx={{ minWidth: 0 }}>
-          <Typography sx={{ fontWeight: 700, fontSize: "0.775rem" }}>Interview Scoring</Typography>
+          <Typography sx={ROW_TITLE_SX}>Interview Scoring</Typography>
           <Typography variant="caption" color="text.secondary">
             {has ? (feedback?.scoredAt ? timeAgo(feedback.scoredAt) : "Scored") : "Not scored yet"}
           </Typography>
@@ -446,8 +437,8 @@ const InterviewScoringRow = ({ appId, feedback, editable }) => {
 const ShortlistRow = () => (
   <RowShell>
     <Stack direction="row" spacing={2} sx={{ alignItems: "center", justifyContent: "space-between" }}>
-      <Typography sx={{ fontWeight: 700, fontSize: "0.775rem" }}>Shortlist</Typography>
-      <Typography sx={{ fontWeight: 700, color: "#1f9d57", whiteSpace: "nowrap" }}>Shortlisted</Typography>
+      <Typography sx={ROW_TITLE_SX}>Shortlist</Typography>
+      <Typography sx={{ fontWeight: 700, color: "#0F6E56", whiteSpace: "nowrap" }}>Shortlisted</Typography>
     </Stack>
   </RowShell>
 );
@@ -518,143 +509,6 @@ const ChipRow = ({ lead, items, color, leadingIcon, max }) => {
   );
 };
 
-/* ── Profile Match breakdown visual tokens (per the mock) ─────────────────── */
-const PM_GREEN = "#0F6E56";
-const PM_ORANGE = "#D85A30";
-const PM_HEAD_SX = {
-  fontFamily: "var(--font-jakarta), system-ui, sans-serif",
-  fontWeight: 600,
-  fontSize: "14px",
-  lineHeight: "20px",
-  letterSpacing: 0,
-  color: "#1C4A3E",
-};
-const PM_SUB_SX = {
-  fontFamily: "var(--font-jakarta), system-ui, sans-serif",
-  fontWeight: 400,
-  fontSize: "14px",
-  lineHeight: 1.4,
-  color: "#6B7280",
-  mt: 0.5,
-};
-
-/** Cream pill chips for the Profile Match breakdown. */
-const PmChips = ({ items }) => {
-  const list = asArray(items);
-  if (!list.length) return null;
-  return (
-    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75, mt: 1 }}>
-      {list.map((s, i) => (
-        <Box
-          key={`${s}-${i}`}
-          sx={{
-            border: "1px solid #E2DDCE",
-            bgcolor: "#F4F0E8",
-            color: "#1C4A3E",
-            borderRadius: "999px",
-            px: 1.25,
-            py: 0.4,
-            fontFamily: "var(--font-jakarta), system-ui, sans-serif",
-            fontWeight: 500,
-            fontSize: "11px",
-            lineHeight: 1.4,
-          }}
-        >
-          {String(s)}
-        </Box>
-      ))}
-    </Box>
-  );
-};
-
-/** One "• heading … value" line inside the Profile Match breakdown. */
-const PmRow = ({ label, value, valueColor = PM_GREEN, children }) => (
-  <Box>
-    <Stack direction="row" spacing={2} sx={{ justifyContent: "space-between", alignItems: "flex-start" }}>
-      <Stack direction="row" spacing={1.25} sx={{ alignItems: "center", minWidth: 0 }}>
-        <Box sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: "#1C4A3E", flexShrink: 0 }} />
-        <Typography sx={PM_HEAD_SX}>{label}</Typography>
-      </Stack>
-      {value != null && (
-        <Typography
-          sx={{
-            fontFamily: "var(--font-jakarta), system-ui, sans-serif",
-            fontWeight: 600,
-            fontSize: "14px",
-            lineHeight: "21px",
-            letterSpacing: 0,
-            textAlign: "center",
-            color: valueColor,
-            flexShrink: 0,
-            whiteSpace: "nowrap",
-          }}
-        >
-          {value}
-        </Typography>
-      )}
-    </Stack>
-    {children}
-  </Box>
-);
-
-/** Verdict word for the "Skills Match" ratio (matched / total). */
-const skillsMatchVerdict = (ratio) =>
-  ratio >= 1 ? "Strong" : ratio >= 0.6 ? "Okay" : ratio > 0 ? "Weak" : "None";
-
-const JdBreakdown = ({ b }) => {
-  const total = b?.required_skills_total ?? 0;
-  const matched = b?.required_skills_matched ?? 0;
-  const gaps = Math.max(0, total - matched);
-  const prefTotal = b?.preferred_skills_total ?? 0;
-  const threshold = b?.threshold_similarity;
-  const passes = b?.passes_threshold;
-  const ratio = total ? matched / total : 0;
-  return (
-    <>
-      <PmRow label="Skills found on CV" value={`${matched} of ${total}`}>
-        <PmChips items={b?.matched_required_skills} />
-        {matched === 0 && (
-          <Typography sx={PM_SUB_SX}>None of the required skills were found on the CV.</Typography>
-        )}
-      </PmRow>
-      <Divider />
-      <PmRow label="Skills gaps" value={`${gaps} Missing`} valueColor={PM_ORANGE}>
-        <PmChips items={b?.missing_required_skills} />
-        {gaps <= 0 && <Typography sx={PM_SUB_SX}>No gaps — every required skill is present.</Typography>}
-      </PmRow>
-      <Divider />
-      <PmRow label="Bonus skills required" value={String(prefTotal)}>
-        {prefTotal > 0 ? (
-          <PmChips items={b?.missing_preferred_skills} />
-        ) : (
-          <Typography sx={PM_SUB_SX}>No preferred skills configured for this role.</Typography>
-        )}
-      </PmRow>
-      {passes != null && (
-        <>
-          <Divider />
-          <PmRow
-            label="Meets Minimum"
-            value={passes ? "Yes" : "No"}
-            valueColor={passes ? PM_GREEN : PM_ORANGE}
-          >
-            {threshold != null && (
-              <Typography sx={PM_SUB_SX}>
-                {passes ? "Passes" : "Below"} the minimum threshold of {fmtPct(toScore(threshold))}.
-              </Typography>
-            )}
-          </PmRow>
-        </>
-      )}
-      <Divider />
-      <PmRow label="Skills Match" value={skillsMatchVerdict(ratio)}>
-        <Typography sx={PM_SUB_SX}>
-          {matched}/{total}
-        </Typography>
-      </PmRow>
-    </>
-  );
-};
 
 /** Background Validation breakdown: one row per scored background-validation
  *  question — the question, the candidate's answer, and its 0–100 relevance. */
@@ -1145,7 +999,6 @@ const CvScoreCard = ({
 
   const trustBreak = trust?.breakdown || null;
 
-  const jdBreak = jd?.breakdown || null;
   const trustValue = trust ? toScore(trust.value) : null;
   const jdValue = jd ? toScore(jd.value) : null;
 
@@ -1161,7 +1014,6 @@ const CvScoreCard = ({
   const bgValidation = screening?.bgValidation ?? null;
   const bgBreakdown = asArray(screening?.bgValidationBreakdown);
   const eligibility = asArray(screening?.eligibility);
-  const screenedAt = screening?.computedAt || null;
 
   if (!trust && !jd && !others.length && !reachedWhatsApp) {
     return (
@@ -1191,7 +1043,6 @@ const CvScoreCard = ({
             key={s.id || `${s.score_type}-${i}`}
             label={otherLabel(s.score_type)}
             value={toScore(s.value)}
-            computedAt={s.computed_at}
           >
             {s.breakdown && Object.keys(s.breakdown).length > 0 ? <RubricBreakdown data={s.breakdown} /> : null}
           </MeterRow>
@@ -1203,9 +1054,7 @@ const CvScoreCard = ({
 
         {atVectorScreen &&
           (jd && jdValue != null ? (
-            <MeterRow label="Profile Match" value={jdValue} computedAt={jd.computed_at}>
-              {jdBreak && <JdBreakdown b={jdBreak} />}
-            </MeterRow>
+            <MeterRow label="Profile Match" value={jdValue} />
           ) : (
             // At L1 but the similarity score is still computing — skeleton the bar.
             <MeterSkeletonRow label="Profile Match" />
@@ -1222,7 +1071,7 @@ const CvScoreCard = ({
         )}
 
         {reachedWhatsApp && eligibility.length > 0 && (
-          <EligibilityRow items={eligibility} computedAt={screenedAt} />
+          <EligibilityRow items={eligibility} />
         )}
 
         {/* HR's manual interview mark + comment (keyed by appId so the form

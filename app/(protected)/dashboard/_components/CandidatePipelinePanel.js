@@ -11,7 +11,7 @@ import LinearProgress from "@mui/material/LinearProgress";
 import MenuItem from "@mui/material/MenuItem";
 import TextField from "@mui/material/TextField";
 import TimelineOutlinedIcon from "@mui/icons-material/TimelineOutlined";
-import { PIPELINE_BUCKETS } from "@/lib/kabil/constants";
+import { PIPELINE_COLUMNS } from "@/lib/kabil/constants";
 import { useCandidatePipeline, useJobs } from "@/lib/kabil/queries";
 
 /** One funnel row: bucket label, count, and a proportional bar. */
@@ -42,7 +42,8 @@ const FunnelRow = ({ label, accent, count, max }) => (
  * Candidate Pipeline funnel with an "All Jobs" / per-job selector. The dropdown
  * is populated from the jobs list; selecting a job re-queries
  * `GET /dashboard/pipeline?job_id=…` (empty selection = workspace-wide). The
- * footer shows the Applied→Offer conversion from the same payload.
+ * funnel rows mirror the kanban board's five stage columns, using the
+ * per-stage counts (`by_stage`) from the same payload.
  */
 const CandidatePipelinePanel = () => {
   // Default to "All Jobs" (value "") — the workspace-wide aggregate.
@@ -58,12 +59,13 @@ const CandidatePipelinePanel = () => {
   });
   const loading = isLoading || jobsData === undefined;
 
-  const buckets = PIPELINE_BUCKETS.map((b) => ({
-    ...b,
-    count: data ? (data.by_bucket[b.bucket] ?? 0) : 0,
+  // One funnel row per kanban stage column, counted from the payload's raw
+  // per-stage map so the panel and the board list the exact same five steps.
+  const rows = PIPELINE_COLUMNS.map((c) => ({
+    ...c,
+    count: data ? (data.by_stage?.[c.stage] ?? 0) : 0,
   }));
-  const max = Math.max(1, ...buckets.map((b) => b.count));
-  const conversion = data?.conversion_rate ?? 0;
+  const max = Math.max(1, ...rows.map((r) => r.count));
 
   return (
     <Card
@@ -75,8 +77,18 @@ const CandidatePipelinePanel = () => {
           sx={{ alignItems: "center", justifyContent: "space-between", gap: 1.5, mb: 2 }}
         >
           <Stack direction="row" spacing={0.75} sx={{ alignItems: "center", minWidth: 0 }}>
-            <TimelineOutlinedIcon fontSize="small" color="primary" />
-            <Typography sx={{ fontWeight: 700, fontSize: "0.95rem" }} noWrap>
+            <TimelineOutlinedIcon sx={{ width: 20, height: 20, color: "#EF9F27" }} />
+            <Typography
+              noWrap
+              sx={{
+                fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+                fontWeight: 700,
+                fontSize: "12px",
+                lineHeight: "16px",
+                letterSpacing: 0,
+                color: "#1C4A3E",
+              }}
+            >
               Candidate Pipeline
             </Typography>
           </Stack>
@@ -90,13 +102,18 @@ const CandidatePipelinePanel = () => {
                 displayEmpty: true,
                 renderValue: (value) =>
                   value ? (jobs.find((j) => j.id === value)?.title ?? "All Jobs") : "All Jobs",
+                MenuProps: { slotProps: { list: { sx: { fontSize: "0.8125rem" } } } },
               },
             }}
-            sx={{ minWidth: 140, maxWidth: 200 }}
+            // Smaller font lets a narrower field fit the longest job title; the
+            // menu inherits the trigger width so both stay in sync.
+            sx={{ width: 210, "& .MuiSelect-select": { fontSize: "0.8125rem" } }}
           >
-            <MenuItem value="">All Jobs</MenuItem>
+            <MenuItem value="" sx={{ fontSize: "0.8125rem" }}>
+              All Jobs
+            </MenuItem>
             {jobs.map((j) => (
-              <MenuItem key={j.id} value={j.id}>
+              <MenuItem key={j.id} value={j.id} sx={{ fontSize: "0.8125rem" }}>
                 {j.title}
               </MenuItem>
             ))}
@@ -105,7 +122,7 @@ const CandidatePipelinePanel = () => {
 
         {loading ? (
           <Stack spacing={2.25}>
-            {PIPELINE_BUCKETS.map((_, i) => (
+            {PIPELINE_COLUMNS.map((_, i) => (
               <Box key={i}>
                 <Skeleton variant="text" width="40%" />
                 <Skeleton variant="rounded" height={8} sx={{ borderRadius: 999 }} />
@@ -114,41 +131,11 @@ const CandidatePipelinePanel = () => {
           </Stack>
         ) : (
           <Stack spacing={2.25}>
-            {buckets.map((b) => (
-              <FunnelRow key={b.bucket} label={b.label} accent={b.accent} count={b.count} max={max} />
+            {rows.map((r) => (
+              <FunnelRow key={r.stage} label={r.label} accent={r.accent} count={r.count} max={max} />
             ))}
           </Stack>
         )}
-
-        {/* Applied → Offer conversion */}
-        <Box
-          sx={{
-            mt: 3,
-            p: 2,
-            borderRadius: 2,
-            border: "1px solid",
-            borderColor: "divider",
-            bgcolor: "rgba(19,64,45,0.03)",
-          }}
-        >
-          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-            Conversion (Applied → Offer)
-          </Typography>
-          {loading ? (
-            <Skeleton variant="text" width={80} sx={{ fontSize: "1.5rem" }} />
-          ) : (
-            <>
-              <Typography sx={{ fontWeight: 700, lineHeight: 1.2, fontSize: "1.15rem" }}>
-                {conversion}%
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {data?.offers
-                  ? `${data.offers} of ${data.applied} applicants`
-                  : "No offers made yet"}
-              </Typography>
-            </>
-          )}
-        </Box>
       </CardContent>
     </Card>
   );
