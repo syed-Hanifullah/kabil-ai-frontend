@@ -78,7 +78,7 @@ const formatSalary = (min, max, currency) => {
   return null;
 };
 
-const MAX_SKILLS = 10;
+const MAX_SKILLS = 6;
 
 /** A single job tile. Clicking the body opens the pipeline. */
 const JobCard = ({ job }) => {
@@ -206,7 +206,7 @@ const JobCard = ({ job }) => {
           <Stack
             direction="row"
             spacing={1}
-            sx={{ alignItems: "flex-start", justifyContent: "space-between" }}
+            sx={{ flexShrink: 0, alignItems: "flex-start", justifyContent: "space-between" }}
           >
             <Box sx={{ minWidth: 0 }}>
               <Typography
@@ -240,15 +240,28 @@ const JobCard = ({ job }) => {
           </Stack>
 
           {/* Key facts */}
-          <Stack spacing={1} sx={{ mt: 2 }}>
+          <Stack spacing={1} sx={{ mt: 2, flexShrink: 0 }}>
             <Row icon={PlaceOutlinedIcon} text={`${job.city}, ${job.country}`} />
             <Row icon={WorkOutlineOutlinedIcon} text={humanize(job.work_mode)} />
             {salary && <Row icon={AttachMoneyIcon} text={salary} />}
           </Stack>
 
-          {/* Skills */}
+          {/* Skills — clipped to the remaining space so a long skill list can
+              never push the footer past the card's fixed height. */}
           {skills.length > 0 && (
-            <Stack direction="row" sx={{ mt: 2, flexWrap: "wrap", gap: 1, justifyContent: "flex-start" }}>
+            <Stack
+              direction="row"
+              sx={{
+                mt: 2,
+                flexWrap: "wrap",
+                gap: 1,
+                justifyContent: "flex-start",
+                minHeight: 0,
+                flexShrink: 1,
+                overflow: "hidden",
+                alignContent: "flex-start",
+              }}
+            >
               {skills.slice(0, MAX_SKILLS).map((skill) => (
                 <Chip
                   key={skill}
@@ -280,7 +293,7 @@ const JobCard = ({ job }) => {
           )}
 
           {/* Footer: pipeline tallies + age */}
-          <Box sx={{ mt: "auto", pt: 2 }}>
+          <Box sx={{ mt: "auto", pt: 2, flexShrink: 0 }}>
             <Divider sx={{ borderColor: "#edf0ee" }} />
             <Stack
               direction="row"
