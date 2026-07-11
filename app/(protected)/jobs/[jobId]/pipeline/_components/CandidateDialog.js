@@ -2,7 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Divider from "@mui/material/Divider";
@@ -818,6 +820,9 @@ const pillTabsSx = {
 const CandidateDialog = ({ appId, open, onClose, readOnly = false }) => {
   const [reason, setReason] = useState("");
   const [waOpen, setWaOpen] = useState(false);
+  // Move-to-pool confirmation dialog + its optional reason field.
+  const [poolDialogOpen, setPoolDialogOpen] = useState(false);
+  const [poolReason, setPoolReason] = useState("");
   const [tab, setTab] = useState(0); // 0 = Scoring, 1 = Contact Details, 2 = Candidate Profile
 
   // Reset to the Scoring tab whenever the dialog switches candidates. This is
@@ -827,6 +832,9 @@ const CandidateDialog = ({ appId, open, onClose, readOnly = false }) => {
   if (appId !== prevAppId) {
     setPrevAppId(appId);
     setTab(0);
+    // Also drop any half-filled move-to-pool dialog from the previous candidate.
+    setPoolDialogOpen(false);
+    setPoolReason("");
   }
   const { data: app, isLoading, isError, error } = useApplication(appId, { poll: true });
   const updateStage = useUpdateStage(appId);
@@ -896,7 +904,15 @@ const CandidateDialog = ({ appId, open, onClose, readOnly = false }) => {
   // nothing left to show here — close and let the board refetch it out of view.
   const moveToPoolNow = () => {
     if (!appId) return;
-    moveToPool.mutate(appId, { onSuccess: onClose });
+    moveToPool.mutate(
+      { appId, reason: poolReason },
+      {
+        onSuccess: () => {
+          setPoolDialogOpen(false);
+          onClose();
+        },
+      },
+    );
   };
 
   // The stage/reject controls (Scoring tab only).
@@ -1100,7 +1116,7 @@ const CandidateDialog = ({ appId, open, onClose, readOnly = false }) => {
                       variant="contained"
                       disableElevation
                       endIcon={<PersonAddAltOutlinedIcon />}
-                      onClick={moveToPoolNow}
+                      onClick={() => setPoolDialogOpen(true)}
                       disabled={moveToPool.isPending || !appId}
                       sx={{
                         bgcolor: "#0F6E56",
@@ -1122,7 +1138,6 @@ const CandidateDialog = ({ appId, open, onClose, readOnly = false }) => {
                   </Stack>
                 )}
               </Stack>
-              {!readOnly && moveToPool.isError && <ErrorAlert error={moveToPool.error} sx={{ mt: 1.5 }} />}
 
               {/* Tabs */}
               {showTabs && (
@@ -1181,6 +1196,72 @@ const CandidateDialog = ({ appId, open, onClose, readOnly = false }) => {
       </DialogContent>
 
       <WhatsAppDialog appId={appId} candidate={candidate} open={waOpen} onClose={() => setWaOpen(false)} />
+
+      {/* Move-to-pool confirmation: capture an optional reason, saved against
+          this job stint and shown later in the candidate's history. */}
+      <Dialog
+        open={poolDialogOpen}
+        onClose={() => (moveToPool.isPending ? null : setPoolDialogOpen(false))}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: "16px" } }}
+      >
+        <DialogTitle sx={{ fontFamily: "var(--font-jakarta)", fontWeight: 700, color: GREEN }}>
+          Move to Talent Pool
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ color: "text.secondary", mb: 2 }}>
+            This archives the candidate on this job (their scores and screening are
+            kept as history) and adds them to the talent pool. Add an optional note
+            on why — it’s saved against this job so you can see it later.
+          </Typography>
+          <TextField
+            fullWidth
+            size="small"
+            multiline
+            minRows={2}
+            autoFocus
+            label="Reason (optional)"
+            placeholder="e.g. Strong profile, but role was put on hold"
+            value={poolReason}
+            onChange={(e) => setPoolReason(e.target.value)}
+            inputProps={{ maxLength: 500 }}
+            disabled={moveToPool.isPending}
+            sx={{ "& .MuiOutlinedInput-root": { borderRadius: "14px" } }}
+          />
+          {moveToPool.isError && <ErrorAlert error={moveToPool.error} sx={{ mt: 1.5 }} />}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button
+            onClick={() => {
+              setPoolDialogOpen(false);
+              resetMoveToPool();
+            }}
+            disabled={moveToPool.isPending}
+            sx={{ textTransform: "none", color: "text.secondary" }}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            disableElevation
+            endIcon={<PersonAddAltOutlinedIcon />}
+            onClick={moveToPoolNow}
+            disabled={moveToPool.isPending || !appId}
+            sx={{
+              bgcolor: "#0F6E56",
+              color: "#fff",
+              textTransform: "none",
+              fontWeight: 700,
+              borderRadius: "8px",
+              px: 2.5,
+              "&:hover": { bgcolor: GREEN_DARK },
+            }}
+          >
+            {moveToPool.isPending ? "Moving…" : "Move to Pool"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Dialog>
   );
 };
