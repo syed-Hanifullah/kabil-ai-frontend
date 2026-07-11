@@ -72,22 +72,25 @@ const ActivityRow = ({ stint, isLast }) => {
         borderBottom: isLast ? "none" : `1px solid ${CARD_BORDER}`,
       }}
     >
-      <Stack direction="row" spacing={1.5} sx={{ alignItems: "flex-start" }}>
-        <Box
-          sx={{
-            width: 8,
-            height: 8,
-            borderRadius: "50%",
-            bgcolor: COLORS.gold,
-            mt: "5px",
-            flexShrink: 0,
-          }}
-        />
+      <Stack direction="row" spacing={1.5} sx={{ alignItems: "flex-start", justifyContent: "space-between" }}>
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography variant="body2" sx={{ color: "#2C2C2A", fontWeight: 500 }}>
-            Moved from {stint.job_title || "a job"} to Talent Pool at {stageLabel(stint.stage)}.
-          </Typography>
-          <Typography variant="caption" sx={{ color: "text.secondary" }}>
+          {/* Dot sits on the same centered row as the "Moved from" line so it
+              aligns to that text, not the top of the whole block. */}
+          <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
+            <Box
+              sx={{
+                width: 8,
+                height: 8,
+                borderRadius: "50%",
+                bgcolor: COLORS.gold,
+                flexShrink: 0,
+              }}
+            />
+            <Typography variant="body2" sx={{ color: "#2C2C2A", fontWeight: 500 }}>
+              Moved from {stint.job_title || "a job"} to Talent Pool at {stageLabel(stint.stage)}.
+            </Typography>
+          </Stack>
+          <Typography variant="caption" sx={{ color: "text.secondary", ml: "20px" }}>
             {monthYear(stint.archived_at) || monthYear(stint.stage_updated_at)}
           </Typography>
         </Box>
@@ -111,7 +114,7 @@ const ActivityRow = ({ stint, isLast }) => {
       <Collapse in={open} timeout="auto" unmountOnExit>
         <Typography
           variant="body2"
-          sx={{ mt: 1, ml: 3.25, color: reason ? "#2C2C2A" : "text.disabled", whiteSpace: "pre-wrap" }}
+          sx={{ mt: 1, ml: "20px", color: reason ? "#2C2C2A" : "text.disabled", whiteSpace: "pre-wrap" }}
         >
           {reason || "No reason was recorded for this move."}
         </Typography>
