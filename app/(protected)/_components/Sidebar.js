@@ -51,7 +51,7 @@ const SidebarInner = ({ onNavigate }) => {
         "& .MuiTypography-root, & .MuiListItemText-primary": {
           fontFamily: "var(--font-jakarta), system-ui, sans-serif",
         },
-        bgcolor: "#F4F0E84D",
+        bgcolor: "rgba(244, 240, 232, 0.3)",
         color: COLORS.sidebarText,
         display: "flex",
         flexDirection: "column",

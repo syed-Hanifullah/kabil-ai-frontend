@@ -46,6 +46,7 @@ import {
   useUpdateCandidateContact,
   useWhatsAppConversation,
   useWhatsAppQuestions,
+  useCandidateActivity,
 } from "@/lib/kabil/queries";
 import {
   APPLICATION_STAGES,
@@ -54,6 +55,7 @@ import {
   formatNoticePeriod,
   humanize,
   stageLabel,
+  statusLabel,
   timeAgo,
 } from "@/lib/kabil/constants";
 import { COLORS } from "@/lib/theme";
@@ -61,6 +63,23 @@ import { COLORS } from "@/lib/theme";
 /** Requested brand green for the candidate dialog chrome. */
 const GREEN = "#0F6E56";
 const GREEN_DARK = "#0c5a46";
+/** Shared cream card surface + hairline — mirrors the talent-pool history card. */
+const CARD_BORDER = "#ECE5D6";
+const activityCardSx = {
+  bgcolor: "#F4F0E84D",
+  border: `1px solid ${CARD_BORDER}`,
+  borderRadius: "14px",
+  overflow: "hidden",
+};
+const activitySectionTitleSx = {
+  fontFamily: "var(--font-jakarta), system-ui, sans-serif",
+  fontWeight: 700,
+  fontSize: "13px",
+  lineHeight: "16px",
+  letterSpacing: "0.2px",
+  color: GREEN,
+  mb: 1,
+};
 
 const initials = (name) =>
   (name || "?")
@@ -280,6 +299,116 @@ const ProfileHeading = ({ icon: Icon, title }) => (
     <Typography sx={{ fontWeight: 700, fontSize: 11 }}>{title}</Typography>
   </Stack>
 );
+
+/** "13th January 2026" — day (with ordinal) + full month + year. */
+const activityOrdinal = (n) => {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return `${n}${s[(v - 20) % 10] || s[v] || s[0]}`;
+};
+const activityDate = (iso) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const month = new Intl.DateTimeFormat(undefined, { month: "long" }).format(d);
+  return `${activityOrdinal(d.getDate())} ${month} ${d.getFullYear()}`;
+};
+
+/** One audit entry → the recruiter-facing sentence. Job context comes from the
+ *  backend-enriched `job_title` (null for candidate-level rows). */
+const activitySentence = (e) => {
+  const before = e.before_state || {};
+  const after = e.after_state || {};
+  const job = e.job_title || "a job";
+  switch (e.action) {
+    case "stage_changed":
+      return `Moved from ${stageLabel(before.stage)} to ${stageLabel(after.stage)} for ${job}`;
+    case "application_moved_to_pool":
+      return `Moved from ${job} to Talent Pool at ${stageLabel(before.stage)}.`;
+    case "status_changed":
+      return `Status changed from ${statusLabel(before.status)} to ${statusLabel(after.status)} for ${job}`;
+    case "manually_accepted":
+      return `Accepted for ${job}`;
+    case "manually_rejected":
+      return `Rejected for ${job}`;
+    case "whatsapp_declined":
+      return `Declined screening on WhatsApp for ${job}`;
+    case "rescore_requested":
+      return `Re-scoring requested for ${job}`;
+    case "candidate_details_updated":
+      return `Contact details updated for ${job}`;
+    case "interview_scored":
+      return `Interview scored for ${job}`;
+    case "talent_pool_added":
+      return "Added to Talent Pool";
+    case "talent_pool_sourced":
+      return `Sourced from Talent Pool to ${job}`;
+    case "bulk_upload":
+      return `Added via bulk upload to ${job}`;
+    default:
+      return e.job_title ? `${humanize(e.action)} for ${job}` : humanize(e.action);
+  }
+};
+
+/** One row in the Recent Activity card: gold dot + sentence + date. */
+const ActivityRow = ({ entry, isLast }) => (
+  <Box sx={{ px: 2, py: 1.5, borderBottom: isLast ? "none" : `1px solid ${CARD_BORDER}` }}>
+    <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
+      <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: COLORS.gold, flexShrink: 0 }} />
+      <Typography variant="body2" sx={{ color: "#2C2C2A", fontWeight: 500 }}>
+        {activitySentence(entry)}
+      </Typography>
+    </Stack>
+    <Typography variant="caption" sx={{ display: "block", ml: "20px", color: "text.secondary" }}>
+      {activityDate(entry.created_at)}
+    </Typography>
+  </Box>
+);
+
+/**
+ * The candidate's cross-job activity feed — every audit-log entry across all
+ * their applications plus the candidate-level talent-pool rows, newest-first.
+ * Reuses the talent-pool history "Recent Activity" card styling. Rendered on
+ * the Candidate Profile tab; hides itself when there's nothing to show.
+ */
+const RecentActivity = ({ candidateId }) => {
+  const { data, isLoading } = useCandidateActivity(candidateId, { enabled: !!candidateId });
+  const items = asArray(data?.items);
+
+  if (!candidateId) return null;
+
+  if (isLoading) {
+    return (
+      <Box>
+        <Typography sx={activitySectionTitleSx}>Recent Activity</Typography>
+        <Box sx={activityCardSx}>
+          {[0, 1].map((i) => (
+            <Box
+              key={i}
+              sx={{ px: 2, py: 1.5, borderBottom: i === 0 ? `1px solid ${CARD_BORDER}` : "none" }}
+            >
+              <Skeleton width="70%" height={18} />
+              <Skeleton width="30%" height={14} />
+            </Box>
+          ))}
+        </Box>
+      </Box>
+    );
+  }
+
+  if (!items.length) return null;
+
+  return (
+    <Box>
+      <Typography sx={activitySectionTitleSx}>Recent Activity</Typography>
+      <Box sx={activityCardSx}>
+        {items.map((entry, i) => (
+          <ActivityRow key={entry.id} entry={entry} isLast={i === items.length - 1} />
+        ))}
+      </Box>
+    </Box>
+  );
+};
 
 /** Structured CV from `candidate.parsed_profile` (shape is loose — render defensively). */
 const ParsedProfile = ({ profile }) => {
@@ -1186,6 +1315,7 @@ const CandidateDialog = ({ appId, open, onClose, readOnly = false }) => {
                 </Box>
               ) : (
                 <Stack spacing={2.5} sx={{ mt: 2 }}>
+                  <RecentActivity candidateId={candidate?.id} />
                   <ParsedProfile profile={candidate?.parsed_profile} />
                   {app.cv_document?.blob_url && <OpenCvButton doc={app.cv_document} />}
                 </Stack>
