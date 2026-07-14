@@ -118,7 +118,7 @@ const TRUST_BADGES = [
 const trustBadge = (value) => TRUST_BADGES.find((b) => value >= b.min) || TRUST_BADGES[2];
 
 /** Solid, band-coloured score disc (white numeral), mirroring the mock. */
-const ScoreBadge = ({ value, size = 44 }) => {
+export const ScoreBadge = ({ value, size = 44 }) => {
   const has = value != null;
   const color = has ? bandHex(scoreBand(value).color) : "#c4c8c4";
   return (
@@ -143,7 +143,7 @@ const ScoreBadge = ({ value, size = 44 }) => {
 };
 
 /** Green "Breakdown ⌄" toggle that sits in a card footer. */
-const BreakdownToggle = ({ open, onClick }) => (
+export const BreakdownToggle = ({ open, onClick }) => (
   <Button
     onClick={onClick}
     disableRipple
@@ -786,7 +786,7 @@ const RubricRow = ({ label, value }) => {
   );
 };
 
-const RubricBreakdown = ({ data }) => {
+export const RubricBreakdown = ({ data }) => {
   const rows = orderRubric(data);
   if (!rows.length)
     return (
@@ -957,15 +957,39 @@ const SummaryRow = ({ icon, label, value, tagColor: tc, tag }) => (
 
 /* ── Data → view-model helpers ─────────────────────────────────────────────── */
 
-const trustSummary = (trustBreak) => {
-  return trustBreak?.rationale || "All authenticity checks look solid.";
+/** A rationale is only shown if it's genuine prose. The judge very occasionally
+ *  emits it as a serialized JSON object / schema placeholder (e.g.
+ *  `{"$comment": "This field must be a string, not an object"}`) — that passes
+ *  the backend's `str` check but is garbage to a recruiter, so treat anything
+ *  JSON-shaped as absent. */
+const proseRationale = (rationale) => {
+  if (typeof rationale !== "string") return null;
+  const t = rationale.trim();
+  if (!t || t[0] === "{" || t[0] === "[" || t.includes("$comment")) return null;
+  return rationale;
+};
+
+/** The weakest flagged signal's finding — a meaningful fallback when there's no
+ *  usable rationale. */
+const weakestConcernFinding = (trustBreak) => {
+  const signals = pickSignals(trustBreak);
+  if (!signals) return "";
+  for (const key of asArray(trustBreak?.top_concerns)) {
+    const text = signalText(signals[key]);
+    if (text) return text;
+  }
+  return "";
 };
 
 /** A recruiter-facing concern summary for the CV Authenticity card face: the
- *  actual `finding` sentences from the weakest sub-signals, falling back to the
- *  judge's rationale / a generic "which checks are flagged" line. */
+ *  judge's rationale when it's real prose, else the weakest sub-signal's
+ *  finding, else a generic "all clear" line. */
 const authenticitySummary = (trustBreak) => {
-  return trustSummary(trustBreak);
+  return (
+    proseRationale(trustBreak?.rationale) ||
+    weakestConcernFinding(trustBreak) ||
+    "All authenticity checks look solid."
+  );
 };
 
 /**
