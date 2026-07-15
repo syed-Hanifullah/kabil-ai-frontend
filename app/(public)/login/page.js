@@ -108,7 +108,7 @@ const LoginForm = () => {
     setServerError(null);
     try {
       await login(email.trim(), password);
-      router.replace(params.get("next") || "/jobs");
+      router.replace(params.get("next") || "/dashboard");
     } catch (err) {
       setServerError(err);
     }
